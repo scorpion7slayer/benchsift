@@ -175,7 +175,6 @@ async function apiFetch<T>(endpoint: string): Promise<T> {
   for (const key of keys) {
     const res = await fetch(`${BASE_URL}${endpoint}`, {
       headers: { "x-api-key": key },
-      next: { revalidate: 3600 }, // 1h HTTP cache — no concurrent refresh / pas de refresh concurrent
     });
 
     if (res.status === 429) {
@@ -304,6 +303,9 @@ async function scrapeModelCapabilities(slug: string): Promise<Partial<LLMModel>>
 }
 
 export async function getLLMModels(): Promise<LLMModel[]> {
+  "use cache";
+  cacheLife({ expire: 3600 });
+  cacheTag("llm-models");
   return apiFetch<LLMModel[]>("/data/llms/models");
 }
 
