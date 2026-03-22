@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 async function PreferencesLoader({ children }: { children: React.ReactNode }) {
   await connection();
   const cookieStore = await cookies();
-  const lang = cookieStore.get("nxtaicard_lang")?.value === "en" ? "en" : "fr";
+  const lang = cookieStore.get("nxtaicard_lang")?.value === "fr" ? "fr" : "en";
   const storedTheme = cookieStore.get("nxtaicard_theme")?.value;
   const theme = ["dark", "light", "system"].includes(storedTheme ?? "") ? storedTheme! : "system";
 
@@ -34,7 +34,7 @@ async function PreferencesLoader({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" className={`${geistSans.variable} ${geistMono.variable} h-full`} suppressHydrationWarning>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col bg-background antialiased" suppressHydrationWarning>
         <Suspense>
           <PreferencesLoader>{children}</PreferencesLoader>
