@@ -63,4 +63,4 @@ npm run build
 npm run start
 ```
 
-Works on Vercel, Railway, or any Node.js host. Set the `ARTIFICIAL_ANALYSIS_API_KEY` environment variable in your deployment dashboard.
+Works on Vercel, Railway, or any Node.js host. Set the `ARTIFICIAL_ANALYSIS_API_KEY` environment variable in your deployment dashboard.v
