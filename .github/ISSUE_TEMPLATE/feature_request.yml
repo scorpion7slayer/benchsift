@@ -1,0 +1,62 @@
+name: Feature Request
+description: Proposer une nouvelle fonctionnalité ou amélioration
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tu as une idée pour améliorer AI Model Cards ? Super ! Décris-la ci-dessous.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Zone concernée
+      description: Quelle partie de l'application est concernée ?
+      options:
+        - Liste des modèles
+        - Comparaison de modèles
+        - Page de détail d'un modèle
+        - Filtres / Tri
+        - Internationalisation (FR/EN)
+        - Performance
+        - UI / Design
+        - Données / Benchmarks
+        - Autre
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problème ou manque actuel
+      description: Quel problème cette fonctionnalité résoudrait-elle ?
+      placeholder: "Actuellement, il n'est pas possible de..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solution proposée
+      description: Décris la fonctionnalité que tu voudrais voir ajoutée.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considérées
+      description: Y a-t-il d'autres façons de résoudre ce problème ?
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priorité estimée
+      options:
+        - Critique (bloque l'utilisation)
+        - Haute (amélioration significative)
+        - Moyenne (nice to have)
+        - Basse (cosmétique)
+    validations:
+      required: false

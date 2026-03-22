@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nxt AI Card
 
-## Getting Started
+There are hundreds of LLMs out there. This is a simple tool to help you pick the right one — benchmarks, speed, pricing, context windows, all in one place.
 
-First, run the development server:
+![Nxt AI Card](./nxtaicard.png)
+
+Data comes from [Artificial Analysis](https://artificialanalysis.ai) and [OpenRouter](https://openrouter.ai), refreshed every hour.
+
+## Features
+
+- **Model catalogue** — browse all major LLMs with key stats at a glance
+- **Side-by-side comparison** — pick up to several models and compare them on every metric
+- **Detailed model pages** — context window, output speed, pricing (input/output tokens), quality benchmarks (MMLU, HumanEval, MATH…)
+- **Search & filter** — find models by name or provider instantly
+- **Light/dark theme** — persisted across sessions
+- **French & English** — language auto-detected, switchable in one click
+- **No tracking** — no analytics, no personal data collected
+
+## Getting started
 
 ```bash
+npm install
+cp .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+You'll need an Artificial Analysis API key — grab one at [artificialanalysis.ai](https://artificialanalysis.ai) and add it to `.env.local`:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+ARTIFICIAL_ANALYSIS_API_KEY=your_key_here
+```
 
-## Learn More
+OpenRouter is used without an API key (public endpoint).
 
-To learn more about Next.js, take a look at the following resources:
+## Project structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+app/
+  page.tsx              # Homepage — model grid
+  models/[slug]/        # Model detail page
+  compare/              # Side-by-side comparison
+components/             # UI components (shadcn/ui based)
+lib/
+  api.ts                # Data fetching (Artificial Analysis + OpenRouter)
+  i18n.tsx              # French/English translations
+  compare-store.tsx     # Client-side comparison state
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Built with
 
-## Deploy on Vercel
+- [Next.js 16](https://nextjs.org) (App Router, Server Components)
+- [React 19](https://react.dev)
+- [Tailwind CSS v4](https://tailwindcss.com)
+- [shadcn/ui](https://ui.shadcn.com)
+- [Radix UI](https://radix-ui.com)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deploying
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run build
+npm run start
+```
+
+Works on Vercel, Railway, or any Node.js host. Set the `ARTIFICIAL_ANALYSIS_API_KEY` environment variable in your deployment dashboard.

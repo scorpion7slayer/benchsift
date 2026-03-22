@@ -1,0 +1,60 @@
+name: Data Issue
+description: Signaler des données incorrectes, manquantes ou obsolètes sur un modèle
+title: "[Data] "
+labels: ["data", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Les données proviennent de l'API [Artificial Analysis](https://artificialanalysis.ai). Si les données sont incorrectes côté AA, elles le seront aussi ici.
+        Ce template est pour les problèmes d'affichage ou de données manquantes côté nxtaicard.
+
+  - type: input
+    id: model
+    attributes:
+      label: Modèle concerné
+      description: Nom exact du modèle (tel qu'affiché sur le site)
+      placeholder: "ex: GPT-4o, Claude 3.5 Sonnet, Gemini 2.0 Flash..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: data_type
+    attributes:
+      label: Type de donnée concernée
+      options:
+        - Benchmark / Score
+        - Nombre de paramètres (total / actifs)
+        - Fenêtre de contexte
+        - Prix (input / output)
+        - Vitesse (tokens/s, TTFT)
+        - Modalités (input / output)
+        - Modèle open weights
+        - Modèle reasoning
+        - Date de sortie
+        - Autre
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_value
+    attributes:
+      label: Valeur actuellement affichée
+      placeholder: "ex: 32B paramètres"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_value
+    attributes:
+      label: Valeur correcte attendue
+      placeholder: "ex: 70B paramètres"
+    validations:
+      required: true
+
+  - type: input
+    id: source
+    attributes:
+      label: Source de référence
+      description: Lien vers la documentation officielle ou la source de la correction
+      placeholder: "https://..."

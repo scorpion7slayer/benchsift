@@ -1,0 +1,87 @@
+name: Bug Report
+description: Signaler un problème ou un comportement inattendu
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de prendre le temps de signaler ce bug. Remplis les champs ci-dessous pour nous aider à le reproduire et le corriger rapidement.
+
+  - type: dropdown
+    id: page
+    attributes:
+      label: Page concernée
+      description: Sur quelle page as-tu rencontré le problème ?
+      options:
+        - Page d'accueil (liste des modèles)
+        - Page de détail d'un modèle
+        - Page de comparaison
+        - Header / Navigation
+        - Footer
+        - Autre
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description du bug
+      description: Décris clairement ce qui se passe.
+      placeholder: "Exemple : quand je clique sur 'Comparer', la page reste vide..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Étapes pour reproduire
+      description: Liste les étapes exactes pour reproduire le bug.
+      placeholder: |
+        1. Aller sur la page d'accueil
+        2. Sélectionner 2 modèles
+        3. Cliquer sur "Comparer"
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportement attendu
+      description: Que devrait-il se passer ?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Comportement observé
+      description: Que se passe-t-il réellement ?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Navigateur
+      options:
+        - Chrome
+        - Firefox
+        - Safari
+        - Edge
+        - Autre
+    validations:
+      required: false
+
+  - type: input
+    id: os
+    attributes:
+      label: Système d'exploitation
+      placeholder: "ex: macOS 14, Windows 11, Ubuntu 22..."
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Captures d'écran / logs
+      description: Ajoute des screenshots ou des messages d'erreur console si disponibles.

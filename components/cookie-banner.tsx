@@ -1,0 +1,52 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n";
+
+function CookieIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" fill="currentColor" className={className}>
+      <path d="M321.5 91.6C320.7 86.2 316.6 81.8 311.2 81C289.1 77.9 266.6 81.9 246.8 92.4L172.8 131.9C153.1 142.4 137.2 158.9 127.4 179L90.7 254.6C80.9 274.7 77.7 297.5 81.6 319.5L96.1 402.3C100 424.4 110.7 444.6 126.8 460.2L187.1 518.6C203.2 534.2 223.7 544.2 245.8 547.3L328.8 559C350.9 562.1 373.4 558.1 393.2 547.6L467.2 508.1C486.9 497.6 502.8 481.1 512.6 460.9L549.3 385.4C559.1 365.3 562.3 342.5 558.4 320.5C557.5 315.2 553.1 311.2 547.8 310.4C496.3 302.2 455 263.3 443.3 213C441.5 205.4 435.3 199.6 427.6 198.4C373 189.7 329.9 146.4 321.4 91.6zM272 208C289.7 208 304 222.3 304 240C304 257.7 289.7 272 272 272C254.3 272 240 257.7 240 240C240 222.3 254.3 208 272 208zM208 400C208 382.3 222.3 368 240 368C257.7 368 272 382.3 272 400C272 417.7 257.7 432 240 432C222.3 432 208 417.7 208 400zM432 336C449.7 336 464 350.3 464 368C464 385.7 449.7 400 432 400C414.3 400 400 385.7 400 368C400 350.3 414.3 336 432 336z" />
+    </svg>
+  );
+}
+
+export function CookieBanner() {
+  const [visible, setVisible] = useState(false);
+  const { t } = useI18n();
+
+  useEffect(() => {
+    const hasConsent = document.cookie.includes("nxtaicard_consent=1");
+    if (!hasConsent) setVisible(true);
+  }, []);
+
+  if (!visible) return null;
+
+  function accept() {
+    document.cookie = "nxtaicard_consent=1;path=/;max-age=31536000;SameSite=Lax";
+    setVisible(false);
+  }
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-lg">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div className="flex items-start gap-3 flex-1">
+          <CookieIcon className="size-8 shrink-0 text-foreground mt-0.5" />
+          <div>
+            <p className="text-sm font-medium mb-0.5">Cookies</p>
+            <p className="text-sm text-muted-foreground">{t.cookies.message}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+          <Button variant="ghost" size="sm" onClick={() => setVisible(false)}>
+            {t.cookies.decline}
+          </Button>
+          <Button size="sm" onClick={accept}>
+            {t.cookies.accept}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
