@@ -8,6 +8,7 @@ function getApiKeys(): string[] {
     process.env.ARTIFICIAL_ANALYSIS_API_KEY,
     process.env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY,
     process.env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_2,
+    process.env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_3,
   ].filter((k): k is string => typeof k === "string" && k.length > 0);
 }
 
@@ -195,7 +196,7 @@ async function apiFetch<T>(endpoint: string): Promise<T> {
     }
   }
 
-  throw lastError ?? new Error("All API keys failed");
+  throw lastError ?? new Error("All API keys failed (429 rate limit on all keys)");
 }
 
 /**

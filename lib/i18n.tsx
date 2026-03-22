@@ -257,7 +257,7 @@ const T: Record<Lang, Translations> = {
     error: {
       title: "Un problème est survenu",
       description: "Impossible de charger les données. Réessaie dans un instant.",
-      rateLimitDescription: (s) => s > 0 ? `Impossible de charger les données. Nouvelle tentative dans ${s}s…` : "Nouvelle tentative…",
+      rateLimitDescription: (_s) => "Impossible de charger les données. Réessaie dans un instant.",
       retry: "Réessayer",
     },
     benchmarks: {
@@ -403,7 +403,7 @@ const T: Record<Lang, Translations> = {
     error: {
       title: "Something went wrong",
       description: "Unable to load data. Please try again in a moment.",
-      rateLimitDescription: (s) => s > 0 ? `Unable to load data. Retrying in ${s}s…` : "Retrying…",
+      rateLimitDescription: (_s) => "Unable to load data. Please try again in a moment.",
       retry: "Try again",
     },
     benchmarks: {
