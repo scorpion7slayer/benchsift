@@ -4,7 +4,8 @@
   "name": "nxtaicard",
   "compatibility_date": "2025-09-27",
   "compatibility_flags": [
-    "nodejs_compat"
+    "nodejs_compat",
+    "nodejs_compat_populate_process_env"
   ],
   "assets": {
     "directory": ".open-next/assets",
