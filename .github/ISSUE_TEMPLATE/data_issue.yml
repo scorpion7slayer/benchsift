@@ -1,60 +1,60 @@
 name: Data Issue
-description: Signaler des données incorrectes, manquantes ou obsolètes sur un modèle
+description: Report incorrect, missing, or outdated data for a model
 title: "[Data] "
 labels: ["data", "triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        Les données proviennent de l'API [Artificial Analysis](https://artificialanalysis.ai). Si les données sont incorrectes côté AA, elles le seront aussi ici.
-        Ce template est pour les problèmes d'affichage ou de données manquantes côté nxtaicard.
+        Data comes from the [Artificial Analysis](https://artificialanalysis.ai) API. If the data is wrong on their end, it will be wrong here too.
+        Use this template for display issues or missing data on the Nxt AI Card side.
 
   - type: input
     id: model
     attributes:
-      label: Modèle concerné
-      description: Nom exact du modèle (tel qu'affiché sur le site)
-      placeholder: "ex: GPT-4o, Claude 3.5 Sonnet, Gemini 2.0 Flash..."
+      label: Affected model
+      description: Exact model name as shown on the site
+      placeholder: "e.g. GPT-4o, Claude 3.5 Sonnet, Gemini 2.0 Flash..."
     validations:
       required: true
 
   - type: dropdown
     id: data_type
     attributes:
-      label: Type de donnée concernée
+      label: Type of data
       options:
         - Benchmark / Score
-        - Nombre de paramètres (total / actifs)
-        - Fenêtre de contexte
-        - Prix (input / output)
-        - Vitesse (tokens/s, TTFT)
-        - Modalités (input / output)
-        - Modèle open weights
-        - Modèle reasoning
-        - Date de sortie
-        - Autre
+        - Parameter count (total / active)
+        - Context window
+        - Pricing (input / output)
+        - Speed (tokens/s, TTFT)
+        - Modalities (input / output)
+        - Open weights
+        - Reasoning model
+        - Release date
+        - Other
     validations:
       required: true
 
   - type: textarea
     id: current_value
     attributes:
-      label: Valeur actuellement affichée
-      placeholder: "ex: 32B paramètres"
+      label: Currently displayed value
+      placeholder: "e.g. 32B parameters"
     validations:
       required: true
 
   - type: textarea
     id: expected_value
     attributes:
-      label: Valeur correcte attendue
-      placeholder: "ex: 70B paramètres"
+      label: Expected correct value
+      placeholder: "e.g. 70B parameters"
     validations:
       required: true
 
   - type: input
     id: source
     attributes:
-      label: Source de référence
-      description: Lien vers la documentation officielle ou la source de la correction
+      label: Reference source
+      description: Link to official documentation or the source of the correction
       placeholder: "https://..."
