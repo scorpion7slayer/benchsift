@@ -1,4 +1,4 @@
-import { cacheLife, cacheTag } from "next/cache";
+import { unstable_cache } from "next/cache";
 
 const BASE_URL = "https://artificialanalysis.ai/api/v2";
 const OR_BASE = "https://openrouter.ai/api/v1";
@@ -42,19 +42,20 @@ interface OpenRouterModel {
   supported_parameters: string[] | null;
 }
 
-async function getOpenRouterModels(): Promise<OpenRouterModel[]> {
-  "use cache";
-  cacheLife("days");
-  cacheTag("openrouter-models");
-  try {
-    const res = await fetch(`${OR_BASE}/models`);
-    if (!res.ok) return [];
-    const json = await res.json();
-    return (json.data as OpenRouterModel[]) ?? [];
-  } catch {
-    return [];
-  }
-}
+const getOpenRouterModels = unstable_cache(
+  async (): Promise<OpenRouterModel[]> => {
+    try {
+      const res = await fetch(`${OR_BASE}/models`);
+      if (!res.ok) return [];
+      const json = await res.json();
+      return (json.data as OpenRouterModel[]) ?? [];
+    } catch {
+      return [];
+    }
+  },
+  ["openrouter-models"],
+  { revalidate: 86400 }
+);
 
 /** Finds the OR model matching an AA slug via multiple strategies. / Trouve le modèle OR correspondant via plusieurs stratégies. */
 function findOrModel(aaSlug: string, orModels: OpenRouterModel[]): OpenRouterModel | undefined {
@@ -274,48 +275,44 @@ async function scrapeAA(slug: string): Promise<Partial<LLMModel>> {
  *
  * OR takes priority for context & modalities; AA for the rest. Cached 24h.
  */
-async function scrapeModelCapabilities(slug: string): Promise<Partial<LLMModel>> {
-  "use cache";
-  cacheLife("days");
-  cacheTag(`aa-model-${slug}`);
+const scrapeModelCapabilities = unstable_cache(
+  async (slug: string): Promise<Partial<LLMModel>> => {
+    const [aa, orModels] = await Promise.all([
+      scrapeAA(slug),
+      getOpenRouterModels(),
+    ]);
 
-  const [aa, orModels] = await Promise.all([
-    scrapeAA(slug),
-    getOpenRouterModels(),
-  ]);
+    const or = (() => {
+      const match = findOrModel(slug, orModels);
+      return match ? orCapabilities(match) : {};
+    })();
 
-  const or = (() => {
-    const match = findOrModel(slug, orModels);
-    return match ? orCapabilities(match) : {};
-  })();
+    return {
+      total_parameters_b:   aa.total_parameters_b,
+      active_parameters_b:  aa.active_parameters_b,
+      reasoning_properties: aa.reasoning_properties ?? null,
+      is_open_weights:      aa.is_open_weights,
+      reasoning_model:   or.reasoning_model   ?? aa.reasoning_model,
+      context_window_tokens:  or.context_window_tokens  ?? aa.context_window_tokens,
+      input_modality_text:    or.input_modality_text    ?? aa.input_modality_text,
+      input_modality_image:   or.input_modality_image   ?? aa.input_modality_image,
+      input_modality_speech:  or.input_modality_speech  ?? aa.input_modality_speech,
+      input_modality_video:   or.input_modality_video   ?? aa.input_modality_video,
+      output_modality_text:   or.output_modality_text   ?? aa.output_modality_text,
+      output_modality_image:  or.output_modality_image  ?? aa.output_modality_image,
+      output_modality_speech: or.output_modality_speech ?? aa.output_modality_speech,
+      output_modality_video:  or.output_modality_video  ?? aa.output_modality_video,
+    };
+  },
+  ["aa-model-caps"],
+  { revalidate: 86400 }
+);
 
-  return {
-    // AA only: parameters & weights (OR unreliable for is_open_weights) / AA uniquement
-    total_parameters_b:   aa.total_parameters_b,
-    active_parameters_b:  aa.active_parameters_b,
-    reasoning_properties: aa.reasoning_properties ?? null,
-    is_open_weights:      aa.is_open_weights,
-    // OR first, AA fallback: reasoning / OR en priorité, AA en fallback
-    reasoning_model:   or.reasoning_model   ?? aa.reasoning_model,
-    // OR first, AA fallback: context & modalities / contexte & modalités
-    context_window_tokens:  or.context_window_tokens  ?? aa.context_window_tokens,
-    input_modality_text:    or.input_modality_text    ?? aa.input_modality_text,
-    input_modality_image:   or.input_modality_image   ?? aa.input_modality_image,
-    input_modality_speech:  or.input_modality_speech  ?? aa.input_modality_speech,
-    input_modality_video:   or.input_modality_video   ?? aa.input_modality_video,
-    output_modality_text:   or.output_modality_text   ?? aa.output_modality_text,
-    output_modality_image:  or.output_modality_image  ?? aa.output_modality_image,
-    output_modality_speech: or.output_modality_speech ?? aa.output_modality_speech,
-    output_modality_video:  or.output_modality_video  ?? aa.output_modality_video,
-  };
-}
-
-export async function getLLMModels(): Promise<LLMModel[]> {
-  "use cache";
-  cacheLife("days");
-  cacheTag("llm-models");
-  return apiFetch<LLMModel[]>("/data/llms/models");
-}
+export const getLLMModels = unstable_cache(
+  async (): Promise<LLMModel[]> => apiFetch<LLMModel[]>("/data/llms/models"),
+  ["llm-models"],
+  { revalidate: 86400, tags: ["llm-models"] }
+);
 
 export { scrapeModelCapabilities };
 
@@ -368,10 +365,6 @@ export async function getLLMModelsWithContext(): Promise<LLMModel[]> {
 
 /** Returns a model enriched with website data (context window, modalities…). / Retourne un modèle enrichi. */
 export async function getLLMModel(slug: string): Promise<LLMModel | undefined> {
-  "use cache";
-  cacheLife("days");
-  cacheTag(`llm-model-${slug}`);
-
   const [models, supplementary] = await Promise.all([
     getLLMModels(),
     scrapeModelCapabilities(slug),

@@ -1,10 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  cacheComponents: true,
-  experimental: {
-    ppr: false,
-  },
   serverExternalPackages: ["@vercel/og"],
   outputFileTracingExcludes: {
     "*": ["node_modules/next/dist/compiled/@vercel/og/**"],
