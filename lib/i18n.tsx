@@ -60,6 +60,7 @@ export interface Translations {
     inputTokens: string;
     outputTokens: string;
     blended: string;
+    blendedTooltip: string;
     intelligenceIndex: string;
     releaseDate: string;
     extraBenchmarks: string;
@@ -197,6 +198,7 @@ const T: Record<Lang, Translations> = {
       inputTokens: "Tokens d'entrée",
       outputTokens: "Tokens de sortie",
       blended: "Blended (3:1)",
+      blendedTooltip: "Prix moyen pondéré basé sur un ratio typique d'utilisation : (3× prix entrée + 1× prix sortie) ÷ 4.",
       intelligenceIndex: "Intelligence Index",
       releaseDate: "Date de sortie",
       extraBenchmarks: "Benchmarks supplémentaires",
@@ -336,6 +338,7 @@ const T: Record<Lang, Translations> = {
       inputTokens: "Input tokens",
       outputTokens: "Output tokens",
       blended: "Blended (3:1)",
+      blendedTooltip: "Weighted average price based on a typical usage ratio: (3× input price + 1× output price) ÷ 4.",
       intelligenceIndex: "Intelligence Index",
       releaseDate: "Release date",
       extraBenchmarks: "Additional benchmarks",

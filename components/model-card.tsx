@@ -13,7 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
-import { ModelProviderIcon } from "@/components/model-provider-icon";
+import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
 import { getProviderKey } from "@/lib/provider-map";
 import type { LLMModel } from "@/lib/api";
 

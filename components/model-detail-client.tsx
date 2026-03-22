@@ -4,13 +4,14 @@ import { use, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import {
   Zap, DollarSign, BarChart3, TrendingUp, GitCompareArrows,
-  Brain, ImageIcon, Video, Mic, Type, Lock, Unlock, BookOpen,
+  Brain, ImageIcon, Video, Mic, Type, Lock, Unlock, BookOpen, Info,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ModelProviderIcon } from "@/components/model-provider-icon";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
 import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
 import { getProviderKey } from "@/lib/provider-map";
@@ -217,10 +218,20 @@ function BenchmarkRow({
   );
 }
 
-function StatRow({ label, value }: { label: string; value: string }) {
+function StatRow({ label, value, tooltip }: { label: string; value: string; tooltip?: string }) {
   return (
     <div className="flex items-center justify-between py-2 text-sm">
-      <span className="text-muted-foreground">{label}</span>
+      <span className="flex items-center gap-1 text-muted-foreground">
+        {label}
+        {tooltip && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="size-3 cursor-help opacity-50 hover:opacity-100 transition-opacity" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-64 text-xs">{tooltip}</TooltipContent>
+          </Tooltip>
+        )}
+      </span>
       <span className="font-mono font-medium tabular-nums">{value}</span>
     </div>
   );
@@ -456,7 +467,7 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
             <CardContent className="divide-y">
               <StatRow label={t.detail.inputTokens}  value={pricing.price_1m_input_tokens !== null ? `$${fmt(pricing.price_1m_input_tokens, 2)}` : "—"} />
               <StatRow label={t.detail.outputTokens} value={pricing.price_1m_output_tokens !== null ? `$${fmt(pricing.price_1m_output_tokens, 2)}` : "—"} />
-              <StatRow label={t.detail.blended}      value={pricing.price_1m_blended_3_to_1 !== null ? `$${fmt(pricing.price_1m_blended_3_to_1, 2)}` : "—"} />
+              <StatRow label={t.detail.blended} tooltip={t.detail.blendedTooltip} value={pricing.price_1m_blended_3_to_1 !== null ? `$${fmt(pricing.price_1m_blended_3_to_1, 2)}` : "—"} />
             </CardContent>
           </Card>
         </div>

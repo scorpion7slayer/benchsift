@@ -3,12 +3,12 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { GitCompareArrows, ChevronLeft, Search, X, Check, Trophy, Type, ImageIcon, Video, Mic } from "lucide-react";
+import { GitCompareArrows, ChevronLeft, Search, X, Check, Trophy, Type, ImageIcon, Video, Mic, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ModelProviderIcon } from "@/components/model-provider-icon";
+import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
@@ -114,7 +114,7 @@ function LabelCell({ children }: { children: React.ReactNode }) {
 // Row types / Types de ligne
 
 interface MetricConfig {
-  label: string;
+  label: React.ReactNode;
   values: (number | null)[];
   dir: Direction;
   format: (v: number | null) => string;
@@ -632,7 +632,22 @@ export function CompareTable({
             <SectionHeader label={t.compare.sections.pricing} />
             <MetricRow label={t.compare.fields.inputPrice}   values={pr.map((p) => p.price_1m_input_tokens)}   dir="lower" format={fmtPrice} />
             <MetricRow label={t.compare.fields.outputPrice}  values={pr.map((p) => p.price_1m_output_tokens)}  dir="lower" format={fmtPrice} />
-            <MetricRow label={t.compare.fields.blendedPrice} values={pr.map((p) => p.price_1m_blended_3_to_1)} dir="lower" format={fmtPrice} />
+            <MetricRow
+              label={
+                <span className="flex items-center gap-1">
+                  {t.compare.fields.blendedPrice}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="size-3 cursor-help opacity-50 hover:opacity-100 transition-opacity" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-64 text-xs">{t.detail.blendedTooltip}</TooltipContent>
+                  </Tooltip>
+                </span>
+              }
+              values={pr.map((p) => p.price_1m_blended_3_to_1)}
+              dir="lower"
+              format={fmtPrice}
+            />
           </tbody>
         </table>
       </div>

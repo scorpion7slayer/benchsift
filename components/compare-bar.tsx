@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useCompare } from "@/lib/compare-store";
 import { useI18n } from "@/lib/i18n";
 import type { LLMModel } from "@/lib/api";
-import { ModelProviderIcon } from "@/components/model-provider-icon";
+import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
 import { getProviderKey } from "@/lib/provider-map";
 
 export function CompareBar({ models }: { models: LLMModel[] }) {
