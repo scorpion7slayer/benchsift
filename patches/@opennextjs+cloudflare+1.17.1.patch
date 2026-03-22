@@ -1,0 +1,13 @@
+diff --git a/node_modules/@opennextjs/cloudflare/dist/cli/build/patches/plugins/load-manifest.js b/node_modules/@opennextjs/cloudflare/dist/cli/build/patches/plugins/load-manifest.js
+index 4db9fee..123778c 100644
+--- a/node_modules/@opennextjs/cloudflare/dist/cli/build/patches/plugins/load-manifest.js
++++ b/node_modules/@opennextjs/cloudflare/dist/cli/build/patches/plugins/load-manifest.js
+@@ -29,7 +29,7 @@ async function getLoadManifestRule(buildOpts) {
+     const { outputDir } = buildOpts;
+     const baseDir = join(outputDir, "server-functions/default", getPackagePath(buildOpts));
+     const dotNextDir = join(baseDir, ".next");
+-    const manifests = await glob(join(dotNextDir, "**/{*-manifest,required-server-files}.json"), {
++    const manifests = await glob(join(dotNextDir, "**/{*-manifest,required-server-files,prefetch-hints}.json"), {
+         windowsPathsNoEscape: true,
+     });
+     const returnManifests = (await Promise.all(manifests.map(async (manifest) => `
