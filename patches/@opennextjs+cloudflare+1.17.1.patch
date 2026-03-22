@@ -1,5 +1,5 @@
 diff --git a/node_modules/@opennextjs/cloudflare/dist/cli/build/patches/plugins/load-manifest.js b/node_modules/@opennextjs/cloudflare/dist/cli/build/patches/plugins/load-manifest.js
-index 4db9fee..123778c 100644
+index 4db9fee..76e6765 100644
 --- a/node_modules/@opennextjs/cloudflare/dist/cli/build/patches/plugins/load-manifest.js
 +++ b/node_modules/@opennextjs/cloudflare/dist/cli/build/patches/plugins/load-manifest.js
 @@ -29,7 +29,7 @@ async function getLoadManifestRule(buildOpts) {
@@ -11,3 +11,11 @@ index 4db9fee..123778c 100644
          windowsPathsNoEscape: true,
      });
      const returnManifests = (await Promise.all(manifests.map(async (manifest) => `
+@@ -50,6 +50,7 @@ function loadManifest($PATH, $$$ARGS) {
+     return process.env.NEXT_BUILD_ID;
+ 	}
+   ${returnManifests}
++  if (arguments[4]) return {};
+   throw new Error(\`Unexpected loadManifest(\${$PATH}) call!\`);
+ }`,
+     };
