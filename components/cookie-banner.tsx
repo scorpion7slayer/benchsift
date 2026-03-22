@@ -18,6 +18,7 @@ export function CookieBanner() {
 
   useEffect(() => {
     const hasConsent = document.cookie.includes("nxtaicard_consent=1");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!hasConsent) setVisible(true);
   }, []);
 

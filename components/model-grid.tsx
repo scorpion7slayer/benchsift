@@ -272,6 +272,7 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
         ? models.filter((m) => m.model_creator.slug === providerFilter)
         : models;
     if (categoryFilter === "new") {
+      // eslint-disable-next-line react-hooks/purity
       const cutoff = new Date(Date.now() - NEW_MODELS_DAYS * 24 * 60 * 60 * 1000);
       base = base.filter((m) => m.release_date && new Date(m.release_date) >= cutoff);
     }

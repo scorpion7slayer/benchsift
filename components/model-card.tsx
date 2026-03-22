@@ -108,6 +108,7 @@ export function ModelCard({ model }: { model: LLMModel }) {
 
   const isNew = Boolean(
     release_date &&
+    // eslint-disable-next-line react-hooks/purity
     new Date(release_date) >= new Date(Date.now() - NEW_BADGE_DAYS * 24 * 60 * 60 * 1000)
   );
 

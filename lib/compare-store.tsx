@@ -27,6 +27,7 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (stored) setSelected(JSON.parse(stored));
     } catch {}
   }, []);
