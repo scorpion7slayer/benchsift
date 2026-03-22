@@ -5,3 +5,10 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    ignore:
+      # Next.js 16.2.1 introduced prefetch-hints.json which breaks OpenNext/Cloudflare
+      # Re-enable when @opennextjs/cloudflare supports it
+      - dependency-name: "next"
+        versions: ["16.2.1"]
+      - dependency-name: "eslint-config-next"
+        versions: ["16.2.1"]
