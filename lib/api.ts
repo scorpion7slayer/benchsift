@@ -35,7 +35,7 @@ interface OpenRouterModel {
 
 async function getOpenRouterModels(): Promise<OpenRouterModel[]> {
   "use cache";
-  cacheLife({ expire: 3600 });
+  cacheLife("days");
   cacheTag("openrouter-models");
   try {
     const res = await fetch(`${OR_BASE}/models`);
@@ -268,7 +268,7 @@ async function scrapeAA(slug: string): Promise<Partial<LLMModel>> {
  */
 async function scrapeModelCapabilities(slug: string): Promise<Partial<LLMModel>> {
   "use cache";
-  cacheLife({ expire: 86400 });
+  cacheLife("days");
   cacheTag(`aa-model-${slug}`);
 
   const [aa, orModels] = await Promise.all([
@@ -304,7 +304,7 @@ async function scrapeModelCapabilities(slug: string): Promise<Partial<LLMModel>>
 
 export async function getLLMModels(): Promise<LLMModel[]> {
   "use cache";
-  cacheLife({ expire: 3600 });
+  cacheLife("days");
   cacheTag("llm-models");
   return apiFetch<LLMModel[]>("/data/llms/models");
 }
@@ -361,7 +361,7 @@ export async function getLLMModelsWithContext(): Promise<LLMModel[]> {
 /** Returns a model enriched with website data (context window, modalities…). / Retourne un modèle enrichi. */
 export async function getLLMModel(slug: string): Promise<LLMModel | undefined> {
   "use cache";
-  cacheLife({ expire: 3600 }); // 1h — aligned with the API cache / aligné sur le cache
+  cacheLife("days");
   cacheTag(`llm-model-${slug}`);
 
   const [models, supplementary] = await Promise.all([
