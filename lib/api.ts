@@ -3,6 +3,14 @@ import { cacheLife, cacheTag } from "next/cache";
 const BASE_URL = "https://artificialanalysis.ai/api/v2";
 const OR_BASE = "https://openrouter.ai/api/v1";
 
+function getApiKeys(): string[] {
+  return [
+    process.env.ARTIFICIAL_ANALYSIS_API_KEY,
+    process.env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY,
+    process.env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_2,
+  ].filter((k): k is string => typeof k === "string" && k.length > 0);
+}
+
 // OpenRouter types / Types OpenRouter
 
 interface OpenRouterModel {
@@ -160,32 +168,31 @@ interface ApiResponse<T> {
   data: T;
 }
 
-/** Tries the primary key, then the fallback on 429. / Tente la clé principale, puis le fallback en cas de 429. */
+/** Tries every key in order, continues on any error (429 or other). */
 async function apiFetch<T>(endpoint: string): Promise<T> {
-  const keys = [
-    process.env.ARTIFICIAL_ANALYSIS_API_KEY,
-    process.env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY,
-    process.env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_2,
-  ].filter(Boolean) as string[];
+  const keys = getApiKeys();
 
   if (keys.length === 0) throw new Error("No ARTIFICIAL_ANALYSIS_API_KEY set");
 
   let lastError: Error | null = null;
 
   for (const key of keys) {
-    const res = await fetch(`${BASE_URL}${endpoint}`, {
-      headers: { "x-api-key": key },
-    });
+    try {
+      const res = await fetch(`${BASE_URL}${endpoint}`, {
+        headers: { "x-api-key": key },
+      });
 
-    if (res.status === 429) {
-      lastError = new Error(`API rate limit (429) on key ending …${key.slice(-6)}`);
-      continue; // try next key / essaie la clé suivante
+      if (!res.ok) {
+        lastError = new Error(`API error ${res.status} on key …${key.slice(-6)}`);
+        continue;
+      }
+
+      const json: ApiResponse<T> = await res.json();
+      return json.data;
+    } catch (e) {
+      lastError = e instanceof Error ? e : new Error(String(e));
+      continue;
     }
-
-    if (!res.ok) throw new Error(`API error ${res.status}: ${res.statusText}`);
-
-    const json: ApiResponse<T> = await res.json();
-    return json.data;
   }
 
   throw lastError ?? new Error("All API keys failed");
