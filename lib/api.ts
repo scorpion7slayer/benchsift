@@ -165,6 +165,7 @@ async function apiFetch<T>(endpoint: string): Promise<T> {
   const keys = [
     process.env.ARTIFICIAL_ANALYSIS_API_KEY,
     process.env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY,
+    process.env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_2,
   ].filter(Boolean) as string[];
 
   if (keys.length === 0) throw new Error("No ARTIFICIAL_ANALYSIS_API_KEY set");

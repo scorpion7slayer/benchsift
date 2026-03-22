@@ -111,7 +111,7 @@ export interface Translations {
   };
   footer: { via: string; cache: string };
   cookies: { message: string; accept: string; decline: string };
-  error: { title: string; description: string; retry: string };
+  error: { title: string; description: string; rateLimitDescription: (s: number) => string; retry: string };
   benchmarks: {
     intelligence: string;
     coding: string;
@@ -257,6 +257,7 @@ const T: Record<Lang, Translations> = {
     error: {
       title: "Un problème est survenu",
       description: "Impossible de charger les données. Réessaie dans un instant.",
+      rateLimitDescription: (s) => s > 0 ? `Impossible de charger les données. Nouvelle tentative dans ${s}s…` : "Nouvelle tentative…",
       retry: "Réessayer",
     },
     benchmarks: {
@@ -402,6 +403,7 @@ const T: Record<Lang, Translations> = {
     error: {
       title: "Something went wrong",
       description: "Unable to load data. Please try again in a moment.",
+      rateLimitDescription: (s) => s > 0 ? `Unable to load data. Retrying in ${s}s…` : "Retrying…",
       retry: "Try again",
     },
     benchmarks: {
