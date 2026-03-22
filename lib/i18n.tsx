@@ -111,6 +111,7 @@ export interface Translations {
   };
   footer: { via: string; cache: string };
   cookies: { message: string; accept: string; decline: string };
+  error: { title: string; description: string; retry: string };
   benchmarks: {
     intelligence: string;
     coding: string;
@@ -253,6 +254,11 @@ const T: Record<Lang, Translations> = {
       accept: "Accepter",
       decline: "Refuser",
     },
+    error: {
+      title: "Un problème est survenu",
+      description: "Impossible de charger les données. Réessaie dans un instant.",
+      retry: "Réessayer",
+    },
     benchmarks: {
       intelligence: "Intelligence",
       coding: "Coding",
@@ -392,6 +398,11 @@ const T: Record<Lang, Translations> = {
       message: "This site uses cookies to remember your language and theme preferences. No personal data is collected.",
       accept: "Accept",
       decline: "Decline",
+    },
+    error: {
+      title: "Something went wrong",
+      description: "Unable to load data. Please try again in a moment.",
+      retry: "Try again",
     },
     benchmarks: {
       intelligence: "Intelligence",
