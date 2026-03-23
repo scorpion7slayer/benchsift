@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 import { getLLMModels } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+
 const BASE = "https://nxtaicard.nxtaigen.com";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
