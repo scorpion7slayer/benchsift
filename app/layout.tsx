@@ -40,6 +40,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <PreferencesLoader>{children}</PreferencesLoader>
         </Suspense>
         <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "5bd070922a22443597ba68ce27a345e6"}'></script>
+        <script defer src="https://analyticstheo.serverscorpion1601.site/script.js" data-website-id="19c109db-11ee-4760-a968-0542d4543bea"></script>
       </body>
     </html>
   );
