@@ -277,11 +277,16 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
       base = base.filter((m) => m.release_date && new Date(m.release_date) >= cutoff);
     }
     if (q) {
-      base = base.filter(
-        (m) =>
-          m.name.toLowerCase().includes(q) ||
-          m.model_creator.name.toLowerCase().includes(q)
-      );
+      const tokens = q.split(/\s+/).filter(Boolean);
+      base = base.filter((m) => {
+        const haystack = [
+          m.name.toLowerCase(),
+          m.model_creator.name.toLowerCase(),
+          // slug with hyphens replaced by spaces so "nemotron" finds "nvidia-nemotron-..."
+          m.slug.toLowerCase().replace(/-/g, " "),
+        ].join(" ");
+        return tokens.every((token) => haystack.includes(token));
+      });
     }
     return sortModels(base, sort);
   }, [models, debouncedQuery, sort, providerFilter, categoryFilter]);

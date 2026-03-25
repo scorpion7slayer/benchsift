@@ -200,6 +200,192 @@ async function apiFetch<T>(endpoint: string): Promise<T> {
   throw lastError ?? new Error("All API keys failed (429 rate limit on all keys)");
 }
 
+// ─── HTML extraction helpers ────────────────────────────────────────────────
+
+/** Converts a slug to a readable name (e.g. "nvidia-nemotron-3-nano-30b" → "Nvidia Nemotron 3 Nano 30B") */
+function slugToName(slug: string): string {
+  return slug
+    .split("-")
+    .map((w) => {
+      if (/^\d+$/.test(w)) return w;
+      if (/^\d+[bBmMkKtT]$/.test(w)) return w.slice(0, -1) + w.slice(-1).toUpperCase();
+      return w.charAt(0).toUpperCase() + w.slice(1);
+    })
+    .join(" ");
+}
+
+/**
+ * Extracts a numeric value from JSON-like HTML.
+ * Handles both regular JSON ("key":123) and escaped JSON (\"key\":123).
+ */
+function extractJsonNum(html: string, ...keys: string[]): number | null {
+  for (const key of keys) {
+    let m = html.match(new RegExp(`"${key}"\\s*:\\s*([\\d.]+)`));
+    if (m) return parseFloat(m[1]);
+    m = html.match(new RegExp(`\\\\"${key}\\\\"\\s*:\\s*([\\d.]+)`));
+    if (m) return parseFloat(m[1]);
+  }
+  return null;
+}
+
+/**
+ * Extracts a string value from JSON-like HTML.
+ * Handles both regular JSON ("key":"val") and escaped JSON (\"key\":\"val\").
+ */
+function extractJsonStr(html: string, ...keys: string[]): string | null {
+  for (const key of keys) {
+    let m = html.match(new RegExp(`"${key}"\\s*:\\s*"([^"]+)"`));
+    if (m) return m[1];
+    m = html.match(new RegExp(`\\\\"${key}\\\\"\\s*:\\s*\\\\"([^"\\\\]+)\\\\"`));
+    if (m) return m[1];
+  }
+  return null;
+}
+
+// ─── Scrape all model slugs from the sitemap ────────────────────────────────
+
+/**
+ * Meta-pages that appear under /models/ in the sitemap but are NOT individual models.
+ * These are category pages, comparison hubs, and feature pages.
+ */
+const SITEMAP_EXCLUDED_SLUGS = new Set([
+  "comparisons", "compare",
+  "multilingual", "open-source", "capabilities",
+  "caching", "recommend",
+  "leaderboard", "ranking", "benchmark",
+]);
+
+/**
+ * Fetches the AA sitemap to get the authoritative list of real model slugs.
+ * Used both to add missing models and to filter out "fake" meta-models returned by the API.
+ * Cached 24h.
+ */
+const scrapeAllModelSlugs = unstable_cache(
+  async (): Promise<string[]> => {
+    try {
+      const res = await fetch("https://artificialanalysis.ai/sitemap.xml", {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible)" },
+      });
+      if (!res.ok) return [];
+      const xml = await res.text();
+      const slugs = new Set<string>();
+      for (const m of xml.matchAll(
+        /https:\/\/artificialanalysis\.ai\/models\/([a-z0-9][a-z0-9\-_.]+?)(?:<|\/|$)/g
+      )) {
+        const s = m[1];
+        // Only keep direct model slugs — skip meta-pages and sub-pages (contain "/")
+        if (s.length > 2 && !SITEMAP_EXCLUDED_SLUGS.has(s) && !s.includes("/")) {
+          slugs.add(s);
+        }
+      }
+      return [...slugs];
+    } catch {
+      return [];
+    }
+  },
+  ["aa-all-slugs"],
+  { revalidate: 86400 }
+);
+
+// ─── Build partial models for slugs missing from the API ────────────────────
+
+/**
+ * Builds a minimal LLMModel by scraping an AA model page.
+ * Used for models that exist on AA but are not yet in their API.
+ * Cached 24h per slug.
+ */
+const buildPartialModelCached = unstable_cache(
+  async (slug: string): Promise<LLMModel | null> => {
+    try {
+      const res = await fetch(`https://artificialanalysis.ai/models/${slug}`, {
+        headers: { "User-Agent": "Mozilla/5.0" },
+      });
+      if (!res.ok) return null;
+      const html = await res.text();
+
+      // Creator — try structured JSON first, then object pattern
+      const creatorSlug =
+        extractJsonStr(html, "model_creator_slug", "creator_slug") ??
+        html.match(/"model_creators?"\s*:\s*\{[^}]{0,300}"slug"\s*:\s*"([a-z0-9\-]+)"/)?.[1] ??
+        html.match(/\\"model_creators?\\"\s*:\s*\{[^}]{0,300}\\"slug\\"\s*:\s*\\"([a-z0-9\-]+)\\"/)?.[1] ??
+        slug.split("-")[0];
+      const creatorName =
+        extractJsonStr(html, "model_creator_name", "creator_name") ??
+        html.match(/"model_creators?"\s*:\s*\{[^}]{0,300}"name"\s*:\s*"([^"]+)"/)?.[1] ??
+        html.match(/\\"model_creators?\\"\s*:\s*\{[^}]{0,300}\\"name\\"\s*:\s*\\"([^"\\]+)\\"/)?.[1] ??
+        (creatorSlug.charAt(0).toUpperCase() + creatorSlug.slice(1));
+
+      // Model name
+      const name =
+        extractJsonStr(html, "model_name", "modelName") ??
+        html.match(/<h1[^>]*>\s*([^<]+)\s*<\/h1>/)?.[1]?.trim() ??
+        slugToName(slug);
+
+      // Release date
+      const releaseDate =
+        html.match(/"release_date"\s*:\s*"(\d{4}-\d{2}-\d{2})"/)
+          ?.[1] ??
+        html.match(/\\"release_date\\"\s*:\s*\\"(\d{4}-\d{2}-\d{2})\\"/)
+          ?.[1] ??
+        null;
+
+      // Pricing
+      const pricing: Pricing = {
+        price_1m_blended_3_to_1: extractJsonNum(html, "price_1m_blended_3_to_1"),
+        price_1m_input_tokens:   extractJsonNum(html, "price_1m_input_tokens"),
+        price_1m_output_tokens:  extractJsonNum(html, "price_1m_output_tokens"),
+      };
+
+      // Evaluations — AA HTML uses short names (intelligence_index, coding_index, math_index)
+      const evaluations: Evaluations = {
+        artificial_analysis_intelligence_index: extractJsonNum(html, "intelligence_index", "artificial_analysis_intelligence_index"),
+        artificial_analysis_coding_index:       extractJsonNum(html, "coding_index", "artificial_analysis_coding_index"),
+        artificial_analysis_math_index:         extractJsonNum(html, "math_index", "artificial_analysis_math_index"),
+        mmlu_pro:          extractJsonNum(html, "mmlu_pro"),
+        gpqa:              extractJsonNum(html, "gpqa"),
+        hle:               extractJsonNum(html, "hle"),
+        livecodebench:     extractJsonNum(html, "livecodebench"),
+        scicode:           extractJsonNum(html, "scicode"),
+        math_500:          extractJsonNum(html, "math_500"),
+        aime:              extractJsonNum(html, "aime"),
+        aime_25:           extractJsonNum(html, "aime_25"),
+        ifbench:           extractJsonNum(html, "ifbench"),
+        lcr:               extractJsonNum(html, "lcr"),
+        terminalbench_hard: extractJsonNum(html, "terminalbench_hard"),
+        tau2:              extractJsonNum(html, "tau2"),
+      };
+
+      // Performance
+      const speed = extractJsonNum(html, "median_output_tokens_per_second");
+      const ttft  = extractJsonNum(html, "median_time_to_first_token_seconds", "median_time_to_first_token");
+      const ttfa  = extractJsonNum(html, "median_time_to_first_answer_token");
+
+      // Capabilities (context window, parameters, modalities) — from scrapeAA
+      const caps = await scrapeAA(slug);
+
+      return {
+        id: slug,
+        name,
+        slug,
+        release_date: releaseDate,
+        model_creator: { id: creatorSlug, name: creatorName, slug: creatorSlug },
+        evaluations,
+        pricing,
+        median_output_tokens_per_second:    speed,
+        median_time_to_first_token_seconds: ttft,
+        median_time_to_first_answer_token:  ttfa,
+        ...caps,
+      };
+    } catch {
+      return null;
+    }
+  },
+  ["aa-partial-model"],
+  { revalidate: 86400 }
+);
+
+// ─── AA page scraper ─────────────────────────────────────────────────────────
+
 /**
  * Scrapes the Artificial Analysis website for data missing from the API:
  * parameters, open/closed weights, reasoning. / paramètres, poids, raisonnement.
@@ -220,8 +406,17 @@ async function scrapeAA(slug: string): Promise<Partial<LLMModel>> {
     }
 
     function extractContextWindow(): number | null {
+      // JSON field (both naming conventions used by AA)
       let m = html.match(/"context_window_tokens":(\d+)/);
       if (m) return parseInt(m[1]);
+      m = html.match(/"context_window":(\d+)/);
+      if (m) return parseInt(m[1]);
+      // Escaped JSON
+      m = html.match(/\\"context_window_tokens\\":(\d+)/);
+      if (m) return parseInt(m[1]);
+      m = html.match(/\\"context_window\\":(\d+)/);
+      if (m) return parseInt(m[1]);
+      // Text patterns
       m = html.match(/context window of ([\d.]+)\s*M tokens/i);
       if (m) return Math.round(parseFloat(m[1]) * 1_000_000);
       m = html.match(/context window of ([\d,]+)\s*tokens/i);
@@ -309,7 +504,39 @@ const scrapeModelCapabilities = unstable_cache(
 );
 
 export const getLLMModels = unstable_cache(
-  async (): Promise<LLMModel[]> => apiFetch<LLMModel[]>("/data/llms/models"),
+  async (): Promise<LLMModel[]> => {
+    // Fetch API models and the authoritative sitemap slugs in parallel
+    const [apiModels, validSlugs] = await Promise.all([
+      apiFetch<LLMModel[]>("/data/llms/models"),
+      scrapeAllModelSlugs(),
+    ]);
+
+    // If the sitemap is unavailable, fall back to raw API results
+    if (validSlugs.length === 0) return apiModels;
+
+    const validSlugSet = new Set(validSlugs);
+
+    // Filter the API: remove "fake" meta-models that aren't real individual models
+    const realApiModels = apiModels.filter((m) => validSlugSet.has(m.slug));
+
+    // Find slugs on the AA website but absent from their API → build partial models
+    const apiSlugSet = new Set(realApiModels.map((m) => m.slug));
+    const missingSlugs = validSlugs.filter((s) => !apiSlugSet.has(s));
+
+    if (missingSlugs.length === 0) return realApiModels;
+
+    // Build partial models for missing slugs in chunks to avoid flooding
+    const extraModels: LLMModel[] = [];
+    for (let i = 0; i < missingSlugs.length; i += 10) {
+      const chunk = missingSlugs.slice(i, i + 10);
+      const settled = await Promise.allSettled(chunk.map(buildPartialModelCached));
+      for (const r of settled) {
+        if (r.status === "fulfilled" && r.value) extraModels.push(r.value);
+      }
+    }
+
+    return [...realApiModels, ...extraModels];
+  },
   ["llm-models"],
   { revalidate: 86400, tags: ["llm-models"] }
 );

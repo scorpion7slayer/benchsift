@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { Brain, ExternalLink, ChevronLeft, MessageSquarePlus } from "lucide-react";
+import { Brain, ExternalLink, ChevronLeft, MessageSquarePlus, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useI18n, type Lang } from "@/lib/i18n";
@@ -36,10 +37,12 @@ interface SiteHeaderProps {
 
 export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
   const { t } = useI18n();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex h-14 items-center gap-3">
+        {/* Logo ou bouton retour */}
         {backHref ? (
           <Button variant="ghost" size="sm" asChild className="h-8 px-2">
             <Link href={backHref} className="flex items-center gap-1.5">
@@ -61,58 +64,108 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
             </span>
           )}
 
-          {/* Données source */}
+          {/* Liens externes — desktop uniquement */}
+          <div className="hidden sm:flex items-center gap-2">
+            <a
+              href="https://artificialanalysis.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ExternalLink className="size-3" />
+              {t.nav.source}
+            </a>
+            <a
+              href="https://openrouter.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ExternalLink className="size-3" />
+              OpenRouter
+            </a>
+            <div className="w-px h-4 bg-border mx-1" />
+            <a
+              href="https://github.com/scorpion7slayer/nxtaicard/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <MessageSquarePlus className="size-3" />
+              {t.nav.feedback}
+            </a>
+            <a
+              href="https://github.com/scorpion7slayer/nxtaicard"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="GitHub"
+            >
+              <GithubIcon className="size-4" />
+            </a>
+            <div className="w-px h-4 bg-border mx-1" />
+          </div>
+
+          {/* Préférences — toujours visibles */}
+          <LangToggle />
+          <ThemeToggle />
+
+          {/* Bouton hamburger — mobile uniquement */}
+          <button
+            className="sm:hidden flex items-center justify-center h-8 w-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+          >
+            {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Menu déroulant mobile */}
+      {menuOpen && (
+        <div className="sm:hidden border-t bg-background/95 backdrop-blur px-4 py-3 flex flex-col gap-4 animate-in fade-in-0 slide-in-from-top-1 duration-150">
           <a
             href="https://artificialanalysis.ai"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => setMenuOpen(false)}
           >
-            <ExternalLink className="size-3" />
-            <span className="hidden sm:inline">{t.nav.source}</span>
+            <ExternalLink className="size-4 shrink-0" />
+            {t.nav.source}
           </a>
-
           <a
             href="https://openrouter.ai"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => setMenuOpen(false)}
           >
-            <ExternalLink className="size-3" />
-            <span className="hidden sm:inline">OpenRouter</span>
+            <ExternalLink className="size-4 shrink-0" />
+            OpenRouter
           </a>
-
-          <div className="w-px h-4 bg-border mx-1" />
-
-          {/* Feedback */}
           <a
             href="https://github.com/scorpion7slayer/nxtaicard/issues"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => setMenuOpen(false)}
           >
-            <MessageSquarePlus className="size-3" />
-            <span className="hidden sm:inline">{t.nav.feedback}</span>
+            <MessageSquarePlus className="size-4 shrink-0" />
+            {t.nav.feedback}
           </a>
-
-          {/* GitHub */}
           <a
             href="https://github.com/scorpion7slayer/nxtaicard"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="GitHub"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => setMenuOpen(false)}
           >
-            <GithubIcon className="size-4" />
+            <GithubIcon className="size-4 shrink-0" />
+            GitHub
           </a>
-
-          <div className="w-px h-4 bg-border mx-1" />
-
-          {/* Préférences */}
-          <LangToggle />
-          <ThemeToggle />
         </div>
-      </div>
+      )}
     </header>
   );
 }
