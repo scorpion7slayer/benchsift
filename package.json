@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@lobehub/icons": "^5.0.1",
-    "@opennextjs/cloudflare": "^1.17.1",
+    "@opennextjs/cloudflare": "^1.18.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.577.0",
