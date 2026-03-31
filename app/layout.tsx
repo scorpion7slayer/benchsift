@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { cookies } from "next/headers";
+import Script from "next/script";
 import { connection } from "next/server";
 import { Providers } from "@/components/providers";
 import { CookieBanner } from "@/components/cookie-banner";
@@ -39,8 +40,17 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Suspense>
           <PreferencesLoader>{children}</PreferencesLoader>
         </Suspense>
-        <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "5bd070922a22443597ba68ce27a345e6"}'></script>
-        <script defer src="https://analyticstheo.serverscorpion1601.site/script.js" data-website-id="19c109db-11ee-4760-a968-0542d4543bea"></script>
+        <Script
+          src="https://analyticstheo.serverscorpion1601.site/api/script.js"
+          data-site-id="8544cf104129"
+          defer
+          strategy="beforeInteractive"
+        />
+        <script
+          defer
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon='{"token": "5bd070922a22443597ba68ce27a345e6"}'
+        ></script>
       </body>
     </html>
   );
