@@ -14,7 +14,7 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
-    "@lobehub/icons": "^5.0.1",
+    "@lobehub/icons": "^5.2.0",
     "@opennextjs/cloudflare": "^1.17.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
