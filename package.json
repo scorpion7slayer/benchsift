@@ -38,6 +38,6 @@
     "patch-package": "^8.0.1",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "wrangler": "^4.80.0"
+    "wrangler": "^4.87.0"
   }
 }
