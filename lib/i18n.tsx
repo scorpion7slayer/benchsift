@@ -7,7 +7,7 @@ export type Lang = "fr" | "en";
 export interface Translations {
   brand: string;
   nav: { back: string; source: string; feedback: string };
-  hero: { title: string; description: string };
+  hero: { title: string; description: string; latestModels: string };
   grid: {
     search: string;
     sortBy: string;
@@ -145,6 +145,7 @@ const T: Record<Lang, Translations> = {
     hero: {
       title: "Modèles d'IA",
       description: "Benchmarks, performances et prix — données via Artificial Analysis. Mis à jour toutes les heures.",
+      latestModels: "Latest models",
     },
     grid: {
       search: "Rechercher un modèle ou un fournisseur…",
@@ -291,6 +292,7 @@ const T: Record<Lang, Translations> = {
     hero: {
       title: "AI Models",
       description: "Benchmarks, performance and pricing — data via Artificial Analysis. Updated every hour.",
+      latestModels: "Latest models",
     },
     grid: {
       search: "Search a model or provider…",

@@ -2,6 +2,22 @@ import { unstable_cache } from "next/cache";
 
 const BASE_URL = "https://artificialanalysis.ai/api/v2";
 const OR_BASE = "https://openrouter.ai/api/v1";
+const API_FETCH_TIMEOUT_MS = 8_000;
+const SCRAPE_FETCH_TIMEOUT_MS = 6_000;
+const PARTIAL_MODEL_CHUNK_SIZE = 5;
+const CAPABILITY_CHUNK_SIZE = 6;
+const SCRAPE_USER_AGENT = "Mozilla/5.0 (compatible; NxtAICard/1.0; +https://nxtaicard.nxtaigen.com)";
+
+function fetchWithTimeout(
+  input: string | URL | Request,
+  init: RequestInit = {},
+  timeoutMs = API_FETCH_TIMEOUT_MS
+): Promise<Response> {
+  return fetch(input, {
+    ...init,
+    signal: init.signal ?? AbortSignal.timeout(timeoutMs),
+  });
+}
 
 function getApiKeys(): string[] {
   return [
@@ -45,7 +61,7 @@ interface OpenRouterModel {
 const getOpenRouterModels = unstable_cache(
   async (): Promise<OpenRouterModel[]> => {
     try {
-      const res = await fetch(`${OR_BASE}/models`);
+      const res = await fetchWithTimeout(`${OR_BASE}/models`);
       if (!res.ok) return [];
       const json = await res.json();
       return (json.data as OpenRouterModel[]) ?? [];
@@ -180,9 +196,11 @@ async function apiFetch<T>(endpoint: string): Promise<T> {
 
   for (const key of keys) {
     try {
-      const res = await fetch(`${BASE_URL}${endpoint}`, {
-        headers: { "x-api-key": key },
-      });
+      const res = await fetchWithTimeout(
+        `${BASE_URL}${endpoint}`,
+        { headers: { "x-api-key": key } },
+        API_FETCH_TIMEOUT_MS
+      );
 
       if (!res.ok) {
         lastError = new Error(`API error ${res.status} on key …${key.slice(-6)}`);
@@ -258,131 +276,127 @@ const SITEMAP_EXCLUDED_SLUGS = new Set([
 /**
  * Fetches the AA sitemap to get the authoritative list of real model slugs.
  * Used both to add missing models and to filter out "fake" meta-models returned by the API.
- * Cached 24h.
+ * Called only inside the cached getLLMModels refresh to avoid extra KV entries.
  */
-const scrapeAllModelSlugs = unstable_cache(
-  async (): Promise<string[]> => {
-    try {
-      const res = await fetch("https://artificialanalysis.ai/sitemap.xml", {
-        headers: { "User-Agent": "Mozilla/5.0 (compatible)" },
-      });
-      if (!res.ok) return [];
-      const xml = await res.text();
-      const slugs = new Set<string>();
-      for (const m of xml.matchAll(
-        /https:\/\/artificialanalysis\.ai\/models\/([a-z0-9][a-z0-9\-_.]+?)(?:<|\/|$)/g
-      )) {
-        const s = m[1];
-        // Only keep direct model slugs — skip meta-pages and sub-pages (contain "/")
-        if (s.length > 2 && !SITEMAP_EXCLUDED_SLUGS.has(s) && !s.includes("/")) {
-          slugs.add(s);
-        }
+async function scrapeAllModelSlugs(): Promise<string[]> {
+  try {
+    const res = await fetchWithTimeout(
+      "https://artificialanalysis.ai/sitemap.xml",
+      { headers: { "User-Agent": SCRAPE_USER_AGENT } },
+      SCRAPE_FETCH_TIMEOUT_MS
+    );
+    if (!res.ok) return [];
+    const xml = await res.text();
+    const slugs = new Set<string>();
+    for (const m of xml.matchAll(
+      /https:\/\/artificialanalysis\.ai\/models\/([a-z0-9][a-z0-9\-_.]+?)(?:<|\/|$)/g
+    )) {
+      const s = m[1];
+      // Only keep direct model slugs — skip meta-pages and sub-pages (contain "/")
+      if (s.length > 2 && !SITEMAP_EXCLUDED_SLUGS.has(s) && !s.includes("/")) {
+        slugs.add(s);
       }
-      return [...slugs];
-    } catch {
-      return [];
     }
-  },
-  ["aa-all-slugs"],
-  { revalidate: 86400 }
-);
+    return [...slugs];
+  } catch {
+    return [];
+  }
+}
 
 // ─── Build partial models for slugs missing from the API ────────────────────
 
 /**
  * Builds a minimal LLMModel by scraping an AA model page.
  * Used for models that exist on AA but are not yet in their API.
- * Cached 24h per slug.
+ * Called only inside the cached getLLMModels refresh to avoid per-slug KV writes.
  */
-const buildPartialModelCached = unstable_cache(
-  async (slug: string): Promise<LLMModel | null> => {
-    try {
-      const res = await fetch(`https://artificialanalysis.ai/models/${slug}`, {
-        headers: { "User-Agent": "Mozilla/5.0" },
-      });
-      if (!res.ok) return null;
-      const html = await res.text();
+async function buildPartialModel(slug: string): Promise<LLMModel | null> {
+  try {
+    const res = await fetchWithTimeout(
+      `https://artificialanalysis.ai/models/${slug}`,
+      { headers: { "User-Agent": SCRAPE_USER_AGENT } },
+      SCRAPE_FETCH_TIMEOUT_MS
+    );
+    if (!res.ok) return null;
+    const html = await res.text();
 
-      // Creator — try structured JSON first, then object pattern
-      const creatorSlug =
-        extractJsonStr(html, "model_creator_slug", "creator_slug") ??
-        html.match(/"model_creators?"\s*:\s*\{[^}]{0,300}"slug"\s*:\s*"([a-z0-9\-]+)"/)?.[1] ??
-        html.match(/\\"model_creators?\\"\s*:\s*\{[^}]{0,300}\\"slug\\"\s*:\s*\\"([a-z0-9\-]+)\\"/)?.[1] ??
-        slug.split("-")[0];
-      const creatorName =
-        extractJsonStr(html, "model_creator_name", "creator_name") ??
-        html.match(/"model_creators?"\s*:\s*\{[^}]{0,300}"name"\s*:\s*"([^"]+)"/)?.[1] ??
-        html.match(/\\"model_creators?\\"\s*:\s*\{[^}]{0,300}\\"name\\"\s*:\s*\\"([^"\\]+)\\"/)?.[1] ??
-        (creatorSlug.charAt(0).toUpperCase() + creatorSlug.slice(1));
+    // Creator — try structured JSON first, then object pattern
+    const creatorSlug =
+      extractJsonStr(html, "model_creator_slug", "creator_slug") ??
+      html.match(/"model_creators?"\s*:\s*\{[^}]{0,300}"slug"\s*:\s*"([a-z0-9\-]+)"/)?.[1] ??
+      html.match(/\\"model_creators?\\"\s*:\s*\{[^}]{0,300}\\"slug\\"\s*:\s*\\"([a-z0-9\-]+)\\"/)?.[1] ??
+      slug.split("-")[0];
+    const creatorName =
+      extractJsonStr(html, "model_creator_name", "creator_name") ??
+      html.match(/"model_creators?"\s*:\s*\{[^}]{0,300}"name"\s*:\s*"([^"]+)"/)?.[1] ??
+      html.match(/\\"model_creators?\\"\s*:\s*\{[^}]{0,300}\\"name\\"\s*:\s*\\"([^"\\]+)\\"/)?.[1] ??
+      (creatorSlug.charAt(0).toUpperCase() + creatorSlug.slice(1));
 
-      // Model name
-      const name =
-        extractJsonStr(html, "model_name", "modelName") ??
-        html.match(/<h1[^>]*>\s*([^<]+)\s*<\/h1>/)?.[1]?.trim() ??
-        slugToName(slug);
+    // Model name
+    const name =
+      extractJsonStr(html, "model_name", "modelName") ??
+      html.match(/<h1[^>]*>\s*([^<]+)\s*<\/h1>/)?.[1]?.trim() ??
+      slugToName(slug);
 
-      // Release date
-      const releaseDate =
-        html.match(/"release_date"\s*:\s*"(\d{4}-\d{2}-\d{2})"/)
-          ?.[1] ??
-        html.match(/\\"release_date\\"\s*:\s*\\"(\d{4}-\d{2}-\d{2})\\"/)
-          ?.[1] ??
-        null;
+    // Release date
+    const releaseDate =
+      html.match(/"release_date"\s*:\s*"(\d{4}-\d{2}-\d{2})"/)
+        ?.[1] ??
+      html.match(/\\"release_date\\"\s*:\s*\\"(\d{4}-\d{2}-\d{2})\\"/)
+        ?.[1] ??
+      null;
 
-      // Pricing
-      const pricing: Pricing = {
-        price_1m_blended_3_to_1: extractJsonNum(html, "price_1m_blended_3_to_1"),
-        price_1m_input_tokens:   extractJsonNum(html, "price_1m_input_tokens"),
-        price_1m_output_tokens:  extractJsonNum(html, "price_1m_output_tokens"),
-      };
+    // Pricing
+    const pricing: Pricing = {
+      price_1m_blended_3_to_1: extractJsonNum(html, "price_1m_blended_3_to_1"),
+      price_1m_input_tokens:   extractJsonNum(html, "price_1m_input_tokens"),
+      price_1m_output_tokens:  extractJsonNum(html, "price_1m_output_tokens"),
+    };
 
-      // Evaluations — AA HTML uses short names (intelligence_index, coding_index, math_index)
-      const evaluations: Evaluations = {
-        artificial_analysis_intelligence_index: extractJsonNum(html, "intelligence_index", "artificial_analysis_intelligence_index"),
-        artificial_analysis_coding_index:       extractJsonNum(html, "coding_index", "artificial_analysis_coding_index"),
-        artificial_analysis_math_index:         extractJsonNum(html, "math_index", "artificial_analysis_math_index"),
-        mmlu_pro:          extractJsonNum(html, "mmlu_pro"),
-        gpqa:              extractJsonNum(html, "gpqa"),
-        hle:               extractJsonNum(html, "hle"),
-        livecodebench:     extractJsonNum(html, "livecodebench"),
-        scicode:           extractJsonNum(html, "scicode"),
-        math_500:          extractJsonNum(html, "math_500"),
-        aime:              extractJsonNum(html, "aime"),
-        aime_25:           extractJsonNum(html, "aime_25"),
-        ifbench:           extractJsonNum(html, "ifbench"),
-        lcr:               extractJsonNum(html, "lcr"),
-        terminalbench_hard: extractJsonNum(html, "terminalbench_hard"),
-        tau2:              extractJsonNum(html, "tau2"),
-      };
+    // Evaluations — AA HTML uses short names (intelligence_index, coding_index, math_index)
+    const evaluations: Evaluations = {
+      artificial_analysis_intelligence_index: extractJsonNum(html, "intelligence_index", "artificial_analysis_intelligence_index"),
+      artificial_analysis_coding_index:       extractJsonNum(html, "coding_index", "artificial_analysis_coding_index"),
+      artificial_analysis_math_index:         extractJsonNum(html, "math_index", "artificial_analysis_math_index"),
+      mmlu_pro:          extractJsonNum(html, "mmlu_pro"),
+      gpqa:              extractJsonNum(html, "gpqa"),
+      hle:               extractJsonNum(html, "hle"),
+      livecodebench:     extractJsonNum(html, "livecodebench"),
+      scicode:           extractJsonNum(html, "scicode"),
+      math_500:          extractJsonNum(html, "math_500"),
+      aime:              extractJsonNum(html, "aime"),
+      aime_25:           extractJsonNum(html, "aime_25"),
+      ifbench:           extractJsonNum(html, "ifbench"),
+      lcr:               extractJsonNum(html, "lcr"),
+      terminalbench_hard: extractJsonNum(html, "terminalbench_hard"),
+      tau2:              extractJsonNum(html, "tau2"),
+    };
 
-      // Performance
-      const speed = extractJsonNum(html, "median_output_tokens_per_second");
-      const ttft  = extractJsonNum(html, "median_time_to_first_token_seconds", "median_time_to_first_token");
-      const ttfa  = extractJsonNum(html, "median_time_to_first_answer_token");
+    // Performance
+    const speed = extractJsonNum(html, "median_output_tokens_per_second");
+    const ttft  = extractJsonNum(html, "median_time_to_first_token_seconds", "median_time_to_first_token");
+    const ttfa  = extractJsonNum(html, "median_time_to_first_answer_token");
 
-      // Capabilities (context window, parameters, modalities) — from scrapeAA
-      const caps = await scrapeAA(slug);
+    // Capabilities (context window, parameters, modalities) — from scrapeAA
+    const caps = await scrapeAA(slug);
 
-      return {
-        id: slug,
-        name,
-        slug,
-        release_date: releaseDate,
-        model_creator: { id: creatorSlug, name: creatorName, slug: creatorSlug },
-        evaluations,
-        pricing,
-        median_output_tokens_per_second:    speed,
-        median_time_to_first_token_seconds: ttft,
-        median_time_to_first_answer_token:  ttfa,
-        ...caps,
-      };
-    } catch {
-      return null;
-    }
-  },
-  ["aa-partial-model"],
-  { revalidate: 86400 }
-);
+    return {
+      id: slug,
+      name,
+      slug,
+      release_date: releaseDate,
+      model_creator: { id: creatorSlug, name: creatorName, slug: creatorSlug },
+      evaluations,
+      pricing,
+      median_output_tokens_per_second:    speed,
+      median_time_to_first_token_seconds: ttft,
+      median_time_to_first_answer_token:  ttfa,
+      ...caps,
+    };
+  } catch {
+    return null;
+  }
+}
 
 // ─── AA page scraper ─────────────────────────────────────────────────────────
 
@@ -392,10 +406,14 @@ const buildPartialModelCached = unstable_cache(
  */
 async function scrapeAA(slug: string): Promise<Partial<LLMModel>> {
   try {
-    const res = await fetch(`https://artificialanalysis.ai/models/${slug}`, {
-      headers: { "User-Agent": "Mozilla/5.0" },
-      cache: "no-store",
-    });
+    const res = await fetchWithTimeout(
+      `https://artificialanalysis.ai/models/${slug}`,
+      {
+        headers: { "User-Agent": SCRAPE_USER_AGENT },
+        cache: "no-store",
+      },
+      SCRAPE_FETCH_TIMEOUT_MS
+    );
     if (!res.ok) return {};
     const html = await res.text();
 
@@ -525,11 +543,11 @@ export const getLLMModels = unstable_cache(
 
     if (missingSlugs.length === 0) return realApiModels;
 
-    // Build partial models for missing slugs in chunks to avoid flooding
+    // Build partial models for missing slugs in small chunks to avoid Worker timeouts.
     const extraModels: LLMModel[] = [];
-    for (let i = 0; i < missingSlugs.length; i += 10) {
-      const chunk = missingSlugs.slice(i, i + 10);
-      const settled = await Promise.allSettled(chunk.map(buildPartialModelCached));
+    for (let i = 0; i < missingSlugs.length; i += PARTIAL_MODEL_CHUNK_SIZE) {
+      const chunk = missingSlugs.slice(i, i + PARTIAL_MODEL_CHUNK_SIZE);
+      const settled = await Promise.allSettled(chunk.map(buildPartialModel));
       for (const r of settled) {
         if (r.status === "fulfilled" && r.value) extraModels.push(r.value);
       }
@@ -551,7 +569,7 @@ export async function getLLMModelBasic(slug: string): Promise<LLMModel | undefin
 /** Enriches models in parallel (chunked to avoid flooding). / Par chunks pour éviter le flood. */
 async function chunkedScrape(
   models: LLMModel[],
-  chunkSize = 25
+  chunkSize = CAPABILITY_CHUNK_SIZE
 ): Promise<Partial<LLMModel>[]> {
   const results: Partial<LLMModel>[] = [];
   for (let i = 0; i < models.length; i += chunkSize) {
