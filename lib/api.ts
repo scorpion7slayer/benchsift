@@ -181,6 +181,8 @@ export interface LLMModel {
   reasoning_properties?: { style: string } | null;
 }
 
+let lastSuccessfulModels: LLMModel[] | null = null;
+
 interface ApiResponse<T> {
   status: number;
   data: T;
@@ -269,9 +271,18 @@ function extractJsonStr(html: string, ...keys: string[]): string | null {
 const SITEMAP_EXCLUDED_SLUGS = new Set([
   "comparisons", "compare",
   "multilingual", "open-source", "capabilities",
+  "multimodal",
   "caching", "recommend",
   "leaderboard", "ranking", "benchmark",
 ]);
+
+function isSafeModelSlug(slug: string): boolean {
+  return /^[a-z0-9][a-z0-9._-]{1,119}$/.test(slug) && !SITEMAP_EXCLUDED_SLUGS.has(slug);
+}
+
+function aaModelPageUrl(slug: string): string {
+  return `https://artificialanalysis.ai/models/${encodeURIComponent(slug)}`;
+}
 
 /**
  * Fetches the AA sitemap to get the authoritative list of real model slugs.
@@ -310,10 +321,11 @@ async function scrapeAllModelSlugs(): Promise<string[]> {
  * Used for models that exist on AA but are not yet in their API.
  * Called only inside the cached getLLMModels refresh to avoid per-slug KV writes.
  */
-async function buildPartialModel(slug: string): Promise<LLMModel | null> {
+async function buildPartialModel(slug: string, includeCapabilities = true): Promise<LLMModel | null> {
   try {
+    if (!isSafeModelSlug(slug)) return null;
     const res = await fetchWithTimeout(
-      `https://artificialanalysis.ai/models/${slug}`,
+      aaModelPageUrl(slug),
       { headers: { "User-Agent": SCRAPE_USER_AGENT } },
       SCRAPE_FETCH_TIMEOUT_MS
     );
@@ -334,8 +346,9 @@ async function buildPartialModel(slug: string): Promise<LLMModel | null> {
 
     // Model name
     const name =
-      extractJsonStr(html, "model_name", "modelName") ??
+      extractJsonStr(html, "model_name", "modelName", "short_name") ??
       html.match(/<h1[^>]*>\s*([^<]+)\s*<\/h1>/)?.[1]?.trim() ??
+      html.match(/<title>\s*([^<-]+?)\s*-/)?.[1]?.trim() ??
       slugToName(slug);
 
     // Release date
@@ -348,7 +361,11 @@ async function buildPartialModel(slug: string): Promise<LLMModel | null> {
 
     // Pricing
     const pricing: Pricing = {
-      price_1m_blended_3_to_1: extractJsonNum(html, "price_1m_blended_3_to_1"),
+      price_1m_blended_3_to_1: extractJsonNum(
+        html,
+        "price_1m_blended_3_to_1",
+        "price_1m_blended_0_3_1"
+      ),
       price_1m_input_tokens:   extractJsonNum(html, "price_1m_input_tokens"),
       price_1m_output_tokens:  extractJsonNum(html, "price_1m_output_tokens"),
     };
@@ -373,12 +390,17 @@ async function buildPartialModel(slug: string): Promise<LLMModel | null> {
     };
 
     // Performance
-    const speed = extractJsonNum(html, "median_output_tokens_per_second");
-    const ttft  = extractJsonNum(html, "median_time_to_first_token_seconds", "median_time_to_first_token");
+    const speed = extractJsonNum(html, "median_output_tokens_per_second", "median_output_speed");
+    const ttft  = extractJsonNum(
+      html,
+      "median_time_to_first_token_seconds",
+      "median_time_to_first_token",
+      "median_time_to_first_chunk"
+    );
     const ttfa  = extractJsonNum(html, "median_time_to_first_answer_token");
 
     // Capabilities (context window, parameters, modalities) — from scrapeAA
-    const caps = await scrapeAA(slug);
+    const caps = includeCapabilities ? await scrapeAA(slug) : {};
 
     return {
       id: slug,
@@ -398,6 +420,38 @@ async function buildPartialModel(slug: string): Promise<LLMModel | null> {
   }
 }
 
+const getScrapedLLMModelsFallback = unstable_cache(
+  async (): Promise<LLMModel[]> => {
+    const slugs = await scrapeAllModelSlugs();
+    const models: LLMModel[] = [];
+
+    for (let i = 0; i < slugs.length; i += PARTIAL_MODEL_CHUNK_SIZE) {
+      const chunk = slugs.slice(i, i + PARTIAL_MODEL_CHUNK_SIZE);
+      const settled = await Promise.allSettled(
+        chunk.map((slug) => buildPartialModel(slug, false))
+      );
+
+      for (const result of settled) {
+        if (result.status !== "fulfilled" || !result.value) continue;
+
+        const model = result.value;
+        const hasUsefulData =
+          model.model_creator.name !== "Unknown" &&
+          (model.evaluations.artificial_analysis_intelligence_index !== null ||
+            model.evaluations.artificial_analysis_coding_index !== null ||
+            model.pricing.price_1m_blended_3_to_1 !== null ||
+            model.median_output_tokens_per_second !== null);
+
+        if (hasUsefulData) models.push(model);
+      }
+    }
+
+    return models;
+  },
+  ["llm-models-public-fallback"],
+  { revalidate: 86400, tags: ["llm-models"] }
+);
+
 // ─── AA page scraper ─────────────────────────────────────────────────────────
 
 /**
@@ -406,8 +460,9 @@ async function buildPartialModel(slug: string): Promise<LLMModel | null> {
  */
 async function scrapeAA(slug: string): Promise<Partial<LLMModel>> {
   try {
+    if (!isSafeModelSlug(slug)) return {};
     const res = await fetchWithTimeout(
-      `https://artificialanalysis.ai/models/${slug}`,
+      aaModelPageUrl(slug),
       {
         headers: { "User-Agent": SCRAPE_USER_AGENT },
         cache: "no-store",
@@ -521,7 +576,7 @@ const scrapeModelCapabilities = unstable_cache(
   { revalidate: 86400 }
 );
 
-export const getLLMModels = unstable_cache(
+const getLLMModelsCached = unstable_cache(
   async (): Promise<LLMModel[]> => {
     // Fetch API models and the authoritative sitemap slugs in parallel
     const [apiModels, validSlugs] = await Promise.all([
@@ -547,7 +602,7 @@ export const getLLMModels = unstable_cache(
     const extraModels: LLMModel[] = [];
     for (let i = 0; i < missingSlugs.length; i += PARTIAL_MODEL_CHUNK_SIZE) {
       const chunk = missingSlugs.slice(i, i + PARTIAL_MODEL_CHUNK_SIZE);
-      const settled = await Promise.allSettled(chunk.map(buildPartialModel));
+      const settled = await Promise.allSettled(chunk.map((slug) => buildPartialModel(slug)));
       for (const r of settled) {
         if (r.status === "fulfilled" && r.value) extraModels.push(r.value);
       }
@@ -558,6 +613,22 @@ export const getLLMModels = unstable_cache(
   ["llm-models"],
   { revalidate: 86400, tags: ["llm-models"] }
 );
+
+export async function getLLMModels(): Promise<LLMModel[]> {
+  try {
+    const models = await getLLMModelsCached();
+    if (models.length > 0) lastSuccessfulModels = models;
+    return models;
+  } catch (error) {
+    if (lastSuccessfulModels?.length) return lastSuccessfulModels;
+    const publicFallbackModels = await getScrapedLLMModelsFallback();
+    if (publicFallbackModels.length > 0) {
+      lastSuccessfulModels = publicFallbackModels;
+      return publicFallbackModels;
+    }
+    throw error;
+  }
+}
 
 export { scrapeModelCapabilities };
 
@@ -610,11 +681,10 @@ export async function getLLMModelsWithContext(): Promise<LLMModel[]> {
 
 /** Returns a model enriched with website data (context window, modalities…). / Retourne un modèle enrichi. */
 export async function getLLMModel(slug: string): Promise<LLMModel | undefined> {
-  const [models, supplementary] = await Promise.all([
-    getLLMModels(),
-    scrapeModelCapabilities(slug),
-  ]);
+  if (!isSafeModelSlug(slug)) return undefined;
+  const models = await getLLMModels();
   const model = models.find((m) => m.slug === slug);
   if (!model) return undefined;
+  const supplementary = await scrapeModelCapabilities(model.slug);
   return { ...model, ...supplementary };
 }

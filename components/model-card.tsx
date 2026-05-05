@@ -115,7 +115,7 @@ export function ModelCard({ model }: { model: LLMModel }) {
   return (
     <div className="group relative h-full">
       <Link href={`/models/${slug}`} className="block h-full">
-        <Card className={`h-full transition-shadow hover:shadow-md cursor-pointer ${selected ? "ring-2 ring-primary" : ""}`}>
+        <Card className={`h-full transition-shadow hover:shadow-md cursor-pointer ${selected ? "compare-card-selected ring-2 ring-primary" : ""}`}>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between gap-2 mb-1.5">
               <div className="shrink-0 size-8 rounded-md flex items-center justify-center bg-muted">

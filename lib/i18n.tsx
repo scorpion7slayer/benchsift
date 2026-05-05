@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useMemo } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from "react";
 
 export type Lang = "fr" | "en";
 
@@ -84,6 +84,7 @@ export interface Translations {
     clear: string;
     compare: string;
     addMore: string;
+    addModel: string;
     backToList: string;
     noModels: string;
     sections: {
@@ -224,6 +225,7 @@ const T: Record<Lang, Translations> = {
       clear: "Effacer",
       compare: "Comparer",
       addMore: "Sélectionnez au moins 2 modèles pour comparer",
+      addModel: "Ajouter un modèle",
       backToList: "Retour à la liste",
       noModels: "Aucun modèle sélectionné",
       sections: {
@@ -371,6 +373,7 @@ const T: Record<Lang, Translations> = {
       clear: "Clear",
       compare: "Compare",
       addMore: "Select at least 2 models to compare",
+      addModel: "Add a model",
       backToList: "Back to list",
       noModels: "No models selected",
       sections: {
@@ -455,10 +458,32 @@ export function LanguageProvider({
   initialLang?: Lang;
 }) {
   const [lang, setLangState] = useState<Lang>(initialLang);
+  const transitionTimerRef = useRef<number | null>(null);
 
   const setLang = useCallback((l: Lang) => {
+    const html = document.documentElement;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (!reduceMotion) {
+      if (transitionTimerRef.current) window.clearTimeout(transitionTimerRef.current);
+      html.classList.remove("language-transitioning");
+      void html.offsetWidth;
+      html.classList.add("language-transitioning");
+      transitionTimerRef.current = window.setTimeout(() => {
+        html.classList.remove("language-transitioning");
+        transitionTimerRef.current = null;
+      }, 220);
+    }
+
     setLangState(l);
     document.cookie = `nxtaicard_lang=${l};path=/;max-age=31536000;SameSite=Lax`;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (transitionTimerRef.current) window.clearTimeout(transitionTimerRef.current);
+      document.documentElement.classList.remove("language-transitioning");
+    };
   }, []);
 
   const value = useMemo(() => ({ lang, setLang, t: T[lang] }), [lang, setLang]);

@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import Script from "next/script";
 import { connection } from "next/server";
 import { Providers } from "@/components/providers";
+import { PageTransitionProvider } from "@/components/page-transition-provider";
 import { CookieBanner } from "@/components/cookie-banner";
 import "./globals.css";
 
@@ -27,7 +28,7 @@ async function PreferencesLoader({ children }: { children: React.ReactNode }) {
 
   return (
     <Providers initialLang={lang} initialTheme={theme}>
-      {children}
+      <PageTransitionProvider>{children}</PageTransitionProvider>
       <CookieBanner />
     </Providers>
   );

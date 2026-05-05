@@ -30,7 +30,7 @@ export function CookieBanner() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-lg">
+    <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-card/95 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/85">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <div className="flex items-start gap-3 flex-1">
           <CookieIcon className="size-8 shrink-0 text-foreground mt-0.5" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GitCompareArrows, ChevronLeft, Search, X, Check, Trophy, Type, ImageIcon, Video, Mic, Info } from "lucide-react";
@@ -13,9 +13,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
 import { getProviderKey } from "@/lib/provider-map";
+import { usePageTransition } from "@/components/page-transition-provider";
 import type { LLMModel } from "@/lib/api";
 
 // ─── Benchmark constants ──────────────────────────────────────────────────────
+
+const COMPARE_COLUMN_EXIT_MS = 520;
 
 const AA_INDEX_KEYS = new Set([
   "artificial_analysis_intelligence_index",
@@ -335,12 +338,14 @@ function MobileCompareView({
   return (
     <div className="space-y-4">
       {/* Tabs — one per model */}
-      <div className="flex border rounded-xl overflow-hidden">
+      <div className="flex gap-2 overflow-x-auto rounded-xl border bg-muted/20 p-1">
         {models.map((model, i) => (
           <button
             key={model.id}
             onClick={() => setActiveIdx(i)}
-            className={`flex-1 flex flex-col items-center gap-1 py-3 px-1 min-w-0 transition-colors border-r last:border-r-0 ${i === idx ? "bg-muted" : "hover:bg-muted/40"}`}
+            className={`flex min-w-32 shrink-0 flex-col items-center gap-1 rounded-lg px-2 py-2.5 transition-colors ${
+              i === idx ? "border bg-card shadow-sm" : "border border-transparent hover:bg-muted/50"
+            }`}
           >
             <div className="size-7 flex items-center justify-center">
               <ModelProviderIcon provider={getProviderKey(model.model_creator.slug)} size={20} />
@@ -360,12 +365,12 @@ function MobileCompareView({
       </div>
 
       {/* Active model header */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-start gap-3">
         <div className="size-12 rounded-xl bg-muted border flex items-center justify-center shrink-0">
           <ModelProviderIcon provider={getProviderKey(m.model_creator.slug)} size={28} />
         </div>
         <div className="flex-1 min-w-0">
-          <Link href={`/models/${m.slug}`} className="font-semibold hover:underline line-clamp-1">
+          <Link href={`/models/${m.slug}`} className="font-semibold leading-tight hover:underline line-clamp-2">
             {m.name}
           </Link>
           <p className="text-sm text-muted-foreground">{m.model_creator.name}</p>
@@ -393,7 +398,7 @@ function MobileCompareView({
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
           <Input
-            placeholder={`${t.compare.addMore}…`}
+            placeholder={`${t.compare.addModel}…`}
             value={addSearch}
             onChange={(e) => setAddSearch(e.target.value)}
             className="pl-9 pr-9"
@@ -404,12 +409,13 @@ function MobileCompareView({
             </button>
           )}
           {searchResults.length > 0 && (
-            <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border rounded-lg shadow-md overflow-hidden max-h-60 overflow-y-auto">
-              {searchResults.map((res) => (
+            <div className="compare-search-dropdown absolute top-full left-0 right-0 z-50 mt-1 bg-popover border rounded-lg shadow-md overflow-hidden max-h-60 overflow-y-auto">
+              {searchResults.map((res, index) => (
                 <button
                   key={res.id}
                   onClick={() => { onAdd(res); setAddSearch(""); setActiveIdx(models.length); }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-muted/60 transition-colors text-left"
+                  className="compare-search-result w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-muted/60 transition-colors text-left"
+                  style={{ animationDelay: `${Math.min(index, 5) * 32}ms` }}
                 >
                   <div className="size-7 rounded-md bg-muted flex items-center justify-center shrink-0">
                     <ModelProviderIcon provider={getProviderKey(res.model_creator.slug)} size={18} />
@@ -578,12 +584,13 @@ function MobileCompareView({
 function SearchDropdown({ results, onAdd }: { results: LLMModel[]; onAdd: (m: LLMModel) => void }) {
   if (results.length === 0) return null;
   return (
-    <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border rounded-lg shadow-md overflow-hidden max-h-72 overflow-y-auto">
-      {results.map((m) => (
+    <div className="compare-search-dropdown absolute top-full left-0 right-0 z-50 mt-1 bg-popover border rounded-lg shadow-md overflow-hidden max-h-72 overflow-y-auto">
+      {results.map((m, index) => (
         <button
           key={m.id}
           onClick={() => onAdd(m)}
-          className="w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-muted/60 transition-colors text-left"
+          className="compare-search-result w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-muted/60 transition-colors text-left"
+          style={{ animationDelay: `${Math.min(index, 7) * 32}ms` }}
         >
           <div className="size-7 rounded-md bg-muted flex items-center justify-center shrink-0">
             <ModelProviderIcon provider={getProviderKey(m.model_creator.slug)} size={18} />
@@ -607,11 +614,26 @@ function SearchDropdown({ results, onAdd }: { results: LLMModel[]; onAdd: (m: LL
 
 export function CompareTable({ models, allModels }: { models: LLMModel[]; allModels: LLMModel[] }) {
   const { t } = useI18n();
-  const { selected, toggle, clear, isFull } = useCompare();
+  const { selected, toggle, clear, lastChange } = useCompare();
   const router = useRouter();
+  const { push } = usePageTransition();
   const [addSearch, setAddSearch] = useState("");
+  const [removingSlug, setRemovingSlug] = useState<string | null>(null);
+  const compareUpdateTimerRef = useRef<number | null>(null);
+  const compareSignature = models.map((model) => model.slug).join("|") || "empty";
+  const compareIsFull = models.length >= 4;
+  const removingIndex = removingSlug ? models.findIndex((model) => model.slug === removingSlug) : -1;
 
-  useEffect(() => () => { clear(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    return () => {
+      if (compareUpdateTimerRef.current) window.clearTimeout(compareUpdateTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setRemovingSlug(null), 0);
+    return () => window.clearTimeout(id);
+  }, [compareSignature]);
 
   const searchResults = useMemo(() => {
     const q = addSearch.trim().toLowerCase();
@@ -623,16 +645,23 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
   }, [addSearch, allModels, models]);
 
   function addModel(model: LLMModel) {
+    if (compareIsFull) return;
     if (!selected.includes(model.slug)) toggle(model.slug);
     router.replace(`/compare?models=${[...models.map(m => m.slug), model.slug].join(",")}`);
     setAddSearch("");
   }
 
   function removeModel(slug: string) {
-    toggle(slug);
-    const next = models.filter(m => m.slug !== slug).map(m => m.slug);
-    if (next.length >= 1) router.replace(`/compare?models=${next.join(",")}`);
-    else router.replace("/compare");
+    if (removingSlug) return;
+    setRemovingSlug(slug);
+    if (compareUpdateTimerRef.current) window.clearTimeout(compareUpdateTimerRef.current);
+    compareUpdateTimerRef.current = window.setTimeout(() => {
+      toggle(slug);
+      const next = models.filter(m => m.slug !== slug).map(m => m.slug);
+      if (next.length >= 1) router.replace(`/compare?models=${next.join(",")}`);
+      else router.replace("/compare");
+      compareUpdateTimerRef.current = null;
+    }, COMPARE_COLUMN_EXIT_MS);
   }
 
   const extraBenchmarkKeys = useMemo(() => {
@@ -677,7 +706,7 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
   // Empty state
   if (models.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-6 text-center py-12">
+      <div className="compare-empty-state flex-1 flex flex-col items-center justify-center gap-6 text-center py-12">
         <GitCompareArrows className="size-12 text-muted-foreground" />
         <div className="space-y-1">
           <p className="font-medium">{t.compare.noModels}</p>
@@ -687,7 +716,7 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
             <Input
-              placeholder={`${t.compare.addMore}…`}
+              placeholder={`${t.compare.addModel}…`}
               value={addSearch}
               onChange={(e) => setAddSearch(e.target.value)}
               className="pl-9 pr-9"
@@ -714,18 +743,27 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{t.compare.title}</h1>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => { clear(); router.push("/"); }}>
+          <Button variant="outline" size="sm" onClick={() => { clear(); push("/"); }}>
             <ChevronLeft className="size-4 mr-1" />
             <span className="hidden sm:inline">{t.compare.backToList}</span>
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => { clear(); router.replace("/compare"); }}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              clear();
+              router.replace("/compare");
+            }}
+          >
             {t.compare.clear}
           </Button>
         </div>
       </div>
 
       {/* ── MOBILE VIEW ─────────────────────────────────────────────────── */}
-      <div className="md:hidden">
+      <div
+        className="compare-panel-refresh md:hidden"
+      >
         <MobileCompareView
           models={models}
           allModels={allModels}
@@ -734,19 +772,21 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
           maxWins={maxWins}
           onRemove={removeModel}
           onAdd={addModel}
-          isFull={isFull}
+          isFull={compareIsFull}
           extraBenchmarkKeys={extraBenchmarkKeys}
         />
       </div>
 
       {/* ── DESKTOP VIEW ─────────────────────────────────────────────────── */}
-      <div className="hidden md:block space-y-4">
+      <div
+        className="compare-panel-refresh hidden md:block space-y-4"
+      >
         {/* Add model search */}
-        {!isFull && (
+        {!compareIsFull && (
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
             <Input
-              placeholder={`${t.compare.addMore}…`}
+              placeholder={`${t.compare.addModel}…`}
               value={addSearch}
               onChange={(e) => setAddSearch(e.target.value)}
               className="pl-9 pr-9"
@@ -761,15 +801,24 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
         )}
 
         {/* Table */}
-        <div className="overflow-x-auto rounded-xl border">
-          <table className="w-full min-w-[500px] text-sm">
+        <div key={`table-${compareSignature}`} className="compare-table-frame overflow-x-auto rounded-xl border">
+          <table
+            className={`compare-table w-full min-w-[500px] text-sm ${
+              removingIndex >= 0 ? `compare-removing-col-${removingIndex}` : ""
+            }`}
+          >
             <thead>
               <tr className="border-b bg-muted/40">
                 <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky left-0 bg-muted/40 min-w-[180px] border-r">
                   {t.compare.model}
                 </th>
                 {models.map((model, idx) => (
-                  <th key={model.id} className="py-3 px-4 text-center min-w-[180px]">
+                  <th
+                    key={model.id}
+                    className={`py-3 px-4 text-center min-w-[180px] ${
+                      lastChange?.slug === model.slug && lastChange.type === "add" ? "compare-column-added" : ""
+                    }`}
+                  >
                     <div className="flex flex-col items-center gap-1.5">
                       <div className="size-9 rounded-lg bg-background flex items-center justify-center border">
                         <ModelProviderIcon provider={getProviderKey(model.model_creator.slug)} size={22} />

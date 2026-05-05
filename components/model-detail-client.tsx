@@ -1,7 +1,6 @@
 "use client";
 
 import { use, Suspense } from "react";
-import { useRouter } from "next/navigation";
 import {
   Zap, DollarSign, BarChart3, TrendingUp, GitCompareArrows,
   Brain, ImageIcon, Video, Mic, Type, Lock, Unlock, BookOpen, Info,
@@ -15,6 +14,7 @@ import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
 import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
 import { getProviderKey } from "@/lib/provider-map";
+import { usePageTransition } from "@/components/page-transition-provider";
 import type { LLMModel } from "@/lib/api";
 
 type Caps = Partial<LLMModel>;
@@ -258,7 +258,7 @@ function ModalityChip({ icon, label, active }: { icon: React.ReactNode; label: s
 export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMModel; capabilitiesPromise?: Promise<Caps> }) {
   const { t } = useI18n();
   const { toggle, isSelected } = useCompare();
-  const router = useRouter();
+  const { push } = usePageTransition();
   const {
     name, model_creator, evaluations: ev, pricing,
     median_output_tokens_per_second, median_time_to_first_token_seconds,
@@ -334,7 +334,7 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
         <Button
           variant={isComp ? "default" : "outline"}
           size="sm"
-          onClick={() => { toggle(model.slug); router.push(`/compare?models=${model.slug}`); }}
+          onClick={() => { toggle(model.slug); push(`/compare?models=${model.slug}`); }}
           className="shrink-0 gap-1.5"
         >
           <GitCompareArrows className="size-4" />
