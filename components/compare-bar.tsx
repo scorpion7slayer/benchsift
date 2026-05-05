@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { X, GitCompareArrows, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCompare } from "@/lib/compare-store";
@@ -8,11 +7,13 @@ import { useI18n } from "@/lib/i18n";
 import type { LLMModel } from "@/lib/api";
 import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
 import { getProviderKey } from "@/lib/provider-map";
+import { usePageTransition } from "@/components/page-transition-provider";
+import { cn } from "@/lib/utils";
 
 export function CompareBar({ models }: { models: LLMModel[] }) {
-  const { selected, toggle, clear } = useCompare();
+  const { selected, toggle, clear, lastChange } = useCompare();
   const { t } = useI18n();
-  const router = useRouter();
+  const { push } = usePageTransition();
 
   if (selected.length === 0) return null;
 
@@ -21,18 +22,26 @@ export function CompareBar({ models }: { models: LLMModel[] }) {
     .filter(Boolean) as LLMModel[];
 
   function handleCompare() {
-    router.push(`/compare?models=${selected.join(",")}`);
+    push(`/compare?models=${selected.join(",")}`);
   }
 
+  const selectionSignature = selected.join("|");
+
   return (
-    <div className="fixed bottom-0 inset-x-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-lg">
+    <div className="compare-bar fixed bottom-0 inset-x-0 z-50 border-t bg-card/95 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/85">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
         {/* Modèles sélectionnés */}
-        <div className="flex items-center gap-2 flex-1 min-w-0 overflow-x-auto">
+        <div
+          key={selectionSignature}
+          className="compare-selection-tray flex items-center gap-2 flex-1 min-w-0 overflow-x-auto"
+        >
           {selectedModels.map((model) => (
             <div
               key={model.slug}
-              className="flex items-center gap-1 sm:gap-1.5 bg-muted rounded-md px-1.5 sm:px-2 py-1 shrink-0"
+              className={cn(
+                "compare-chip flex items-center gap-1 rounded-md bg-muted px-1.5 py-1 sm:gap-1.5 sm:px-2 shrink-0",
+                lastChange?.slug === model.slug && lastChange.type === "add" && "compare-chip-added"
+              )}
             >
               <div className="size-5 flex items-center justify-center shrink-0">
                 <ModelProviderIcon provider={getProviderKey(model.model_creator.slug)} size={16} />

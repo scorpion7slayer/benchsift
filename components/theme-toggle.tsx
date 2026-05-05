@@ -10,12 +10,20 @@ export function ThemeToggle() {
   function toggle() {
     const next = resolvedTheme === "dark" ? "light" : "dark";
     const html = document.documentElement;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    html.classList.add("theme-transitioning");
+    if (!reduceMotion) {
+      html.classList.remove("theme-transitioning");
+      void html.offsetWidth;
+      html.classList.add("theme-transitioning");
+    }
+
     setTheme(next);
     document.cookie = `nxtaicard_theme=${next};path=/;max-age=31536000;SameSite=Lax`;
 
-    setTimeout(() => html.classList.remove("theme-transitioning"), 300);
+    if (!reduceMotion) {
+      window.setTimeout(() => html.classList.remove("theme-transitioning"), 200);
+    }
   }
 
   return (

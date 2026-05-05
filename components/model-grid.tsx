@@ -2,10 +2,9 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Search, X, Loader2, ChevronDown, Check } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { ModelCard } from "@/components/model-card";
 import { useI18n } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 import type { LLMModel } from "@/lib/api";
 
 type SortKey =
@@ -146,7 +145,7 @@ function Combobox({
     <div ref={ref} className={`relative ${width}`}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center justify-between w-full h-9 px-3 py-2 text-sm border rounded-md bg-background hover:bg-muted/50 transition-colors gap-2"
+        className="flex items-center justify-between w-full h-9 px-3 py-2 text-sm border rounded-md bg-card shadow-sm hover:bg-muted/70 transition-colors gap-2"
       >
         <span className="truncate text-left flex-1">{selectedLabel}</span>
         <ChevronDown
@@ -165,7 +164,7 @@ function Combobox({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Rechercher…"
-                  className="w-full h-8 pl-8 pr-3 text-sm bg-muted/40 border rounded-md outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full h-8 pl-8 pr-3 text-sm bg-background border rounded-md outline-none focus:ring-1 focus:ring-ring"
                 />
               </div>
             </div>
@@ -206,18 +205,29 @@ function Combobox({
 const BATCH = 48;
 
 const NEW_MODELS_DAYS = 30;
+const SEARCH_SWAP_MS = 520;
+type GridMotion = "filter" | "search-out" | "search-in";
 
 export function ModelGrid({ models }: { models: LLMModel[] }) {
   const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("intelligence");
   const [providerFilter, setProviderFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState<"all" | "new">("all");
   const [visibleCount, setVisibleCount] = useState(BATCH);
   const [gridKey, setGridKey] = useState(0);
+  const [gridMotion, setGridMotion] = useState<GridMotion>("filter");
   const sentinelRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
+  const searchSwapTimerRef = useRef<number | null>(null);
+  const previousControlsRef = useRef({
+    debouncedQuery: "",
+    sort: "intelligence" as SortKey,
+    providerFilter: "all",
+    categoryFilter: "all" as "all" | "new",
+  });
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedQuery(query), 200);
@@ -225,13 +235,44 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
   }, [query]);
 
   useEffect(() => {
+    if (searchSwapTimerRef.current) {
+      window.clearTimeout(searchSwapTimerRef.current);
+      searchSwapTimerRef.current = null;
+    }
+
+    const previousControls = previousControlsRef.current;
+    const searchChanged = previousControls.debouncedQuery !== debouncedQuery;
+    previousControlsRef.current = { debouncedQuery, sort, providerFilter, categoryFilter };
+
     if (isFirstRender.current) {
       isFirstRender.current = false;
+      setAppliedQuery(debouncedQuery);
       return;
     }
+
+    if (searchChanged) {
+      setGridMotion("search-out");
+      searchSwapTimerRef.current = window.setTimeout(() => {
+        setAppliedQuery(debouncedQuery);
+        setVisibleCount(BATCH);
+        setGridMotion("search-in");
+        setGridKey((k) => k + 1);
+        searchSwapTimerRef.current = null;
+      }, SEARCH_SWAP_MS);
+      return;
+    }
+
+    setAppliedQuery(debouncedQuery);
     setVisibleCount(BATCH);
+    setGridMotion("filter");
     setGridKey((k) => k + 1);
   }, [debouncedQuery, sort, providerFilter, categoryFilter]);
+
+  useEffect(() => {
+    return () => {
+      if (searchSwapTimerRef.current) window.clearTimeout(searchSwapTimerRef.current);
+    };
+  }, []);
 
   const providers = useMemo(() => {
     const unique = new Map<string, string>();
@@ -266,7 +307,7 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
   );
 
   const filtered = useMemo(() => {
-    const q = debouncedQuery.toLowerCase().trim();
+    const q = appliedQuery.toLowerCase().trim();
     let base =
       providerFilter !== "all"
         ? models.filter((m) => m.model_creator.slug === providerFilter)
@@ -289,7 +330,7 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
       });
     }
     return sortModels(base, sort);
-  }, [models, debouncedQuery, sort, providerFilter, categoryFilter]);
+  }, [models, appliedQuery, sort, providerFilter, categoryFilter]);
 
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
@@ -310,10 +351,10 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
   }, [hasMore, filtered.length]);
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex flex-1 items-center h-8 gap-2 rounded-lg border border-input bg-transparent px-3 text-sm transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30">
+        <div className="flex flex-1 items-center h-8 gap-2 rounded-lg border border-input bg-card px-3 text-sm shadow-sm transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30">
           <Search className="size-4 text-muted-foreground shrink-0 pointer-events-none" />
           <input
             placeholder={t.grid.search}
@@ -356,7 +397,13 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
       </div>
 
       {/* Compteur */}
-      <div className="flex items-center justify-between">
+      <div
+        className={cn(
+          "flex items-center justify-between",
+          gridMotion === "search-out" && "model-grid-search-out",
+          gridMotion === "search-in" && "model-grid-search-in"
+        )}
+      >
         <p className="text-sm text-muted-foreground">
           {t.grid.results(filtered.length, models.length)}
         </p>
@@ -366,14 +413,19 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
       {filtered.length > 0 ? (
         <>
           <div
-            key={gridKey}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+            key={`${gridKey}-${gridMotion}`}
+            className={cn(
+              "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+              gridMotion === "search-out" && "model-grid-search-out",
+              gridMotion === "search-in" && "model-grid-search-in",
+              gridMotion === "filter" && "model-grid-filter-refresh"
+            )}
           >
             {visible.map((model, i) => (
               <div
                 key={model.id}
-                className="animate-in fade-in-0 slide-in-from-bottom-3 duration-300 fill-mode-both"
-                style={{ animationDelay: `${Math.min(i, 24) * 25}ms` }}
+                className={gridMotion === "filter" ? "model-grid-filter-item" : undefined}
+                style={gridMotion === "filter" ? { animationDelay: `${Math.min(i, 24) * 25}ms` } : undefined}
               >
                 <ModelCard model={model} />
               </div>
@@ -389,7 +441,7 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
           )}
         </>
       ) : (
-        <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in-0 duration-200">
+        <div className="model-grid-empty-refresh flex flex-col items-center justify-center py-20 text-center">
           <p className="text-muted-foreground">{t.grid.noResults}</p>
         </div>
       )}

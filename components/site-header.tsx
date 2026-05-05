@@ -40,7 +40,7 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-20 border-b bg-card/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/85">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex h-14 items-center gap-3">
         {/* Logo ou bouton retour */}
         {backHref ? (
@@ -123,7 +123,7 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
 
       {/* Menu déroulant mobile */}
       {menuOpen && (
-        <div className="sm:hidden border-t bg-background/95 backdrop-blur px-4 py-3 flex flex-col gap-4 animate-in fade-in-0 slide-in-from-top-1 duration-150">
+        <div className="sm:hidden border-t bg-card/95 backdrop-blur px-4 py-3 flex flex-col gap-4 animate-in fade-in-0 slide-in-from-top-1 duration-150">
           <a
             href="https://artificialanalysis.ai"
             target="_blank"

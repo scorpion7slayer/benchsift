@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Check, GitCompareArrows, Plus, Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { getProviderKey } from "@/lib/provider-map";
 import { useCompare } from "@/lib/compare-store";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { usePageTransition } from "@/components/page-transition-provider";
 
 export interface CompareMenuModel {
   slug: string;
@@ -18,14 +18,22 @@ export interface CompareMenuModel {
   providerSlug: string;
 }
 
-export function CompareMenu({ models }: { models: CompareMenuModel[] }) {
-  const router = useRouter();
+export function CompareMenu({
+  models,
+  variant = "default",
+}: {
+  models: CompareMenuModel[];
+  variant?: "default" | "bubble";
+}) {
+  const { push } = usePageTransition();
   const { t } = useI18n();
-  const { selected, toggle, clear, isSelected, isFull } = useCompare();
+  const { selected, toggle, clear, isSelected, isFull, lastChange } = useCompare();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const selectionSignature = selected.join("|");
+  const isBubble = variant === "bubble";
 
   const selectedModels = useMemo(() => {
     const bySlug = new Map(models.map((model) => [model.slug, model]));
@@ -67,40 +75,87 @@ export function CompareMenu({ models }: { models: CompareMenuModel[] }) {
 
   useEffect(() => {
     if (!open) return;
-    const id = window.setTimeout(() => searchRef.current?.focus(), 20);
+    const id = window.setTimeout(() => searchRef.current?.focus({ preventScroll: true }), 20);
     return () => window.clearTimeout(id);
   }, [open]);
 
   function openComparison() {
     if (selected.length < 2) return;
-    router.push(`/compare?models=${selected.join(",")}`);
+    push(`/compare?models=${selected.join(",")}`);
     setOpen(false);
   }
 
   return (
     <div ref={menuRef} className="relative">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-      >
-        <GitCompareArrows data-icon="inline-start" />
-        {t.compare.compare}
-        {selected.length > 0 && (
-          <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
-            {selected.length}
-          </Badge>
-        )}
-      </Button>
+      {isBubble ? (
+        <button
+          type="button"
+          onClick={() => setOpen((value) => !value)}
+          aria-expanded={open}
+          aria-haspopup="dialog"
+          aria-label={t.compare.compare}
+          className={cn(
+            "relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-foreground/15 bg-foreground text-background shadow-lg outline-none transition-all duration-200 hover:bg-foreground/90 hover:shadow-xl focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px motion-safe:hover:-translate-y-0.5",
+            open && "scale-[0.96] bg-foreground/90 shadow-md"
+          )}
+        >
+          <GitCompareArrows
+            className={cn("size-4 transition-transform duration-200", open && "rotate-12")}
+          />
+          {selected.length > 0 && (
+            <Badge
+              variant="default"
+              className={cn(
+                "absolute -right-1 -top-1 h-4 min-w-4 px-1 text-[10px] tabular-nums transition-transform duration-200",
+                open && "scale-105"
+              )}
+            >
+              {selected.length}
+            </Badge>
+          )}
+        </button>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setOpen((value) => !value)}
+          aria-expanded={open}
+          aria-haspopup="dialog"
+          className={cn(
+            "transition-all duration-200 motion-safe:hover:-translate-y-0.5 active:scale-[0.97]",
+            open && "scale-[0.98] bg-muted text-foreground shadow-inner"
+          )}
+        >
+          <GitCompareArrows
+            data-icon="inline-start"
+            className={cn("transition-transform duration-200", open && "rotate-12")}
+          />
+          {t.compare.compare}
+          {selected.length > 0 && (
+            <Badge
+              variant="secondary"
+              className={cn(
+                "ml-1 h-4 px-1.5 text-[10px] transition-transform duration-200",
+                open && "scale-105"
+              )}
+            >
+              {selected.length}
+            </Badge>
+          )}
+        </Button>
+      )}
 
       {open && (
         <div
           role="dialog"
           aria-label={t.compare.title}
-          className="fixed left-4 right-4 top-24 z-50 rounded-lg border bg-popover p-3 text-popover-foreground shadow-lg sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-88"
+          className={cn(
+            "compare-menu-popover z-50 rounded-lg border bg-popover p-3 text-popover-foreground shadow-lg",
+            isBubble
+              ? "absolute left-0 top-12 w-[calc(100vw-2rem)] max-w-88"
+              : "fixed left-4 right-4 top-24 sm:absolute sm:left-0 sm:right-auto sm:top-full sm:mt-2 sm:w-88"
+          )}
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -119,23 +174,27 @@ export function CompareMenu({ models }: { models: CompareMenuModel[] }) {
             </button>
           </div>
 
-          {selectedModels.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {selectedModels.map((model) => (
-                <button
-                  key={model.slug}
-                  type="button"
-                  onClick={() => toggle(model.slug)}
-                  className="inline-flex max-w-full items-center gap-1.5 rounded-md border bg-muted/50 px-2 py-1 text-xs transition-colors hover:bg-muted"
-                >
-                  <span className="truncate">{model.name}</span>
-                  <X className="size-3 text-muted-foreground" />
-                </button>
-              ))}
-            </div>
-          )}
+          <div
+            key={`compare-selection-${selectionSignature || "empty"}`}
+            className="compare-selection-tray mt-3 flex h-8 items-center gap-1.5 overflow-x-auto overflow-y-hidden"
+          >
+            {selectedModels.map((model) => (
+              <button
+                key={model.slug}
+                type="button"
+                onClick={() => toggle(model.slug)}
+                className={cn(
+                  "compare-chip inline-flex max-w-36 shrink-0 items-center gap-1.5 rounded-md border bg-muted/50 px-2 py-1 text-xs transition-colors hover:bg-muted",
+                  lastChange?.slug === model.slug && lastChange.type === "add" && "compare-chip-added"
+                )}
+              >
+                <span className="truncate">{model.name}</span>
+                <X className="size-3 text-muted-foreground" />
+              </button>
+            ))}
+          </div>
 
-          <div className="mt-3 flex h-8 items-center gap-2 rounded-md border bg-background px-2 text-sm focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
+          <div className="compare-search-field mt-3 flex h-8 items-center gap-2 rounded-md border bg-background px-2 text-sm focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
             <Search className="size-3.5 shrink-0 text-muted-foreground" />
             <input
               ref={searchRef}
@@ -146,8 +205,11 @@ export function CompareMenu({ models }: { models: CompareMenuModel[] }) {
             />
           </div>
 
-          <div className="mt-2 max-h-72 overflow-y-auto">
-            {filteredModels.map((model) => {
+          <div
+            key={`compare-results-${query.trim() || "all"}`}
+            className="compare-menu-results mt-2 h-72 overflow-y-auto"
+          >
+            {filteredModels.map((model, index) => {
               const selectedModel = isSelected(model.slug);
               const disabled = !selectedModel && isFull;
 
@@ -158,9 +220,10 @@ export function CompareMenu({ models }: { models: CompareMenuModel[] }) {
                   onClick={() => toggle(model.slug)}
                   disabled={disabled}
                   className={cn(
-                    "flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50",
-                    selectedModel && "bg-muted"
+                    "compare-menu-result flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50",
+                    selectedModel && "compare-menu-result-selected bg-muted"
                   )}
+                  style={{ animationDelay: `${Math.min(index, 7) * 32}ms` }}
                 >
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted">
                     <ModelProviderIcon provider={getProviderKey(model.providerSlug)} size={18} />
@@ -172,9 +235,9 @@ export function CompareMenu({ models }: { models: CompareMenuModel[] }) {
                     </span>
                   </span>
                   {selectedModel ? (
-                    <Check className="size-4 text-primary" />
+                    <Check className="size-4 text-primary transition-transform duration-200" />
                   ) : (
-                    <Plus className="size-4 text-muted-foreground" />
+                    <Plus className="size-4 text-muted-foreground transition-transform duration-200" />
                   )}
                 </button>
               );

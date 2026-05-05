@@ -49,38 +49,38 @@
 }
 
 :root {
-  --background: #F1F0E8;
-  --foreground: oklch(0.145 0 0);
-  --card: #F1F0E8;
-  --card-foreground: oklch(0.145 0 0);
-  --popover: #F1F0E8;
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --background: #F8F6F1;
+  --foreground: oklch(0.18 0.006 85);
+  --card: #FFFFFF;
+  --card-foreground: oklch(0.18 0.006 85);
+  --popover: #FFFFFF;
+  --popover-foreground: oklch(0.18 0.006 85);
+  --primary: oklch(0.22 0.006 85);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.928 0.008 91);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.928 0.008 91);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.928 0.008 91);
-  --accent-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.94 0.011 88);
+  --secondary-foreground: oklch(0.22 0.006 85);
+  --muted: oklch(0.94 0.011 88);
+  --muted-foreground: oklch(0.45 0.006 85);
+  --accent: oklch(0.94 0.011 88);
+  --accent-foreground: oklch(0.22 0.006 85);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.900 0.008 91);
-  --input: oklch(0.900 0.008 91);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.84 0.012 88);
+  --input: oklch(0.82 0.012 88);
+  --ring: oklch(0.62 0.01 88);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.942 0.009 91);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: oklch(0.18 0.006 85);
+  --sidebar-primary: oklch(0.22 0.006 85);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.928 0.008 91);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.900 0.008 91);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-accent: oklch(0.94 0.011 88);
+  --sidebar-accent-foreground: oklch(0.22 0.006 85);
+  --sidebar-border: oklch(0.84 0.012 88);
+  --sidebar-ring: oklch(0.62 0.01 88);
 }
 
 .dark {
@@ -129,11 +129,32 @@
   }
 }
 
-/* Animation de changement de thème */
-@keyframes theme-in {
+/* Preference changes */
+@keyframes theme-soft-change {
   from {
-    opacity: 0;
-    transform: translateY(-10px);
+    filter: saturate(0.96);
+  }
+  to {
+    filter: saturate(1);
+  }
+}
+
+html.theme-transitioning :is(body, header, main, footer, button, input, table, th, td) {
+  transition:
+    background-color 0.22s ease,
+    border-color 0.22s ease,
+    color 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+html.theme-transitioning body {
+  animation: theme-soft-change 0.18s ease-out both;
+}
+
+@keyframes language-soft-change {
+  from {
+    opacity: 0.96;
+    transform: translateY(1px);
   }
   to {
     opacity: 1;
@@ -141,6 +162,291 @@
   }
 }
 
-html.theme-transitioning body {
-  animation: theme-in 0.22s ease-out forwards;
+html.language-transitioning :is(header, main, footer)
+  :is(h1, h2, h3, h4, p, span, a, button, label, th, td, li) {
+  animation: language-soft-change 0.16s ease-out both;
+}
+
+/* Page route changes */
+
+@keyframes page-route-in {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+.page-transition-frame {
+  animation: page-route-in 0.64s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes page-route-out {
+  from {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    filter: blur(3px);
+    transform: translateY(-12px);
+  }
+}
+
+html.page-route-leaving .page-transition-frame {
+  animation: page-route-out 0.54s cubic-bezier(0.64, 0, 0.78, 0) both;
+  pointer-events: none;
+}
+
+/* Search and filter changes */
+@keyframes model-grid-search-out {
+  from {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+  }
+  to {
+    opacity: 0.04;
+    filter: blur(4px);
+    transform: scale(0.99);
+  }
+}
+
+@keyframes model-grid-search-in {
+  from {
+    opacity: 0;
+    filter: blur(4px);
+    transform: scale(0.99);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+  }
+}
+
+@keyframes model-grid-filter-item {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+.model-grid-search-out {
+  transform-origin: center;
+  animation: model-grid-search-out 0.52s ease-in-out both;
+}
+
+.model-grid-search-in {
+  transform-origin: center;
+  animation: model-grid-search-in 0.72s ease-out both;
+}
+
+.model-grid-filter-item {
+  animation: model-grid-filter-item 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.model-grid-empty-refresh {
+  animation: model-grid-search-in 0.46s ease-out both;
+}
+
+/* Compare state changes */
+@keyframes compare-popover-in {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes compare-state-refresh {
+  from {
+    opacity: 0.72;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes compare-table-resize {
+  from {
+    transform: scaleX(0.94);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes compare-chip-added {
+  0% {
+    opacity: 0;
+    transform: translateY(7px) scale(0.92);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-1px) scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes compare-column-added {
+  from {
+    background-color: color-mix(in oklch, var(--primary) 14%, transparent);
+    opacity: 0.35;
+  }
+  to {
+    background-color: transparent;
+    opacity: 1;
+  }
+}
+
+@keyframes compare-column-remove {
+  to {
+    opacity: 0;
+    filter: blur(2px);
+    transform: translateX(-14px);
+  }
+}
+
+.compare-menu-popover {
+  transform-origin: top left;
+  animation: compare-popover-in 0.44s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.compare-bubble {
+  opacity: 0;
+  pointer-events: none;
+  transform-origin: top left;
+  transition:
+    opacity 0.24s ease,
+    transform 0.52s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
+}
+
+.compare-bubble[data-state="visible"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.compare-bar {
+  animation: compare-state-refresh 0.82s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.compare-selection-tray,
+.compare-panel-refresh,
+.compare-empty-state {
+  animation: compare-state-refresh 0.42s ease-out both;
+}
+
+.compare-card-selected {
+  transition:
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.compare-table-frame {
+  transform-origin: left top;
+  animation: compare-table-resize 0.56s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.compare-table {
+  transition: width 0.42s ease, min-width 0.42s ease;
+}
+
+.compare-table:is(.compare-removing-col-0) :is(th, td):nth-child(2),
+.compare-table:is(.compare-removing-col-1) :is(th, td):nth-child(3),
+.compare-table:is(.compare-removing-col-2) :is(th, td):nth-child(4),
+.compare-table:is(.compare-removing-col-3) :is(th, td):nth-child(5) {
+  animation: compare-column-remove 0.5s ease-in both;
+  pointer-events: none;
+}
+
+.compare-chip,
+.compare-menu-result,
+.compare-search-result {
+  transition:
+    background-color 0.32s ease,
+    border-color 0.32s ease,
+    color 0.32s ease,
+    transform 0.32s ease,
+    opacity 0.32s ease;
+}
+
+.compare-chip-added {
+  animation: compare-chip-added 0.86s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.compare-menu-results,
+.compare-search-dropdown {
+  animation: compare-state-refresh 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.compare-menu-result,
+.compare-search-result {
+  animation: compare-state-refresh 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.compare-menu-result-selected {
+  transform: translateX(2px);
+}
+
+.compare-column-added {
+  animation: compare-column-added 0.58s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-transitioning body,
+  html.language-transitioning :is(header, main, footer)
+    :is(h1, h2, h3, h4, p, span, a, button, label, th, td, li),
+  .page-transition-frame,
+  html.page-route-leaving .page-transition-frame,
+  .model-grid-search-out,
+  .model-grid-search-in,
+  .model-grid-filter-item,
+  .model-grid-empty-refresh,
+  .compare-menu-popover,
+  .compare-bubble,
+  .compare-bar,
+  .compare-selection-tray,
+  .compare-panel-refresh,
+  .compare-empty-state,
+  .compare-table-frame,
+  .compare-chip-added,
+  .compare-menu-results,
+  .compare-search-dropdown,
+  .compare-menu-result,
+  .compare-search-result,
+  .compare-column-added,
+  .compare-table:is(.compare-removing-col-0) :is(th, td):nth-child(2),
+  .compare-table:is(.compare-removing-col-1) :is(th, td):nth-child(3),
+  .compare-table:is(.compare-removing-col-2) :is(th, td):nth-child(4),
+  .compare-table:is(.compare-removing-col-3) :is(th, td):nth-child(5) {
+    animation: none;
+  }
+  .compare-bubble {
+    transition: none;
+  }
 }
