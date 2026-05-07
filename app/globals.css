@@ -183,7 +183,7 @@ html.language-transitioning :is(header, main, footer)
 }
 
 .page-transition-frame {
-  animation: page-route-in 0.64s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: page-route-in 0.64s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
 @keyframes page-route-out {
