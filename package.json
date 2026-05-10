@@ -38,7 +38,7 @@
     "patch-package": "^8.0.1",
     "tailwindcss": "^4.2.4",
     "typescript": "^5",
-    "wrangler": "^4.80.0"
+    "wrangler": "^4.90.0"
   },
   "overrides": {
     "@aws-sdk/xml-builder": "^3.972.22",
