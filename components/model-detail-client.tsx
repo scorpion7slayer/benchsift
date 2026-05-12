@@ -4,6 +4,7 @@ import { use, Suspense } from "react";
 import {
   Zap, DollarSign, BarChart3, TrendingUp, GitCompareArrows,
   Brain, ImageIcon, Video, Mic, Type, Lock, Unlock, BookOpen, Info,
+  Sparkles,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,7 +51,22 @@ function fmtParams(b: number): string {
   return `${Math.round(b * 1000)}M`;
 }
 
-function CapabilitiesSection({ promise, t }: { promise: Promise<Caps>; t: { capabilities: string; contextWindow: string; modalities: string; inputModality: string; outputModality: string; totalParams: string; activeParams: string; modalityLabels: { text: string; image: string; speech: string; video: string } } }) {
+interface CapsTranslations {
+  capabilities: string;
+  contextWindow: string;
+  modalities: string;
+  inputModality: string;
+  outputModality: string;
+  totalParams: string;
+  activeParams: string;
+  knowledgeCutoff: string;
+  knowledgeCutoffTooltip: string;
+  opennessIndex: string;
+  opennessTooltip: string;
+  modalityLabels: { text: string; image: string; speech: string; video: string };
+}
+
+function CapabilitiesSection({ promise, t }: { promise: Promise<Caps>; t: CapsTranslations }) {
   const caps = use(promise);
 
   const modalityIcon = (key: string) => {
@@ -67,7 +83,13 @@ function CapabilitiesSection({ promise, t }: { promise: Promise<Caps>; t: { capa
     (k) => caps[`output_modality_${k}` as keyof LLMModel]
   );
 
-  const hasContent = caps.context_window_tokens || caps.total_parameters_b || inputMods.length > 0 || outputMods.length > 0;
+  const hasContent =
+    caps.context_window_tokens ||
+    caps.total_parameters_b ||
+    caps.knowledge_cutoff ||
+    caps.openness_index != null ||
+    inputMods.length > 0 ||
+    outputMods.length > 0;
   if (!hasContent) return null;
 
   return (
@@ -89,6 +111,20 @@ function CapabilitiesSection({ promise, t }: { promise: Promise<Caps>; t: { capa
             </span>
           </div>
         )}
+        {caps.knowledge_cutoff && (
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-1 text-muted-foreground">
+              {t.knowledgeCutoff}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="size-3 cursor-help opacity-50 hover:opacity-100 transition-opacity" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-64 text-xs">{t.knowledgeCutoffTooltip}</TooltipContent>
+              </Tooltip>
+            </span>
+            <span className="font-mono tabular-nums">{caps.knowledge_cutoff}</span>
+          </div>
+        )}
         {caps.total_parameters_b != null && (
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">{t.totalParams}</span>
@@ -99,6 +135,20 @@ function CapabilitiesSection({ promise, t }: { promise: Promise<Caps>; t: { capa
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">{t.activeParams}</span>
             <span className="font-mono tabular-nums">{fmtParams(caps.active_parameters_b)}</span>
+          </div>
+        )}
+        {caps.openness_index != null && (
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-1 text-muted-foreground">
+              {t.opennessIndex}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="size-3 cursor-help opacity-50 hover:opacity-100 transition-opacity" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-64 text-xs">{t.opennessTooltip}</TooltipContent>
+              </Tooltip>
+            </span>
+            <span className="font-mono tabular-nums">{caps.openness_index.toFixed(0)} / 100</span>
           </div>
         )}
         {(inputMods.length > 0 || outputMods.length > 0) && (
@@ -134,6 +184,57 @@ function CapabilitiesSection({ promise, t }: { promise: Promise<Caps>; t: { capa
   );
 }
 
+// Meta-evaluation card (Intelligence Index tokens used + cost) / Carte méta-éval
+function MetaEvalSection({ promise, t }: {
+  promise: Promise<Caps>;
+  t: {
+    metaInfo: string;
+    intelligenceTokens: string;
+    intelligenceTokensTooltip: string;
+    intelligenceCost: string;
+    intelligenceCostTooltip: string;
+  };
+}) {
+  const caps = use(promise);
+  const tokens = caps.intelligence_index_tokens;
+  const cost = caps.intelligence_index_cost_usd;
+  if (tokens == null && cost == null) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-sm font-medium">
+          <Sparkles className="size-4 text-muted-foreground" />
+          {t.metaInfo}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="divide-y">
+        {tokens != null && (
+          <StatRow
+            label={t.intelligenceTokens}
+            value={fmtTokens(tokens)}
+            tooltip={t.intelligenceTokensTooltip}
+          />
+        )}
+        {cost != null && (
+          <StatRow
+            label={t.intelligenceCost}
+            value={`$${cost.toFixed(2)}`}
+            tooltip={t.intelligenceCostTooltip}
+          />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function fmtTokens(n: number): string {
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
+
 // Helpers
 
 const AA_INDEX_KEYS = new Set([
@@ -151,6 +252,7 @@ const KNOWN_BENCHMARK_KEYS = new Set([
   "math_500", "aime", "aime_25", "aime25", "ifbench", "lcr",
   "terminalbench_hard", "tau2",
   "humaneval", "omniscience", "multilingual_aa", "mmmu_pro", "critpt", "gdpval",
+  "apex_agents", "omniscience_non_hallucination",
 ]);
 
 function fmt(val: number | null | undefined, decimals = 1) {
@@ -289,6 +391,8 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
     multilingual_aa: pct(ev.multilingual_aa),
     mmmu_pro: pct(ev.mmmu_pro),
     critpt: pct(ev.critpt),
+    apex_agents: pct(ev.apex_agents),
+    omniscience_non_hallucination: pct(ev.omniscience_non_hallucination),
   };
 
   // Unknown additional benchmarks / Benchmarks supplémentaires non connus
@@ -348,7 +452,20 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
         <Suspense>
           <CapabilitiesSection
             promise={capabilitiesPromise}
-            t={{ capabilities: t.detail.capabilities, contextWindow: t.detail.contextWindow, modalities: t.detail.modalities, inputModality: t.detail.inputModality, outputModality: t.detail.outputModality, totalParams: t.detail.totalParams, activeParams: t.detail.activeParams, modalityLabels: t.detail.modalityLabels }}
+            t={{
+              capabilities: t.detail.capabilities,
+              contextWindow: t.detail.contextWindow,
+              modalities: t.detail.modalities,
+              inputModality: t.detail.inputModality,
+              outputModality: t.detail.outputModality,
+              totalParams: t.detail.totalParams,
+              activeParams: t.detail.activeParams,
+              knowledgeCutoff: t.detail.knowledgeCutoff,
+              knowledgeCutoffTooltip: t.detail.knowledgeCutoffTooltip,
+              opennessIndex: t.detail.opennessIndex,
+              opennessTooltip: t.detail.opennessTooltip,
+              modalityLabels: t.detail.modalityLabels,
+            }}
           />
         </Suspense>
       )}
@@ -413,6 +530,12 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
               {ev.gdpval !== null && ev.gdpval !== undefined && (
                 <BenchmarkRow label={t.benchmarks.gdpval} displayValue={ev.gdpval.toFixed(0)} barPct={Math.min((ev.gdpval / 2000) * 100, 100)} />
               )}
+              {benchmarksPct.apex_agents !== null && (
+                <BenchmarkRow label={t.benchmarks.apex_agents} displayValue={`${fmt(benchmarksPct.apex_agents)}%`} barPct={benchmarksPct.apex_agents ?? 0} />
+              )}
+              {benchmarksPct.omniscience_non_hallucination !== null && (
+                <BenchmarkRow label={t.benchmarks.omniscience_non_hallucination} displayValue={`${fmt(benchmarksPct.omniscience_non_hallucination)}%`} barPct={benchmarksPct.omniscience_non_hallucination ?? 0} />
+              )}
             </CardContent>
           </Card>
 
@@ -455,6 +578,13 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
               <StatRow label={t.detail.outputSpeed}  value={median_output_tokens_per_second !== null ? `${fmt(median_output_tokens_per_second, 0)} tokens/s` : "—"} />
               <StatRow label={t.detail.ttft}         value={median_time_to_first_token_seconds !== null ? `${fmt(median_time_to_first_token_seconds, 2)} s` : "—"} />
               <StatRow label={t.detail.firstAnswer}  value={median_time_to_first_answer_token !== null ? `${fmt(median_time_to_first_answer_token, 2)} s` : "—"} />
+              {model.end_to_end_response_time_seconds != null && (
+                <StatRow
+                  label={t.detail.endToEnd}
+                  tooltip={t.detail.endToEndTooltip}
+                  value={`${fmt(model.end_to_end_response_time_seconds, 1)} s`}
+                />
+              )}
             </CardContent>
           </Card>
 
@@ -466,10 +596,39 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
             </CardHeader>
             <CardContent className="divide-y">
               <StatRow label={t.detail.inputTokens}  value={pricing.price_1m_input_tokens !== null ? `$${fmt(pricing.price_1m_input_tokens, 2)}` : "—"} />
+              {pricing.price_1m_cache_hit_tokens != null && (
+                <StatRow
+                  label={t.detail.cacheHit}
+                  tooltip={t.detail.cacheHitTooltip}
+                  value={`$${fmt(pricing.price_1m_cache_hit_tokens, 3)}`}
+                />
+              )}
               <StatRow label={t.detail.outputTokens} value={pricing.price_1m_output_tokens !== null ? `$${fmt(pricing.price_1m_output_tokens, 2)}` : "—"} />
               <StatRow label={t.detail.blended} tooltip={t.detail.blendedTooltip} value={pricing.price_1m_blended_3_to_1 !== null ? `$${fmt(pricing.price_1m_blended_3_to_1, 2)}` : "—"} />
+              {pricing.price_1m_blended_7_2_1 != null && (
+                <StatRow
+                  label={t.detail.blended721}
+                  tooltip={t.detail.blended721Tooltip}
+                  value={`$${fmt(pricing.price_1m_blended_7_2_1, 2)}`}
+                />
+              )}
             </CardContent>
           </Card>
+
+          {capabilitiesPromise && (
+            <Suspense>
+              <MetaEvalSection
+                promise={capabilitiesPromise}
+                t={{
+                  metaInfo: t.detail.metaInfo,
+                  intelligenceTokens: t.detail.intelligenceTokens,
+                  intelligenceTokensTooltip: t.detail.intelligenceTokensTooltip,
+                  intelligenceCost: t.detail.intelligenceCost,
+                  intelligenceCostTooltip: t.detail.intelligenceCostTooltip,
+                }}
+              />
+            </Suspense>
+          )}
         </div>
       </div>
     </div>
