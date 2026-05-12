@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { ProviderIcon, ZAI, KwaiKAT, Inception, Ai2, Liquid, DeepCogito, OpenChat, Aws } from "@lobehub/icons";
+import { ProviderIcon, ZAI, KwaiKAT, Inception, Ai2, Liquid, DeepCogito, OpenChat, Aws, Cursor } from "@lobehub/icons";
 import { Bot } from "lucide-react";
 
 interface Props {
@@ -67,6 +67,7 @@ export function ModelProviderIcon({ provider, size = 20 }: Props) {
   if (provider === "liquidai") return <Liquid.Avatar size={size} />;
   if (provider === "deepcogito") return <DeepCogito.Avatar size={size} />;
   if (provider === "openchat") return <OpenChat.Avatar size={size} />;
+  if (provider === "cursor") return <Cursor.Avatar size={size} />;
 
   // @lobehub/icons — couverture principale
   if (LOBEHUB_PROVIDERS.has(provider)) {

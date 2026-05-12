@@ -29,6 +29,7 @@ const AA_INDEX_KEYS = new Set([
 const KNOWN_BENCHMARK_KEYS = new Set([
   "mmlu_pro", "gpqa", "hle", "livecodebench", "scicode",
   "math_500", "aime", "aime_25", "ifbench", "lcr", "terminalbench_hard", "tau2",
+  "apex_agents", "omniscience_non_hallucination",
 ]);
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
@@ -212,8 +213,8 @@ function ModalityRow({ label, rows }: { label: string; rows: ModalityData[] }) {
             <div className="flex items-center gap-1 justify-center">
               <IconBox icon={<Type className="size-3" />}      title="Text"  active={r.text ?? true} />
               <IconBox icon={<ImageIcon className="size-3" />} title="Image" active={r.image} />
-              <IconBox icon={<Video className="size-3" />}     title="Vidéo" active={r.video} />
               <IconBox icon={<Mic className="size-3" />}       title="Audio" active={r.audio} />
+              <IconBox icon={<Video className="size-3" />}     title="Vidéo" active={r.video} />
             </div>
           )}
         </td>
@@ -285,8 +286,8 @@ function MobileModalityRow({ label, data }: { label: string; data: ModalityData 
       <div className="flex items-center gap-1">
         <IconBox icon={<Type className="size-3" />}      title="Text"  active={data.text ?? true} />
         <IconBox icon={<ImageIcon className="size-3" />} title="Image" active={data.image} />
-        <IconBox icon={<Video className="size-3" />}     title="Vidéo" active={data.video} />
         <IconBox icon={<Mic className="size-3" />}       title="Audio" active={data.audio} />
+        <IconBox icon={<Video className="size-3" />}     title="Vidéo" active={data.video} />
       </div>
     </div>
   );
@@ -510,7 +511,7 @@ function MobileCompareView({
         )}
 
         {/* Performance */}
-        {[m.median_output_tokens_per_second, m.median_time_to_first_token_seconds, m.median_time_to_first_answer_token].some(v => v !== null) && (
+        {[m.median_output_tokens_per_second, m.median_time_to_first_token_seconds, m.median_time_to_first_answer_token, m.end_to_end_response_time_seconds].some(v => v != null) && (
           <>
             <MobileSectionHeader label={t.compare.sections.performance} />
             <MobileRow label={t.compare.fields.outputSpeed}
@@ -528,6 +529,13 @@ function MobileCompareView({
               isBest={isB(m.median_time_to_first_answer_token, x => x.median_time_to_first_answer_token, "lower")}
               barPct={rb(m.median_time_to_first_answer_token, x => x.median_time_to_first_answer_token, "lower")}
             />
+            {m.end_to_end_response_time_seconds != null && (
+              <MobileRow label={t.compare.fields.endToEnd}
+                value={`${fmt(m.end_to_end_response_time_seconds, 1)}s`}
+                isBest={isB(m.end_to_end_response_time_seconds, x => x.end_to_end_response_time_seconds ?? null, "lower")}
+                barPct={rb(m.end_to_end_response_time_seconds, x => x.end_to_end_response_time_seconds ?? null, "lower")}
+              />
+            )}
           </>
         )}
 
@@ -540,6 +548,13 @@ function MobileCompareView({
               isBest={isB(pr.price_1m_input_tokens, x => x.pricing.price_1m_input_tokens, "lower")}
               barPct={rb(pr.price_1m_input_tokens, x => x.pricing.price_1m_input_tokens, "lower")}
             />
+            {pr.price_1m_cache_hit_tokens != null && (
+              <MobileRow label={t.compare.fields.cacheHitPrice}
+                value={`$${pr.price_1m_cache_hit_tokens.toFixed(3)}`}
+                isBest={isB(pr.price_1m_cache_hit_tokens, x => x.pricing.price_1m_cache_hit_tokens ?? null, "lower")}
+                barPct={rb(pr.price_1m_cache_hit_tokens, x => x.pricing.price_1m_cache_hit_tokens ?? null, "lower")}
+              />
+            )}
             <MobileRow label={t.compare.fields.outputPrice}
               value={fmtPrice(pr.price_1m_output_tokens)}
               isBest={isB(pr.price_1m_output_tokens, x => x.pricing.price_1m_output_tokens, "lower")}
@@ -550,6 +565,13 @@ function MobileCompareView({
               isBest={isB(pr.price_1m_blended_3_to_1, x => x.pricing.price_1m_blended_3_to_1, "lower")}
               barPct={rb(pr.price_1m_blended_3_to_1, x => x.pricing.price_1m_blended_3_to_1, "lower")}
             />
+            {pr.price_1m_blended_7_2_1 != null && (
+              <MobileRow label={t.compare.fields.blended721Price}
+                value={fmtPrice(pr.price_1m_blended_7_2_1)}
+                isBest={isB(pr.price_1m_blended_7_2_1, x => x.pricing.price_1m_blended_7_2_1 ?? null, "lower")}
+                barPct={rb(pr.price_1m_blended_7_2_1, x => x.pricing.price_1m_blended_7_2_1 ?? null, "lower")}
+              />
+            )}
           </>
         )}
 
@@ -563,17 +585,50 @@ function MobileCompareView({
               barPct={rb(m.context_window_tokens, x => x.context_window_tokens ?? null, "higher")}
             />
           )}
+          {m.knowledge_cutoff && (
+            <MobileRow label={t.compare.fields.knowledgeCutoff} value={m.knowledge_cutoff} />
+          )}
           {m.total_parameters_b != null && (
             <MobileRow label={t.detail.totalParams} value={fmtParams(m.total_parameters_b)} />
           )}
           {m.active_parameters_b != null && (
             <MobileRow label={t.detail.activeParams} value={fmtParams(m.active_parameters_b)} />
           )}
+          {m.openness_index != null && (
+            <MobileRow label={t.detail.opennessIndex}
+              value={`${m.openness_index.toFixed(0)} / 100`}
+              isBest={isB(m.openness_index, x => x.openness_index ?? null, "higher")}
+              barPct={rb(m.openness_index, x => x.openness_index ?? null, "higher")}
+            />
+          )}
           <MobileBoolRow label={t.detail.reasoning} value={m.reasoning_model} />
           <MobileBoolRow label={t.detail.openWeights} value={m.is_open_weights} />
           <MobileModalityRow label={t.detail.inputModality} data={{ text: m.input_modality_text, image: m.input_modality_image, video: m.input_modality_video, audio: m.input_modality_speech }} />
           <MobileModalityRow label={t.detail.outputModality} data={{ text: m.output_modality_text, image: m.output_modality_image, video: m.output_modality_video, audio: m.output_modality_speech }} />
         </>
+
+        {/* Meta-evaluation (verbosity + eval cost) */}
+        {(m.intelligence_index_tokens != null || m.intelligence_index_cost_usd != null) && (
+          <>
+            <MobileSectionHeader label={t.compare.sections.meta} />
+            {m.intelligence_index_tokens != null && (
+              <MobileRow label={t.compare.fields.verbosity}
+                value={m.intelligence_index_tokens >= 1_000_000
+                  ? `${(m.intelligence_index_tokens / 1_000_000).toFixed(1)}M`
+                  : `${(m.intelligence_index_tokens / 1_000).toFixed(1)}K`}
+                isBest={isB(m.intelligence_index_tokens, x => x.intelligence_index_tokens ?? null, "lower")}
+                barPct={rb(m.intelligence_index_tokens, x => x.intelligence_index_tokens ?? null, "lower")}
+              />
+            )}
+            {m.intelligence_index_cost_usd != null && (
+              <MobileRow label={t.compare.fields.evalCost}
+                value={`$${m.intelligence_index_cost_usd.toFixed(2)}`}
+                isBest={isB(m.intelligence_index_cost_usd, x => x.intelligence_index_cost_usd ?? null, "lower")}
+                barPct={rb(m.intelligence_index_cost_usd, x => x.intelligence_index_cost_usd ?? null, "lower")}
+              />
+            )}
+          </>
+        )}
       </div>
     </div>
   );
@@ -869,6 +924,20 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
               <MetricRow label={t.detail.activeParams}  values={models.map(m => m.active_parameters_b ?? null)} dir="higher" format={fmtParams} noBar />
               <BoolRow   label={t.detail.reasoning}     values={models.map(m => m.reasoning_model)} />
               <BoolRow   label={t.detail.openWeights}   values={models.map(m => m.is_open_weights)} />
+              <MetricRow
+                label={t.detail.opennessIndex}
+                values={models.map(m => m.openness_index ?? null)}
+                dir="higher"
+                format={v => v !== null ? `${v.toFixed(0)} / 100` : "—"}
+              />
+              <tr className="border-b hover:bg-muted/30 transition-colors">
+                <LabelCell>{t.compare.fields.knowledgeCutoff}</LabelCell>
+                {models.map(m => (
+                  <td key={m.id} className="py-2.5 px-4 text-sm text-center font-mono">
+                    {m.knowledge_cutoff ?? "—"}
+                  </td>
+                ))}
+              </tr>
               <ModalityRow label={t.detail.inputModality}  rows={models.map(m => ({ text: m.input_modality_text, image: m.input_modality_image, video: m.input_modality_video, audio: m.input_modality_speech }))} />
               <ModalityRow label={t.detail.outputModality} rows={models.map(m => ({ text: m.output_modality_text, image: m.output_modality_image, video: m.output_modality_video, audio: m.output_modality_speech }))} />
 
@@ -904,9 +973,41 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
               <MetricRow label={t.compare.fields.outputSpeed} values={models.map(m => m.median_output_tokens_per_second)} dir="higher" format={v => v !== null ? `${fmt(v, 0)} t/s` : "—"} />
               <MetricRow label={t.compare.fields.ttft}        values={models.map(m => m.median_time_to_first_token_seconds)} dir="lower" format={v => v !== null ? `${fmt(v, 2)}s` : "—"} />
               <MetricRow label={t.compare.fields.firstAnswer} values={models.map(m => m.median_time_to_first_answer_token)} dir="lower" format={v => v !== null ? `${fmt(v, 2)}s` : "—"} />
+              <MetricRow
+                label={
+                  <span className="flex items-center gap-1">
+                    {t.compare.fields.endToEnd}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="size-3 cursor-help opacity-50 hover:opacity-100 transition-opacity" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-64 text-xs">{t.detail.endToEndTooltip}</TooltipContent>
+                    </Tooltip>
+                  </span>
+                }
+                values={models.map(m => m.end_to_end_response_time_seconds ?? null)}
+                dir="lower"
+                format={v => v !== null ? `${fmt(v, 1)}s` : "—"}
+              />
 
               <SectionHeader label={t.compare.sections.pricing} />
               <MetricRow label={t.compare.fields.inputPrice}  values={pr.map(p => p.price_1m_input_tokens)}   dir="lower" format={fmtPrice} />
+              <MetricRow
+                label={
+                  <span className="flex items-center gap-1">
+                    {t.compare.fields.cacheHitPrice}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="size-3 cursor-help opacity-50 hover:opacity-100 transition-opacity" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-64 text-xs">{t.detail.cacheHitTooltip}</TooltipContent>
+                    </Tooltip>
+                  </span>
+                }
+                values={pr.map(p => p.price_1m_cache_hit_tokens ?? null)}
+                dir="lower"
+                format={v => v !== null ? `$${v.toFixed(3)}` : "—"}
+              />
               <MetricRow label={t.compare.fields.outputPrice} values={pr.map(p => p.price_1m_output_tokens)}  dir="lower" format={fmtPrice} />
               <MetricRow
                 label={
@@ -923,6 +1024,42 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
                 values={pr.map(p => p.price_1m_blended_3_to_1)}
                 dir="lower"
                 format={fmtPrice}
+              />
+              <MetricRow
+                label={
+                  <span className="flex items-center gap-1">
+                    {t.compare.fields.blended721Price}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="size-3 cursor-help opacity-50 hover:opacity-100 transition-opacity" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-64 text-xs">{t.detail.blended721Tooltip}</TooltipContent>
+                    </Tooltip>
+                  </span>
+                }
+                values={pr.map(p => p.price_1m_blended_7_2_1 ?? null)}
+                dir="lower"
+                format={fmtPrice}
+              />
+
+              <SectionHeader label={t.compare.sections.meta} />
+              <MetricRow
+                label={t.compare.fields.verbosity}
+                values={models.map(m => m.intelligence_index_tokens ?? null)}
+                dir="lower"
+                format={v => {
+                  if (v === null) return "—";
+                  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+                  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
+                  return String(v);
+                }}
+                noBar
+              />
+              <MetricRow
+                label={t.compare.fields.evalCost}
+                values={models.map(m => m.intelligence_index_cost_usd ?? null)}
+                dir="lower"
+                format={v => v !== null ? `$${v.toFixed(2)}` : "—"}
               />
             </tbody>
           </table>

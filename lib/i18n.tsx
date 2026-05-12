@@ -6,7 +6,7 @@ export type Lang = "fr" | "en";
 
 export interface Translations {
   brand: string;
-  nav: { back: string; source: string; feedback: string };
+  nav: { back: string; source: string; feedback: string; codingAgents: string; models: string };
   hero: { title: string; description: string; latestModels: string };
   grid: {
     search: string;
@@ -57,12 +57,20 @@ export interface Translations {
     outputSpeed: string;
     ttft: string;
     firstAnswer: string;
+    endToEnd: string;
+    endToEndTooltip: string;
     inputTokens: string;
     outputTokens: string;
+    cacheHit: string;
+    cacheHitTooltip: string;
     blended: string;
     blendedTooltip: string;
+    blended721: string;
+    blended721Tooltip: string;
     intelligenceIndex: string;
     releaseDate: string;
+    knowledgeCutoff: string;
+    knowledgeCutoffTooltip: string;
     extraBenchmarks: string;
     capabilities: string;
     contextWindow: string;
@@ -73,8 +81,15 @@ export interface Translations {
     openWeights: string;
     closedWeights: string;
     agenticIndex: string;
+    opennessIndex: string;
+    opennessTooltip: string;
     totalParams: string;
     activeParams: string;
+    intelligenceTokens: string;
+    intelligenceTokensTooltip: string;
+    intelligenceCost: string;
+    intelligenceCostTooltip: string;
+    metaInfo: string;
     modalityLabels: { text: string; image: string; speech: string; video: string };
   };
   compare: {
@@ -94,16 +109,24 @@ export interface Translations {
       benchmarks: string;
       performance: string;
       pricing: string;
+      meta: string;
     };
     fields: {
       provider: string;
       releaseDate: string;
+      knowledgeCutoff: string;
       outputSpeed: string;
       ttft: string;
       firstAnswer: string;
+      endToEnd: string;
       inputPrice: string;
       outputPrice: string;
+      cacheHitPrice: string;
       blendedPrice: string;
+      blended721Price: string;
+      opennessIndex: string;
+      verbosity: string;
+      evalCost: string;
     };
     best: string;
     wins: (n: number) => string;
@@ -113,6 +136,38 @@ export interface Translations {
   footer: { via: string; cache: string };
   cookies: { message: string; accept: string; decline: string };
   error: { title: string; description: string; rateLimitDescription: (s: number) => string; retry: string };
+  agents: {
+    title: string;
+    description: string;
+    indexLabel: string;
+    indexTooltip: string;
+    benchmarks: {
+      swe_bench_pro_hard_aa: string;
+      terminal_bench_v2: string;
+      swe_atlas_qna: string;
+    };
+    metrics: {
+      costPerTask: string;
+      timePerTask: string;
+      inputTokens: string;
+      cachedTokens: string;
+      outputTokens: string;
+    };
+    headers: {
+      harness: string;
+      model: string;
+      index: string;
+      cost: string;
+      time: string;
+    };
+    empty: string;
+    sourceNote: string;
+    navLink: string;
+    pageTitle: string;
+    knownHarnesses: string;
+    previewNotice: string;
+    viewOnAA: string;
+  };
   benchmarks: {
     intelligence: string;
     coding: string;
@@ -136,13 +191,15 @@ export interface Translations {
     mmmu_pro: string;
     critpt: string;
     gdpval: string;
+    apex_agents: string;
+    omniscience_non_hallucination: string;
   };
 }
 
 const T: Record<Lang, Translations> = {
   fr: {
     brand: "Nxt AI Card",
-    nav: { back: "Retour", source: "Artificial Analysis", feedback: "Feedback" },
+    nav: { back: "Retour", source: "Artificial Analysis", feedback: "Feedback", codingAgents: "Coding Agents", models: "Modèles" },
     hero: {
       title: "Modèles d'IA",
       description: "Benchmarks, performances et prix — données via Artificial Analysis. Mis à jour toutes les heures.",
@@ -198,12 +255,20 @@ const T: Record<Lang, Translations> = {
       outputSpeed: "Vitesse de sortie",
       ttft: "Temps 1er token (TTFT)",
       firstAnswer: "Temps 1ère réponse",
+      endToEnd: "Temps de réponse total (500 t)",
+      endToEndTooltip: "Temps total nécessaire pour générer une réponse de 500 tokens. Inclut le temps d'attente initial, le temps de raisonnement (pour les modèles à raisonnement) et le temps de génération.",
       inputTokens: "Tokens d'entrée",
       outputTokens: "Tokens de sortie",
+      cacheHit: "Cache Hit",
+      cacheHitTooltip: "Prix par token pour les prompts en cache (déjà traités), généralement très réduit par rapport au prix d'entrée standard.",
       blended: "Blended (3:1)",
       blendedTooltip: "Prix moyen pondéré basé sur un ratio typique d'utilisation : (3× prix entrée + 1× prix sortie) ÷ 4.",
+      blended721: "Blended (7:2:1)",
+      blended721Tooltip: "Prix moyen pondéré incluant le cache : ratio 7:2:1 (Cache Hit : Entrée : Sortie), reflétant les usages modernes avec caching.",
       intelligenceIndex: "Intelligence Index",
       releaseDate: "Date de sortie",
+      knowledgeCutoff: "Coupure des connaissances",
+      knowledgeCutoffTooltip: "Date jusqu'à laquelle les données d'entraînement du modèle ont été collectées.",
       extraBenchmarks: "Benchmarks supplémentaires",
       capabilities: "Capacités",
       contextWindow: "Fenêtre de contexte",
@@ -214,8 +279,15 @@ const T: Record<Lang, Translations> = {
       openWeights: "Poids ouverts",
       closedWeights: "Poids fermés",
       agenticIndex: "Agentic Index",
+      opennessIndex: "Indice d'ouverture",
+      opennessTooltip: "Évalue l'ouverture du modèle sur une échelle 0-100 (plus c'est élevé, plus le modèle est ouvert).",
       totalParams: "Paramètres totaux",
       activeParams: "Paramètres actifs",
+      intelligenceTokens: "Tokens utilisés (verbosité)",
+      intelligenceTokensTooltip: "Nombre total de tokens générés pour exécuter l'Artificial Analysis Intelligence Index. Indique la verbosité du modèle.",
+      intelligenceCost: "Coût d'évaluation",
+      intelligenceCostTooltip: "Coût total (USD) pour évaluer le modèle sur l'Artificial Analysis Intelligence Index, basé sur le prix par token et le nombre de tokens utilisés.",
+      metaInfo: "Méta-informations",
       modalityLabels: { text: "texte", image: "image", speech: "audio", video: "vidéo" },
     },
     compare: {
@@ -235,16 +307,24 @@ const T: Record<Lang, Translations> = {
         benchmarks: "Benchmarks",
         performance: "Performance",
         pricing: "Prix / 1M tokens",
+        meta: "Méta-évaluation",
       },
       fields: {
         provider: "Fournisseur",
         releaseDate: "Date de sortie",
+        knowledgeCutoff: "Coupure connaissances",
         outputSpeed: "Vitesse",
         ttft: "TTFT",
         firstAnswer: "Temps 1ère réponse",
+        endToEnd: "Temps total (500 t)",
         inputPrice: "Entrée",
         outputPrice: "Sortie",
+        cacheHitPrice: "Cache Hit",
         blendedPrice: "Blended (3:1)",
+        blended721Price: "Blended (7:2:1)",
+        opennessIndex: "Indice d'ouverture",
+        verbosity: "Verbosité",
+        evalCost: "Coût d'éval.",
       },
       best: "Meilleur",
       wins: (n) => `Meilleur dans ${n} catégorie${n > 1 ? "s" : ""}`,
@@ -262,6 +342,38 @@ const T: Record<Lang, Translations> = {
       description: "Impossible de charger les données. Réessaie dans un instant.",
       rateLimitDescription: (_s) => "Impossible de charger les données. Réessaie dans un instant.",
       retry: "Réessayer",
+    },
+    agents: {
+      title: "Agents de programmation",
+      description: "Performance des harnais (Claude Code, Cursor CLI, OpenCode…) sur l'Artificial Analysis Coding Agent Index, composé de 3 benchmarks : SWE-Bench-Pro-Hard-AA, Terminal-Bench v2 et SWE-Atlas-QnA.",
+      indexLabel: "Coding Agent Index",
+      indexTooltip: "Moyenne pass@1 sur les 3 benchmarks (SWE-Bench-Pro-Hard-AA, Terminal-Bench v2, SWE-Atlas-QnA).",
+      benchmarks: {
+        swe_bench_pro_hard_aa: "SWE-Bench-Pro-Hard-AA",
+        terminal_bench_v2: "Terminal-Bench v2",
+        swe_atlas_qna: "SWE-Atlas-QnA",
+      },
+      metrics: {
+        costPerTask: "Coût / tâche",
+        timePerTask: "Temps / tâche",
+        inputTokens: "Tokens entrée",
+        cachedTokens: "Tokens cache",
+        outputTokens: "Tokens sortie",
+      },
+      headers: {
+        harness: "Harnais",
+        model: "Modèle",
+        index: "Index",
+        cost: "Coût",
+        time: "Temps",
+      },
+      empty: "Données coding agents indisponibles pour l'instant.",
+      sourceNote: "Données via Artificial Analysis — mises à jour quotidiennement.",
+      navLink: "Coding Agents",
+      pageTitle: "Coding Agents — Nxt AI Card",
+      knownHarnesses: "Harnais suivis",
+      previewNotice: "Artificial Analysis n'expose pas encore d'API publique pour les coding agents. Consultez le classement officiel pour les scores live.",
+      viewOnAA: "Voir sur Artificial Analysis",
     },
     benchmarks: {
       intelligence: "Intelligence",
@@ -286,11 +398,13 @@ const T: Record<Lang, Translations> = {
       mmmu_pro: "MMMU Pro",
       critpt: "CritPt",
       gdpval: "GDPval-AA",
+      apex_agents: "APEX-Agents-AA",
+      omniscience_non_hallucination: "AA-Omniscience Non-Hallucination",
     },
   },
   en: {
     brand: "Nxt AI Card",
-    nav: { back: "Back", source: "Artificial Analysis", feedback: "Feedback" },
+    nav: { back: "Back", source: "Artificial Analysis", feedback: "Feedback", codingAgents: "Coding Agents", models: "Models" },
     hero: {
       title: "AI Models",
       description: "Benchmarks, performance and pricing — data via Artificial Analysis. Updated every hour.",
@@ -346,12 +460,20 @@ const T: Record<Lang, Translations> = {
       outputSpeed: "Output speed",
       ttft: "Time to first token (TTFT)",
       firstAnswer: "Time to first answer",
+      endToEnd: "End-to-end response (500 t)",
+      endToEndTooltip: "Total time to generate a 500-token response. Includes the initial wait time, thinking time (for reasoning models), and generation time.",
       inputTokens: "Input tokens",
       outputTokens: "Output tokens",
+      cacheHit: "Cache Hit",
+      cacheHitTooltip: "Price per token for cached prompts (previously processed), typically offering a significant discount compared to regular input price.",
       blended: "Blended (3:1)",
       blendedTooltip: "Weighted average price based on a typical usage ratio: (3× input price + 1× output price) ÷ 4.",
+      blended721: "Blended (7:2:1)",
+      blended721Tooltip: "Weighted average price including cache: 7:2:1 ratio (Cache Hit : Input : Output), reflecting modern usage with caching.",
       intelligenceIndex: "Intelligence Index",
       releaseDate: "Release date",
+      knowledgeCutoff: "Knowledge cutoff",
+      knowledgeCutoffTooltip: "Date up to which the model's training data was collected.",
       extraBenchmarks: "Additional benchmarks",
       capabilities: "Capabilities",
       contextWindow: "Context window",
@@ -362,8 +484,15 @@ const T: Record<Lang, Translations> = {
       openWeights: "Open weights",
       closedWeights: "Closed weights",
       agenticIndex: "Agentic Index",
+      opennessIndex: "Openness Index",
+      opennessTooltip: "Assesses the model's openness on a 0-100 scale (higher is more open).",
       totalParams: "Total parameters",
       activeParams: "Active parameters",
+      intelligenceTokens: "Tokens used (verbosity)",
+      intelligenceTokensTooltip: "Total number of tokens generated to run the Artificial Analysis Intelligence Index. Indicates the verbosity of the model.",
+      intelligenceCost: "Evaluation cost",
+      intelligenceCostTooltip: "Total cost (USD) to evaluate the model on the Artificial Analysis Intelligence Index, based on the price per token and the number of tokens used.",
+      metaInfo: "Meta-information",
       modalityLabels: { text: "text", image: "image", speech: "speech", video: "video" },
     },
     compare: {
@@ -383,16 +512,24 @@ const T: Record<Lang, Translations> = {
         benchmarks: "Benchmarks",
         performance: "Performance",
         pricing: "Price / 1M tokens",
+        meta: "Meta-evaluation",
       },
       fields: {
         provider: "Provider",
         releaseDate: "Release date",
+        knowledgeCutoff: "Knowledge cutoff",
         outputSpeed: "Speed",
         ttft: "TTFT",
         firstAnswer: "First answer",
+        endToEnd: "End-to-end (500 t)",
         inputPrice: "Input",
         outputPrice: "Output",
+        cacheHitPrice: "Cache Hit",
         blendedPrice: "Blended (3:1)",
+        blended721Price: "Blended (7:2:1)",
+        opennessIndex: "Openness",
+        verbosity: "Verbosity",
+        evalCost: "Eval cost",
       },
       best: "Best",
       wins: (n) => `Best in ${n} categor${n > 1 ? "ies" : "y"}`,
@@ -410,6 +547,38 @@ const T: Record<Lang, Translations> = {
       description: "Unable to load data. Please try again in a moment.",
       rateLimitDescription: (_s) => "Unable to load data. Please try again in a moment.",
       retry: "Try again",
+    },
+    agents: {
+      title: "Coding Agents",
+      description: "Harness performance (Claude Code, Cursor CLI, OpenCode…) on the Artificial Analysis Coding Agent Index, a composite of 3 benchmarks: SWE-Bench-Pro-Hard-AA, Terminal-Bench v2 and SWE-Atlas-QnA.",
+      indexLabel: "Coding Agent Index",
+      indexTooltip: "Average pass@1 across the 3 benchmarks (SWE-Bench-Pro-Hard-AA, Terminal-Bench v2, SWE-Atlas-QnA).",
+      benchmarks: {
+        swe_bench_pro_hard_aa: "SWE-Bench-Pro-Hard-AA",
+        terminal_bench_v2: "Terminal-Bench v2",
+        swe_atlas_qna: "SWE-Atlas-QnA",
+      },
+      metrics: {
+        costPerTask: "Cost / task",
+        timePerTask: "Time / task",
+        inputTokens: "Input tokens",
+        cachedTokens: "Cached tokens",
+        outputTokens: "Output tokens",
+      },
+      headers: {
+        harness: "Harness",
+        model: "Model",
+        index: "Index",
+        cost: "Cost",
+        time: "Time",
+      },
+      empty: "Coding agents data unavailable for now.",
+      sourceNote: "Data via Artificial Analysis — updated daily.",
+      navLink: "Coding Agents",
+      pageTitle: "Coding Agents — Nxt AI Card",
+      knownHarnesses: "Tracked harnesses",
+      previewNotice: "Artificial Analysis does not yet expose a public API for coding agents. Visit the official leaderboard for live scores.",
+      viewOnAA: "View on Artificial Analysis",
     },
     benchmarks: {
       intelligence: "Intelligence",
@@ -434,6 +603,8 @@ const T: Record<Lang, Translations> = {
       mmmu_pro: "MMMU Pro",
       critpt: "CritPt",
       gdpval: "GDPval-AA",
+      apex_agents: "APEX-Agents-AA",
+      omniscience_non_hallucination: "AA-Omniscience Non-Hallucination",
     },
   },
 };

@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { getCreatorDisplayName, resolveCreatorFromModelSlug } from "@/lib/provider-map";
 
 const BASE_URL = "https://artificialanalysis.ai/api/v2";
 const OR_BASE = "https://openrouter.ai/api/v1";
@@ -7,6 +8,17 @@ const SCRAPE_FETCH_TIMEOUT_MS = 6_000;
 const PARTIAL_MODEL_CHUNK_SIZE = 5;
 const CAPABILITY_CHUNK_SIZE = 6;
 const SCRAPE_USER_AGENT = "Mozilla/5.0 (compatible; NxtAICard/1.0; +https://nxtaicard.nxtaigen.com)";
+
+/**
+ * Cache TTLs by data volatility / TTL de cache par volatilité des données.
+ *
+ * Strategy: refresh fast-moving data hourly (new models, prices, perf metrics),
+ * but cache slow-changing data longer (model capabilities, openness, knowledge cutoff).
+ * Stratégie : données mouvantes 1h, capacités stables 24h.
+ */
+const CACHE_API_SECONDS = 3_600;             // 1h — AA API + OpenRouter (LLM list, prices, perf)
+const CACHE_RSC_SECONDS = 21_600;            // 6h — AA RSC payload (coding agents leaderboard)
+const CACHE_SCRAPE_SECONDS = 86_400;         // 24h — HTML scraping (params, modalities, cutoff…)
 
 function fetchWithTimeout(
   input: string | URL | Request,
@@ -70,7 +82,7 @@ const getOpenRouterModels = unstable_cache(
     }
   },
   ["openrouter-models"],
-  { revalidate: 86400 }
+  { revalidate: CACHE_API_SECONDS, tags: ["llm-models"] }
 );
 
 /** Finds the OR model matching an AA slug via multiple strategies. / Trouve le modèle OR correspondant via plusieurs stratégies. */
@@ -106,14 +118,17 @@ function orCapabilities(or: OpenRouterModel): Partial<LLMModel> {
       : undefined,
     // is_open_weights: removed from OR — hugging_face_id != null is unreliable
     // (some closed models have an HF presence for their tokenizer / certains modèles fermés ont une présence HF)
+    // NOTE: OpenRouter reports "file" for PDF/document input on some models (e.g. GPT-5).
+    // AA does not expose "file" as a distinct modality — we follow AA and ignore it.
+    // AA ne distingue pas "file" comme modalité — on s'aligne sur AA.
     input_modality_text:    has(inp, "text"),
     input_modality_image:   has(inp, "image"),
     input_modality_speech:  has(inp, "audio"),
-    input_modality_video:   has(inp, "video", "file"),
+    input_modality_video:   has(inp, "video"),
     output_modality_text:   has(out, "text"),
     output_modality_image:  has(out, "image"),
     output_modality_speech: has(out, "audio"),
-    output_modality_video:  has(out, "video", "file"),
+    output_modality_video:  has(out, "video"),
   };
 }
 
@@ -125,7 +140,7 @@ export interface ModelCreator {
 }
 
 export interface Evaluations {
-  // AA indices — scale 0-100 / échelle 0-100
+  // AA composite indices — scale 0-100 / indices composites — échelle 0-100
   artificial_analysis_intelligence_index: number | null;
   artificial_analysis_coding_index: number | null;
   artificial_analysis_math_index: number | null;
@@ -142,14 +157,20 @@ export interface Evaluations {
   lcr: number | null;
   terminalbench_hard: number | null;
   tau2: number | null;
+  // Newer AA benchmarks / Benchmarks AA plus récents
+  apex_agents?: number | null;          // APEX-Agents-AA (long-horizon agentic)
+  omniscience_non_hallucination?: number | null; // AA-Omniscience non-hallucination rate
   // Catch-all for any other field returned by the API / pour tout autre champ
-  [key: string]: number | null;
+  [key: string]: number | null | undefined;
 }
 
 export interface Pricing {
   price_1m_blended_3_to_1: number | null;
   price_1m_input_tokens: number | null;
   price_1m_output_tokens: number | null;
+  // New AA fields / Nouveaux champs AA
+  price_1m_cache_hit_tokens?: number | null;       // cache hit price
+  price_1m_blended_7_2_1?: number | null;          // blended cache:input:output 7:2:1
 }
 
 export interface LLMModel {
@@ -164,6 +185,8 @@ export interface LLMModel {
   median_output_tokens_per_second: number | null;
   median_time_to_first_token_seconds: number | null;
   median_time_to_first_answer_token: number | null;
+  // End-to-end latency for 500-token response (seconds) / latence bout en bout pour 500 tokens
+  end_to_end_response_time_seconds?: number | null;
   // Additional capabilities (AA scraping — detail page only) / disponibles sur la page détail
   context_window_tokens?: number | null;
   total_parameters_b?: number | null;   // total parameters in billions / en milliards
@@ -179,6 +202,11 @@ export interface LLMModel {
   output_modality_video?: boolean;
   reasoning_model?: boolean;
   reasoning_properties?: { style: string } | null;
+  // New scraped fields from AA model detail page / Nouveaux champs scrapés
+  knowledge_cutoff?: string | null;            // ISO date string (e.g. "2024-09-30") / date ISO
+  openness_index?: number | null;              // 0-100 scale / échelle 0-100
+  intelligence_index_tokens?: number | null;   // tokens used to run AA Intelligence Index (verbosity)
+  intelligence_index_cost_usd?: number | null; // USD cost to run AA Intelligence Index
 }
 
 let lastSuccessfulModels: LLMModel[] | null = null;
@@ -359,7 +387,7 @@ async function buildPartialModel(slug: string, includeCapabilities = true): Prom
         ?.[1] ??
       null;
 
-    // Pricing
+    // Pricing — AA uses both "price_1m_blended_0_3_1" (legacy) and "price_1m_blended_7_2_1" (new)
     const pricing: Pricing = {
       price_1m_blended_3_to_1: extractJsonNum(
         html,
@@ -368,6 +396,9 @@ async function buildPartialModel(slug: string, includeCapabilities = true): Prom
       ),
       price_1m_input_tokens:   extractJsonNum(html, "price_1m_input_tokens"),
       price_1m_output_tokens:  extractJsonNum(html, "price_1m_output_tokens"),
+      // AA's real field name is "cache_hit_price" (without "price_1m" prefix)
+      price_1m_cache_hit_tokens: extractJsonNum(html, "cache_hit_price"),
+      price_1m_blended_7_2_1: extractJsonNum(html, "price_1m_blended_7_2_1"),
     };
 
     // Evaluations — AA HTML uses short names (intelligence_index, coding_index, math_index)
@@ -387,6 +418,11 @@ async function buildPartialModel(slug: string, includeCapabilities = true): Prom
       lcr:               extractJsonNum(html, "lcr"),
       terminalbench_hard: extractJsonNum(html, "terminalbench_hard"),
       tau2:              extractJsonNum(html, "tau2"),
+      apex_agents:       extractJsonNum(html, "apex_agents"),
+      // AA exposes non_hallucination_rate inside omniscience_breakdown totals.
+      // The aggregated value also appears as a top-level "non_hallucination_rate" when
+      // the breakdown is summarized. / Sinon dans omniscience_breakdown.
+      omniscience_non_hallucination: extractJsonNum(html, "non_hallucination_rate"),
     };
 
     // Performance
@@ -398,6 +434,13 @@ async function buildPartialModel(slug: string, includeCapabilities = true): Prom
       "median_time_to_first_chunk"
     );
     const ttfa  = extractJsonNum(html, "median_time_to_first_answer_token");
+    const e2e   = extractJsonNum(
+      html,
+      "median_end_to_end_response_time_seconds",
+      "end_to_end_response_time_seconds",
+      "median_end_to_end_response_time",
+      "end_to_end_response_time"
+    );
 
     // Capabilities (context window, parameters, modalities) — from scrapeAA
     const caps = includeCapabilities ? await scrapeAA(slug) : {};
@@ -413,6 +456,7 @@ async function buildPartialModel(slug: string, includeCapabilities = true): Prom
       median_output_tokens_per_second:    speed,
       median_time_to_first_token_seconds: ttft,
       median_time_to_first_answer_token:  ttfa,
+      end_to_end_response_time_seconds:   e2e,
       ...caps,
     };
   } catch {
@@ -449,7 +493,8 @@ const getScrapedLLMModelsFallback = unstable_cache(
     return models;
   },
   ["llm-models-public-fallback"],
-  { revalidate: 86400, tags: ["llm-models"] }
+  // Fallback uses scraping → keep the long TTL to avoid hammering AA when API fails.
+  { revalidate: CACHE_SCRAPE_SECONDS, tags: ["llm-models"] }
 );
 
 // ─── AA page scraper ─────────────────────────────────────────────────────────
@@ -515,6 +560,62 @@ async function scrapeAA(slug: string): Promise<Partial<LLMModel>> {
       return null;
     }
 
+    // Knowledge cutoff — AA's real field is "knowledge_cutoff_date" (ISO)
+    function extractKnowledgeCutoff(): string | null {
+      const iso =
+        html.match(/\\?"knowledge_cutoff_date\\?"\s*:\s*\\?"(\d{4}-\d{2}-\d{2})\\?"/)?.[1] ??
+        html.match(/\\?"knowledge_cutoff\\?"\s*:\s*\\?"(\d{4}-\d{2}-\d{2})\\?"/)?.[1];
+      if (iso) return iso;
+      const txt = html.match(/[Kk]nowledge cutoff[^\d<]{0,30}((?:[A-Z][a-z]{2,8}\s+\d{1,2},?\s+\d{4})|(?:[A-Z][a-z]{2,8}\s+\d{4}))/)?.[1];
+      return txt ? txt.trim() : null;
+    }
+
+    // Openness index — AA exposes "openness":{ … "opennessIndex": <number> … }
+    function extractOpenness(): number | null {
+      // Match "openness":{ … "opennessIndex": <number> } — non-greedy across the object
+      const m = html.match(/\\?"openness\\?"\s*:\s*\{[\s\S]{0,800}?\\?"opennessIndex\\?"\s*:\s*([\d.-]+)/);
+      if (m) return parseFloat(m[1]);
+      return extractJsonNum(html, "openness_index", "openness_score");
+    }
+
+    // Intelligence Index output tokens (verbosity).
+    // AA exposes "intelligence_index_token_counts":{"input_tokens":…, "answer_tokens":…, "output_tokens":…, "reasoning_tokens":…}
+    function extractIIITokens(): number | null {
+      const m = html.match(/\\?"intelligence_index_token_counts\\?"\s*:\s*\{[\s\S]{0,400}?\\?"output_tokens\\?"\s*:\s*(\d+)/);
+      if (m) return parseInt(m[1], 10);
+      // "When evaluating the Intelligence Index, it generated 76M tokens"
+      const txt = html.match(/Intelligence Index[\s\S]{0,80}?generated\s+([\d.]+)\s*([MK])\b/i);
+      if (txt) {
+        const mult = txt[2].toUpperCase() === "M" ? 1_000_000 : 1_000;
+        return Math.round(parseFloat(txt[1]) * mult);
+      }
+      return null;
+    }
+
+    // Intelligence Index cost — AA exposes "intelligence_index_cost":{"total_cost":<number>, …}
+    function extractIICost(): number | null {
+      const m = html.match(/\\?"intelligence_index_cost\\?"\s*:\s*\{[\s\S]{0,300}?\\?"total_cost\\?"\s*:\s*([\d.]+)/);
+      if (m) return parseFloat(m[1]);
+      // "it cost $910.37 to evaluate"
+      const txt = html.match(/it cost\s+\$([\d,]+(?:\.\d+)?)\s+to evaluate/i);
+      if (txt) return parseFloat(txt[1].replace(/,/g, ""));
+      return null;
+    }
+
+    // End-to-end response time — AA exposes "end_to_end_response_time_metrics":{"total_time":<number>, …}
+    function extractEndToEnd(): number | null {
+      const m = html.match(/\\?"end_to_end_response_time_metrics\\?"\s*:\s*\{[\s\S]{0,500}?\\?"total_time\\?"\s*:\s*([\d.]+)/);
+      if (m) {
+        const v = parseFloat(m[1]);
+        return v > 0 ? v : null;  // AA returns 0 for not-yet-benchmarked models
+      }
+      return extractJsonNum(
+        html,
+        "median_end_to_end_response_time_seconds",
+        "end_to_end_response_time_seconds"
+      );
+    }
+
     return {
       context_window_tokens: extractContextWindow(),
       total_parameters_b: extractParamsB("Total parameters", "totalParameters"),
@@ -530,6 +631,11 @@ async function scrapeAA(slug: string): Promise<Partial<LLMModel>> {
       output_modality_image: extractBool("output_modality_image", "outputModalityImage"),
       output_modality_speech: extractBool("output_modality_speech", "outputModalitySpeech"),
       output_modality_video: extractBool("output_modality_video", "outputModalityVideo"),
+      knowledge_cutoff: extractKnowledgeCutoff(),
+      openness_index: extractOpenness(),
+      intelligence_index_tokens: extractIIITokens(),
+      intelligence_index_cost_usd: extractIICost(),
+      end_to_end_response_time_seconds: extractEndToEnd(),
     };
   } catch {
     return {};
@@ -570,10 +676,16 @@ const scrapeModelCapabilities = unstable_cache(
       output_modality_image:  or.output_modality_image  ?? aa.output_modality_image,
       output_modality_speech: or.output_modality_speech ?? aa.output_modality_speech,
       output_modality_video:  or.output_modality_video  ?? aa.output_modality_video,
+      knowledge_cutoff:           aa.knowledge_cutoff ?? null,
+      openness_index:             aa.openness_index ?? null,
+      intelligence_index_tokens:  aa.intelligence_index_tokens ?? null,
+      intelligence_index_cost_usd: aa.intelligence_index_cost_usd ?? null,
+      end_to_end_response_time_seconds: aa.end_to_end_response_time_seconds ?? null,
     };
   },
   ["aa-model-caps"],
-  { revalidate: 86400 }
+  // Capabilities (params, modalities, openness, cutoff) change rarely → 24h cache.
+  { revalidate: CACHE_SCRAPE_SECONDS, tags: ["llm-models"] }
 );
 
 const getLLMModelsCached = unstable_cache(
@@ -611,20 +723,36 @@ const getLLMModelsCached = unstable_cache(
     return [...realApiModels, ...extraModels];
   },
   ["llm-models"],
-  { revalidate: 86400, tags: ["llm-models"] }
+  // Primary list: AA API (new models, prices, perf) → 1h. Scraping for missing slugs
+  // happens inside this same refresh and reuses the long-cached capability layer.
+  { revalidate: CACHE_API_SECONDS, tags: ["llm-models"] }
 );
+
+/**
+ * Normalises the model_creator.name for products whose API name differs
+ * from the canonical company name (e.g. AA returns "Kimi" but the actual
+ * creator is Moonshot AI). The slug is kept intact for icon mapping.
+ */
+function normaliseCreatorNames(models: LLMModel[]): LLMModel[] {
+  return models.map((m) => {
+    const slug = m.model_creator.slug;
+    const display = getCreatorDisplayName(slug, m.model_creator.name);
+    if (display === m.model_creator.name) return m;
+    return { ...m, model_creator: { ...m.model_creator, name: display } };
+  });
+}
 
 export async function getLLMModels(): Promise<LLMModel[]> {
   try {
     const models = await getLLMModelsCached();
     if (models.length > 0) lastSuccessfulModels = models;
-    return models;
+    return normaliseCreatorNames(models);
   } catch (error) {
-    if (lastSuccessfulModels?.length) return lastSuccessfulModels;
+    if (lastSuccessfulModels?.length) return normaliseCreatorNames(lastSuccessfulModels);
     const publicFallbackModels = await getScrapedLLMModelsFallback();
     if (publicFallbackModels.length > 0) {
       lastSuccessfulModels = publicFallbackModels;
-      return publicFallbackModels;
+      return normaliseCreatorNames(publicFallbackModels);
     }
     throw error;
   }
@@ -687,4 +815,218 @@ export async function getLLMModel(slug: string): Promise<LLMModel | undefined> {
   if (!model) return undefined;
   const supplementary = await scrapeModelCapabilities(model.slug);
   return { ...model, ...supplementary };
+}
+
+// ─── Coding Agents (AA Coding Agent Index) ─────────────────────────────────
+// AA's coding-agents page tracks how harnesses (Claude Code, Cursor CLI, OpenCode…)
+// perform with specific underlying models on a 3-benchmark composite index.
+// La page coding-agents d'AA mesure comment chaque harnais (Claude Code, Cursor CLI…)
+// performe avec un modèle donné sur 3 benchmarks composites.
+
+export interface CodingAgent {
+  id: string;                              // unique row id from AA
+  agent_name: string;                      // harness name (Claude Code, Cursor CLI…)
+  agent_slug: string;                      // harness slug for icon lookup
+  display_label: string;                   // "Claude Code - Opus 4.7 (Medium)"
+  model_name: string;                      // underlying model name (full)
+  model_short: string;                     // shorter display name
+  model_slug: string;                      // underlying model slug
+  model_creator_slug: string;              // for provider icon
+  release_date: string | null;             // ISO date
+  coding_agent_index: number | null;       // composite 0-100 (× 100 from raw 0-1)
+  swe_bench_pro_hard_aa: number | null;    // pass@1 (0-1)
+  terminal_bench_v2: number | null;        // pass@1 (0-1)
+  swe_atlas_qna: number | null;            // pass@1 (0-1)
+  cost_per_task_usd: number | null;        // USD per task
+  time_per_task_seconds: number | null;    // wall time per task
+  input_tokens_per_task: number | null;
+  cached_input_tokens_per_task: number | null;
+  output_tokens_per_task: number | null;
+  total_tokens_per_task: number | null;
+  cache_hit_rate: number | null;           // 0-1
+  steps_per_task: number | null;
+}
+
+/**
+ * Known coding-agent harnesses with their @lobehub/icons keys.
+ * Harnais connus avec leurs clés d'icônes @lobehub/icons.
+ */
+export const CODING_AGENT_HARNESSES: Record<string, { name: string; icon: string }> = {
+  "claude-code":   { name: "Claude Code",   icon: "claudecode" },
+  "cursor-cli":    { name: "Cursor CLI",    icon: "cursor" },
+  "cursor":        { name: "Cursor",        icon: "cursor" },
+  "opencode":      { name: "OpenCode",      icon: "opencode" },
+  "codex":         { name: "Codex CLI",     icon: "codex" },
+  "codex-cli":     { name: "Codex CLI",     icon: "codex" },
+  "openhands":     { name: "OpenHands",     icon: "openhands" },
+  "cline":         { name: "Cline",         icon: "cline" },
+  "amp":           { name: "Amp",           icon: "amp" },
+  "antigravity":   { name: "Antigravity",   icon: "antigravity" },
+  "junie":         { name: "Junie",         icon: "junie" },
+  "trae":          { name: "Trae",          icon: "trae" },
+  "windsurf":      { name: "Windsurf",      icon: "windsurf" },
+  "github-copilot": { name: "GitHub Copilot", icon: "githubcopilot" },
+  "copilot":       { name: "Copilot",       icon: "copilot" },
+  "gemini-cli":    { name: "Gemini CLI",    icon: "geminicli" },
+  "kilo-code":     { name: "KiloCode",      icon: "kilocode" },
+  "roo-code":      { name: "RooCode",       icon: "roocode" },
+};
+
+const AA_AGENTS_PAGE = "https://artificialanalysis.ai/agents/coding-agents";
+
+interface AAAgentRow {
+  id?: string;
+  agentName?: string;
+  provider?: string;
+  hostModelSlug?: string;
+  display?: { agent?: string; model?: string };
+  displayLabel?: string;
+  releaseDate?: string;
+  hostName?: string;
+  hostShortName?: string;
+  modelName?: string;
+  indexScore?: number;
+  mean?: {
+    reward?: number;
+    costUsd?: number;
+    agentWallTimeSec?: number;
+    steps?: number;
+    inputTokens?: number;
+    outputTokens?: number;
+    cacheTokens?: number;
+    cacheHitRate?: number;
+    totalTokens?: number;
+  };
+  componentScores?: Array<{
+    datasetIndexName?: string;
+    mean?: { reward?: number };
+  }>;
+}
+
+/**
+ * Extracts the agent rows array from AA's RSC payload.
+ * AA's /agents/coding-agents is client-rendered, but Next.js exposes the data
+ * via the React Server Components (RSC) payload when the "RSC: 1" header is set.
+ * We balance-parse the "rows":[...] array to get the leaderboard.
+ * Le payload RSC est récupéré via le header "RSC: 1" sur la page Next.js.
+ */
+function extractRowsFromRSC(payload: string): AAAgentRow[] | null {
+  const key = '"rows":[';
+  const start = payload.indexOf(key);
+  if (start < 0) return null;
+
+  // Walk balanced brackets from inside the array opener
+  let i = start + key.length;
+  let depth = 1;
+  let inStr = false;
+  let esc = false;
+  const maxLen = payload.length;
+  while (i < maxLen && depth > 0) {
+    const c = payload[i];
+    if (esc) esc = false;
+    else if (c === "\\") esc = true;
+    else if (c === '"') inStr = !inStr;
+    else if (!inStr) {
+      if (c === "[" || c === "{") depth++;
+      else if (c === "]" || c === "}") depth--;
+    }
+    i++;
+  }
+  if (depth !== 0) return null;
+  const arrText = payload.slice(start + key.length - 1, i);
+  try {
+    return JSON.parse(arrText) as AAAgentRow[];
+  } catch {
+    return null;
+  }
+}
+
+/** Slug-ify the harness name to match HARNESS keys / icons. */
+function harnessSlug(agentName: string): string {
+  return agentName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+}
+
+/**
+ * Fetches the AA coding-agents leaderboard via Next.js RSC payload.
+ * Cached 24h to avoid hammering AA's frontend.
+ * Mise en cache 24h pour ne pas surcharger AA.
+ */
+const getCodingAgentsCached = unstable_cache(
+  async (): Promise<CodingAgent[]> => {
+    try {
+      const res = await fetchWithTimeout(
+        AA_AGENTS_PAGE,
+        {
+          headers: {
+            "User-Agent": SCRAPE_USER_AGENT,
+            "RSC": "1",
+            "Next-Router-Prefetch": "1",
+            "Accept": "text/x-component, */*",
+          },
+        },
+        SCRAPE_FETCH_TIMEOUT_MS
+      );
+      if (!res.ok) return [];
+      const payload = await res.text();
+
+      const rows = extractRowsFromRSC(payload);
+      if (!rows) return [];
+
+      const componentScore = (row: AAAgentRow, name: string): number | null => {
+        const c = row.componentScores?.find((x) => x.datasetIndexName === name);
+        return c?.mean?.reward ?? null;
+      };
+
+      return rows
+        .map((row, i): CodingAgent | null => {
+          const agentName = row.agentName ?? row.display?.agent ?? "";
+          if (!agentName) return null;
+          const slug = harnessSlug(agentName);
+          const mean = row.mean ?? {};
+          // hostModelSlug looks like "anthropic_claude-opus-4-6" — extract host + model id.
+          // Then resolve the *real* creator from the model id, because the host is
+          // sometimes a routing provider (friendliai for GLM, cursor for its own models…)
+          // rather than the actual creator.
+          const hostSlug = row.hostModelSlug ?? "";
+          const [hostRaw, ...modelRest] = hostSlug.split("_");
+          const modelSlug = modelRest.join("_") || hostSlug;
+          const hostSlugLower = (hostRaw || row.provider || "").toLowerCase();
+          const creatorSlug = resolveCreatorFromModelSlug(modelSlug, hostSlugLower);
+          return {
+            id: row.id ?? `${slug}-${i}`,
+            agent_name: agentName,
+            agent_slug: slug,
+            display_label: row.displayLabel ?? `${agentName} - ${row.modelName ?? ""}`,
+            model_name: row.modelName ?? row.display?.model ?? modelSlug,
+            model_short: row.display?.model ?? row.modelName ?? "",
+            model_slug: modelSlug,
+            model_creator_slug: creatorSlug,
+            release_date: row.releaseDate ?? null,
+            // Convert 0-1 index to 0-100 for display consistency with LLM indices
+            coding_agent_index: typeof row.indexScore === "number" ? row.indexScore * 100 : null,
+            swe_bench_pro_hard_aa: componentScore(row, "swe-bench-pro-hard"),
+            terminal_bench_v2:    componentScore(row, "terminal-bench-v2"),
+            swe_atlas_qna:        componentScore(row, "swe-atlas-qna"),
+            cost_per_task_usd:    mean.costUsd ?? null,
+            time_per_task_seconds: mean.agentWallTimeSec ?? null,
+            input_tokens_per_task:        mean.inputTokens ?? null,
+            cached_input_tokens_per_task: mean.cacheTokens ?? null,
+            output_tokens_per_task:       mean.outputTokens ?? null,
+            total_tokens_per_task:        mean.totalTokens ?? null,
+            cache_hit_rate:               mean.cacheHitRate ?? null,
+            steps_per_task:               mean.steps ?? null,
+          };
+        })
+        .filter((x): x is CodingAgent => x !== null);
+    } catch {
+      return [];
+    }
+  },
+  ["aa-coding-agents"],
+  // RSC payload is bigger; refresh every 6h — leaderboard changes rarely.
+  { revalidate: CACHE_RSC_SECONDS, tags: ["aa-coding-agents"] }
+);
+
+export async function getCodingAgents(): Promise<CodingAgent[]> {
+  return getCodingAgentsCached();
 }

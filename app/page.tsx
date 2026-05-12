@@ -5,7 +5,6 @@ import { ModelGrid } from "@/components/model-grid";
 import { SiteHeader } from "@/components/site-header";
 import { HomeHero, type LatestModelSummary } from "@/components/home-hero";
 import { SiteFooter } from "@/components/site-footer";
-import { CompareBar } from "@/components/compare-bar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollToTop } from "@/components/scroll-to-top";
 
@@ -56,9 +55,6 @@ async function PageContent() {
       </main>
 
       <SiteFooter />
-      <Suspense>
-        <CompareBar models={models} />
-      </Suspense>
     </>
   );
 }
