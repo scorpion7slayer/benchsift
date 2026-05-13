@@ -465,39 +465,6 @@ async function buildPartialModel(slug: string, includeCapabilities = true): Prom
   }
 }
 
-const getScrapedLLMModelsFallback = unstable_cache(
-  async (): Promise<LLMModel[]> => {
-    const slugs = await scrapeAllModelSlugs();
-    const models: LLMModel[] = [];
-
-    for (let i = 0; i < slugs.length; i += PARTIAL_MODEL_CHUNK_SIZE) {
-      const chunk = slugs.slice(i, i + PARTIAL_MODEL_CHUNK_SIZE);
-      const settled = await Promise.allSettled(
-        chunk.map((slug) => buildPartialModel(slug, false))
-      );
-
-      for (const result of settled) {
-        if (result.status !== "fulfilled" || !result.value) continue;
-
-        const model = result.value;
-        const hasUsefulData =
-          model.model_creator.name !== "Unknown" &&
-          (model.evaluations.artificial_analysis_intelligence_index !== null ||
-            model.evaluations.artificial_analysis_coding_index !== null ||
-            model.pricing.price_1m_blended_3_to_1 !== null ||
-            model.median_output_tokens_per_second !== null);
-
-        if (hasUsefulData) models.push(model);
-      }
-    }
-
-    return models;
-  },
-  ["llm-models-public-fallback"],
-  // Fallback uses scraping → keep the long TTL to avoid hammering AA when API fails.
-  { revalidate: CACHE_SCRAPE_SECONDS, tags: ["llm-models"] }
-);
-
 // ─── AA page scraper ─────────────────────────────────────────────────────────
 
 /**
@@ -788,16 +755,14 @@ export async function getLLMModels(): Promise<LLMModel[]> {
       return normaliseCreatorNames(models);
     }
   } catch {
-    // Fall through to the public scrape fallback below.
+    // Swallow — falling through to public scrape would burn CPU and risk
+    // a render-time crash. Better to return [] and let the UI show an
+    // empty state; the next cron run will repopulate KV.
   }
 
-  // 4. Absolute last resort: scrape AA public pages (slow — should be rare).
-  const publicFallbackModels = await getScrapedLLMModelsFallback();
-  if (publicFallbackModels.length > 0) {
-    lastSuccessfulModels = publicFallbackModels;
-    return normaliseCreatorNames(publicFallbackModels);
-  }
-
+  // No upstream succeeded. Returning [] keeps the page renderable
+  // (empty list) instead of throwing from getLLMModels and triggering
+  // error.tsx, which would consume CPU rendering hundreds of error UIs.
   return [];
 }
 
