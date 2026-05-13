@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getCreatorDisplayName, resolveCreatorFromModelSlug } from "@/lib/provider-map";
+import { readModelsCache, writeModelsCache } from "@/lib/cron-cache";
 
 const BASE_URL = "https://artificialanalysis.ai/api/v2";
 const OR_BASE = "https://openrouter.ai/api/v1";
@@ -75,8 +76,8 @@ const getOpenRouterModels = unstable_cache(
     try {
       const res = await fetchWithTimeout(`${OR_BASE}/models`);
       if (!res.ok) return [];
-      const json = await res.json();
-      return (json.data as OpenRouterModel[]) ?? [];
+      const json = (await res.json()) as { data?: OpenRouterModel[] };
+      return json.data ?? [];
     } catch {
       return [];
     }
@@ -688,45 +689,63 @@ const scrapeModelCapabilities = unstable_cache(
   { revalidate: CACHE_SCRAPE_SECONDS, tags: ["llm-models"] }
 );
 
-const getLLMModelsCached = unstable_cache(
-  async (): Promise<LLMModel[]> => {
-    // Fetch API models and the authoritative sitemap slugs in parallel
-    const [apiModels, validSlugs] = await Promise.all([
-      apiFetch<LLMModel[]>("/data/llms/models"),
-      scrapeAllModelSlugs(),
-    ]);
+/**
+ * Light-weight model list for the request path: AA API + sitemap filter only.
+ * No HTML scraping (no `buildPartialModel`) — keeps CPU usage well below the
+ * Workers Free 10 ms limit. Used as a fallback when the KV cache is cold.
+ */
+async function fetchLightModels(): Promise<LLMModel[]> {
+  const [apiModels, validSlugs] = await Promise.all([
+    apiFetch<LLMModel[]>("/data/llms/models"),
+    scrapeAllModelSlugs(),
+  ]);
+  if (validSlugs.length === 0) return apiModels;
+  const validSlugSet = new Set(validSlugs);
+  return apiModels.filter((m) => validSlugSet.has(m.slug));
+}
 
-    // If the sitemap is unavailable, fall back to raw API results
-    if (validSlugs.length === 0) return apiModels;
+/**
+ * Full model list, including partial scrapes for slugs missing from the AA API.
+ * CPU-heavy (regex on dozens of HTML pages) — only call from the Cron Trigger.
+ */
+export async function fetchModelsForCron(): Promise<LLMModel[]> {
+  const [apiModels, validSlugs] = await Promise.all([
+    apiFetch<LLMModel[]>("/data/llms/models"),
+    scrapeAllModelSlugs(),
+  ]);
 
-    const validSlugSet = new Set(validSlugs);
+  if (validSlugs.length === 0) return apiModels;
 
-    // Filter the API: remove "fake" meta-models that aren't real individual models
-    const realApiModels = apiModels.filter((m) => validSlugSet.has(m.slug));
+  const validSlugSet = new Set(validSlugs);
+  const realApiModels = apiModels.filter((m) => validSlugSet.has(m.slug));
 
-    // Find slugs on the AA website but absent from their API → build partial models
-    const apiSlugSet = new Set(realApiModels.map((m) => m.slug));
-    const missingSlugs = validSlugs.filter((s) => !apiSlugSet.has(s));
+  const apiSlugSet = new Set(realApiModels.map((m) => m.slug));
+  const missingSlugs = validSlugs.filter((s) => !apiSlugSet.has(s));
 
-    if (missingSlugs.length === 0) return realApiModels;
+  if (missingSlugs.length === 0) return realApiModels;
 
-    // Build partial models for missing slugs in small chunks to avoid Worker timeouts.
-    const extraModels: LLMModel[] = [];
-    for (let i = 0; i < missingSlugs.length; i += PARTIAL_MODEL_CHUNK_SIZE) {
-      const chunk = missingSlugs.slice(i, i + PARTIAL_MODEL_CHUNK_SIZE);
-      const settled = await Promise.allSettled(chunk.map((slug) => buildPartialModel(slug)));
-      for (const r of settled) {
-        if (r.status === "fulfilled" && r.value) extraModels.push(r.value);
-      }
+  const extraModels: LLMModel[] = [];
+  for (let i = 0; i < missingSlugs.length; i += PARTIAL_MODEL_CHUNK_SIZE) {
+    const chunk = missingSlugs.slice(i, i + PARTIAL_MODEL_CHUNK_SIZE);
+    const settled = await Promise.allSettled(chunk.map((slug) => buildPartialModel(slug)));
+    for (const r of settled) {
+      if (r.status === "fulfilled" && r.value) extraModels.push(r.value);
     }
+  }
 
-    return [...realApiModels, ...extraModels];
-  },
-  ["llm-models"],
-  // Primary list: AA API (new models, prices, perf) → 1h. Scraping for missing slugs
-  // happens inside this same refresh and reuses the long-cached capability layer.
-  { revalidate: CACHE_API_SECONDS, tags: ["llm-models"] }
-);
+  return [...realApiModels, ...extraModels];
+}
+
+/**
+ * Public entry point for cron: refreshes the KV cache and returns counts.
+ * Called by `app/api/cron/refresh/route.ts`.
+ */
+export async function refreshModelsCache(): Promise<{ count: number }> {
+  const models = await fetchModelsForCron();
+  await writeModelsCache(models);
+  if (models.length > 0) lastSuccessfulModels = models;
+  return { count: models.length };
+}
 
 /**
  * Normalises the model_creator.name for products whose API name differs
@@ -742,20 +761,47 @@ function normaliseCreatorNames(models: LLMModel[]): LLMModel[] {
   });
 }
 
+/**
+ * Reads the pre-computed KV cache populated by the Cron Trigger.
+ * This is the fast path — zero CPU-heavy scraping, suitable for user requests
+ * on the Workers Free 10 ms CPU budget.
+ */
 export async function getLLMModels(): Promise<LLMModel[]> {
+  // 1. Fast path: KV cache filled by the cron.
   try {
-    const models = await getLLMModelsCached();
-    if (models.length > 0) lastSuccessfulModels = models;
-    return normaliseCreatorNames(models);
-  } catch (error) {
-    if (lastSuccessfulModels?.length) return normaliseCreatorNames(lastSuccessfulModels);
-    const publicFallbackModels = await getScrapedLLMModelsFallback();
-    if (publicFallbackModels.length > 0) {
-      lastSuccessfulModels = publicFallbackModels;
-      return normaliseCreatorNames(publicFallbackModels);
+    const cached = await readModelsCache();
+    if (cached && cached.models.length > 0) {
+      lastSuccessfulModels = cached.models;
+      return normaliseCreatorNames(cached.models);
     }
-    throw error;
+  } catch {
+    // Ignore KV failures and fall through to the light fetch.
   }
+
+  // 2. Cold-start fallback: in-memory copy from a previous request.
+  if (lastSuccessfulModels?.length) {
+    return normaliseCreatorNames(lastSuccessfulModels);
+  }
+
+  // 3. Last resort: AA API + sitemap only. No HTML scraping — keeps CPU low.
+  try {
+    const models = await fetchLightModels();
+    if (models.length > 0) {
+      lastSuccessfulModels = models;
+      return normaliseCreatorNames(models);
+    }
+  } catch {
+    // Fall through to the public scrape fallback below.
+  }
+
+  // 4. Absolute last resort: scrape AA public pages (slow — should be rare).
+  const publicFallbackModels = await getScrapedLLMModelsFallback();
+  if (publicFallbackModels.length > 0) {
+    lastSuccessfulModels = publicFallbackModels;
+    return normaliseCreatorNames(publicFallbackModels);
+  }
+
+  return [];
 }
 
 export { scrapeModelCapabilities };
