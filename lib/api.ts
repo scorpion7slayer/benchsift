@@ -38,6 +38,7 @@ function getApiKeys(): string[] {
     process.env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY,
     process.env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_2,
     process.env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_3,
+    process.env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_4,
   ].filter((k): k is string => typeof k === "string" && k.length > 0);
 }
 

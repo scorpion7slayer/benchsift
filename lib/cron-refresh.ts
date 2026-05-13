@@ -20,6 +20,7 @@ async function fetchModelsFromAA(env: CloudflareEnv): Promise<unknown[]> {
     env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY,
     env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_2,
     env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_3,
+    (env as unknown as { ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_4?: string }).ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_4,
   ].filter((k): k is string => typeof k === "string" && k.length > 0);
 
   let lastStatus = 0;
