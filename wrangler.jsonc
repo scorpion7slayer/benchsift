@@ -6,9 +6,16 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+	"limits": {
+		// Cap CPU per request to keep monthly spend predictable on Workers Paid.
+		// Quota: 30M CPU ms/month → 100ms/req ⇒ ~300k requests before overage.
+		// Default is 30s — way too lax for a tight Standard usage budget.
+		"cpu_ms": 100
+	},
 	"triggers": {
-		// Pre-warm the KV cache so user requests never trigger the AA scrape.
-		// Workers Free CPU limit is 10 ms per invocation — fetch() doesn't count.
+		// Pre-warm the KV cache so user requests don't trigger the AA scrape.
+		// The scheduled handler runs on its own Cron Trigger budget (15 min on Paid),
+		// independent of `limits.cpu_ms` which only caps the fetch handler.
 		"crons": ["*/30 * * * *"]
 	},
 	"assets": {

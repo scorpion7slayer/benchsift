@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { refreshModelsCache } from "@/lib/api";
+import { refreshKVCache } from "@/lib/cron-refresh";
 
-// Force dynamic — must run on every cron invocation, never cached.
+// Force dynamic — must run on every invocation, never cached.
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -22,13 +22,8 @@ async function handle(request: Request) {
   const provided = header.startsWith("Bearer ") ? header.slice(7) : "";
   if (!provided || provided !== expected) return unauthorized("invalid token");
 
-  const started = Date.now();
-  const { count } = await refreshModelsCache();
-  return NextResponse.json({
-    ok: true,
-    count,
-    durationMs: Date.now() - started,
-  });
+  const result = await refreshKVCache(env);
+  return NextResponse.json({ ok: true, ...result });
 }
 
 export async function POST(request: Request) {
