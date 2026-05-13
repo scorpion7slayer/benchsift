@@ -15,13 +15,17 @@ interface ModelsCacheEntry {
   refreshedAt: number; // ms epoch
 }
 
-function getKV(): KVNamespace | null {
+function getContext() {
   try {
-    const { env } = getCloudflareContext();
-    return env.NEXT_INC_CACHE_KV ?? null;
+    return getCloudflareContext();
   } catch {
     return null;
   }
+}
+
+function getKV(): KVNamespace | null {
+  const c = getContext();
+  return c?.env.NEXT_INC_CACHE_KV ?? null;
 }
 
 export async function readModelsCache(): Promise<ModelsCacheEntry | null> {
@@ -41,4 +45,15 @@ export async function writeModelsCache(models: LLMModel[]): Promise<void> {
   await kv.put(MODELS_KEY, JSON.stringify(entry), {
     expirationTtl: STALE_TTL_SECONDS,
   });
+}
+
+/**
+ * Best-effort background write. Schedules the put via `ctx.waitUntil` so the
+ * caller (typically a user-facing request) returns immediately without paying
+ * the KV write CPU/latency cost. Silently no-ops if no Cloudflare context.
+ */
+export function scheduleWriteModelsCache(models: LLMModel[]): void {
+  const c = getContext();
+  if (!c?.env.NEXT_INC_CACHE_KV) return;
+  c.ctx.waitUntil(writeModelsCache(models));
 }

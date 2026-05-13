@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getCreatorDisplayName, resolveCreatorFromModelSlug } from "@/lib/provider-map";
-import { readModelsCache, writeModelsCache } from "@/lib/cron-cache";
+import { readModelsCache, writeModelsCache, scheduleWriteModelsCache } from "@/lib/cron-cache";
 
 const BASE_URL = "https://artificialanalysis.ai/api/v2";
 const OR_BASE = "https://openrouter.ai/api/v1";
@@ -690,18 +690,13 @@ const scrapeModelCapabilities = unstable_cache(
 );
 
 /**
- * Light-weight model list for the request path: AA API + sitemap filter only.
- * No HTML scraping (no `buildPartialModel`) — keeps CPU usage well below the
- * Workers Free 10 ms limit. Used as a fallback when the KV cache is cold.
+ * Minimal request-path fetch: AA API only — NO sitemap scrape, NO HTML regex.
+ * The sitemap filter (which removes a handful of meta-models) is cosmetic and
+ * runs in the cron instead. Keeping this path as light as possible so it fits
+ * inside the Workers Free 10 ms CPU budget on cold-start.
  */
 async function fetchLightModels(): Promise<LLMModel[]> {
-  const [apiModels, validSlugs] = await Promise.all([
-    apiFetch<LLMModel[]>("/data/llms/models"),
-    scrapeAllModelSlugs(),
-  ]);
-  if (validSlugs.length === 0) return apiModels;
-  const validSlugSet = new Set(validSlugs);
-  return apiModels.filter((m) => validSlugSet.has(m.slug));
+  return apiFetch<LLMModel[]>("/data/llms/models");
 }
 
 /**
@@ -783,11 +778,13 @@ export async function getLLMModels(): Promise<LLMModel[]> {
     return normaliseCreatorNames(lastSuccessfulModels);
   }
 
-  // 3. Last resort: AA API + sitemap only. No HTML scraping — keeps CPU low.
+  // 3. Last resort: AA API only. No sitemap, no HTML scraping — minimal CPU.
+  // Schedule a background KV write so subsequent cold-starts are instant.
   try {
     const models = await fetchLightModels();
     if (models.length > 0) {
       lastSuccessfulModels = models;
+      scheduleWriteModelsCache(models);
       return normaliseCreatorNames(models);
     }
   } catch {
