@@ -22,24 +22,29 @@ async function fetchModelsFromAA(env: CloudflareEnv): Promise<unknown[]> {
     env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_3,
   ].filter((k): k is string => typeof k === "string" && k.length > 0);
 
-  let lastError: unknown = null;
-  for (const key of keys) {
+  let lastStatus = 0;
+  let lastErrorName = "";
+  for (let i = 0; i < keys.length; i++) {
     try {
       const res = await fetch(AA_MODELS_URL, {
-        headers: { "x-api-key": key },
+        headers: { "x-api-key": keys[i] },
         signal: AbortSignal.timeout(8000),
       });
       if (!res.ok) {
-        lastError = new Error(`AA API ${res.status} on key …${key.slice(-6)}`);
+        lastStatus = res.status;
         continue;
       }
       const json = (await res.json()) as AAApiResponse<unknown[]>;
       return json.data ?? [];
     } catch (e) {
-      lastError = e;
+      lastErrorName = e instanceof Error ? e.name : "Error";
     }
   }
-  throw lastError ?? new Error("All AA keys failed");
+  // Never include key material (even partial) in the error message —
+  // it would otherwise flow into console.error and leak via worker logs.
+  throw new Error(
+    `All ${keys.length} AA keys failed (lastStatus=${lastStatus} lastError=${lastErrorName || "none"})`,
+  );
 }
 
 export interface RefreshResult {
