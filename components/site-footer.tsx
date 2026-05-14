@@ -1,5 +1,3 @@
-"use client";
-
 import { Cloudflare } from "@lobehub/icons";
 import { useI18n } from "@/lib/i18n";
 

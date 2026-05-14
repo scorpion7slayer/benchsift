@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Search, X, Loader2, ChevronDown, Check } from "lucide-react";
 import { ModelCard } from "@/components/model-card";

@@ -1,8 +1,6 @@
-"use client";
-
 import { useState, useMemo, useEffect, useRef } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link } from "@/components/link";
+import { useRouter } from "@tanstack/react-router";
 import { GitCompareArrows, ChevronLeft, Search, X, Check, Trophy, Type, ImageIcon, Video, Mic, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -702,7 +700,10 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
   function addModel(model: LLMModel) {
     if (compareIsFull) return;
     if (!selected.includes(model.slug)) toggle(model.slug);
-    router.replace(`/compare?models=${[...models.map(m => m.slug), model.slug].join(",")}`);
+    router.navigate({
+      href: `/compare?models=${[...models.map(m => m.slug), model.slug].join(",")}`,
+      replace: true,
+    });
     setAddSearch("");
   }
 
@@ -713,8 +714,11 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
     compareUpdateTimerRef.current = window.setTimeout(() => {
       toggle(slug);
       const next = models.filter(m => m.slug !== slug).map(m => m.slug);
-      if (next.length >= 1) router.replace(`/compare?models=${next.join(",")}`);
-      else router.replace("/compare");
+      if (next.length >= 1) {
+        router.navigate({ href: `/compare?models=${next.join(",")}`, replace: true });
+      } else {
+        router.navigate({ href: "/compare", replace: true });
+      }
       compareUpdateTimerRef.current = null;
     }, COMPARE_COLUMN_EXIT_MS);
   }
@@ -807,7 +811,7 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
             size="sm"
             onClick={() => {
               clear();
-              router.replace("/compare");
+              router.navigate({ href: "/compare", replace: true });
             }}
           >
             {t.compare.clear}

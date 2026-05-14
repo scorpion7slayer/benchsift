@@ -1,6 +1,4 @@
-"use client";
-
-import Link from "next/link";
+import { Link } from "@/components/link";
 import { Zap, Timer, DollarSign, ChevronRight, Plus, Check, Brain, ImageIcon, Video, Mic, Type } from "lucide-react";
 import {
   Card,

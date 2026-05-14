@@ -1,8 +1,6 @@
-"use client";
-
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
+import { Link } from "@/components/link";
 import { Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CompareMenu, type CompareMenuModel } from "@/components/compare-menu";

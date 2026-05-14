@@ -1,5 +1,3 @@
-"use client";
-
 import { Info, Trophy, Zap, DollarSign, ExternalLink } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +8,7 @@ import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
 import { HarnessIcon } from "@/components/harness-icon";
 import { getProviderKey } from "@/lib/provider-map";
 import { useI18n } from "@/lib/i18n";
-import { CODING_AGENT_HARNESSES, type CodingAgent } from "@/lib/api";
+import { CODING_AGENT_HARNESSES, type CodingAgent } from "@/lib/coding-agents";
 
 function fmt(v: number | null, decimals = 1): string {
   if (v == null) return "—";

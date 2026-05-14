@@ -1,5 +1,3 @@
-"use client";
-
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from "react";
 
 export type Lang = "fr" | "en";

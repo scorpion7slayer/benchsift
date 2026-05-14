@@ -20,47 +20,74 @@ Data comes from [Artificial Analysis](https://artificialanalysis.ai) and [OpenRo
 
 ```bash
 npm install
-cp .env.example .env.local
+cp .dev.vars.example .dev.vars   # then fill in your API keys
 npm run dev
 ```
 
 Then open [http://localhost:3000](http://localhost:3000).
 
-You'll need an Artificial Analysis API key — grab one at [artificialanalysis.ai](https://artificialanalysis.ai) and add it to `.env.local`:
+You'll need an Artificial Analysis API key — grab one at [artificialanalysis.ai](https://artificialanalysis.ai) and add it to `.dev.vars`:
 
 ```env
 ARTIFICIAL_ANALYSIS_API_KEY=your_key_here
 ```
 
+`.dev.vars` is read by the Cloudflare Vite plugin for local development.
 OpenRouter is used without an API key (public endpoint).
 
 ## Project structure
 
 ```
-app/
-  page.tsx              # Homepage — model grid
-  models/[slug]/        # Model detail page
-  compare/              # Side-by-side comparison
-components/             # UI components (shadcn/ui based)
+src/
+  router.tsx              # Router instance
+  server.ts               # Cloudflare Worker entry (fetch + scheduled cron)
+  routes/
+    __root.tsx            # Root layout, <head>, providers, error boundary
+    index.tsx             # Homepage — model grid
+    compare.tsx           # Side-by-side comparison
+    agents/coding.tsx     # Coding-agents leaderboard
+    models/$slug.tsx      # Model detail page
+    api/cron/refresh.ts   # Manual cron-refresh endpoint
+    robots[.]txt.ts       # robots.txt
+    sitemap[.]xml.ts      # sitemap.xml
+  styles/globals.css      # Tailwind v4 entry
+components/               # UI components (shadcn/ui based)
 lib/
-  api.ts                # Data fetching (Artificial Analysis + OpenRouter)
-  i18n.tsx              # French/English translations
-  compare-store.tsx     # Client-side comparison state
+  api.ts                  # Data fetching (Artificial Analysis + OpenRouter) — server only
+  server-fns.ts           # TanStack Start server functions (route loaders)
+  kv-cache.ts             # Revalidating cache (in-memory + Cloudflare KV)
+  cf-env.ts               # Cloudflare bindings accessor — server only
+  cron-cache.ts           # KV models cache
+  cron-refresh.ts         # Standalone cron refresh logic
+  coding-agents.ts        # Coding-agent types + harness metadata (client-safe)
+  i18n.tsx                # French/English translations
+  compare-store.tsx       # Client-side comparison state
 ```
 
 ## Built with
 
-- [Next.js 16](https://nextjs.org) (App Router, Server Components)
+- [TanStack Start](https://tanstack.com/start/latest) — full-stack React framework
+- [TanStack Router](https://tanstack.com/router) — type-safe file-based routing
 - [React 19](https://react.dev)
+- [Vite 7](https://vite.dev)
 - [Tailwind CSS v4](https://tailwindcss.com)
-- [shadcn/ui](https://ui.shadcn.com)
-- [Radix UI](https://radix-ui.com)
+- [shadcn/ui](https://ui.shadcn.com) + [Radix UI](https://radix-ui.com)
 
 ## Deploying
 
+Deploys to [Cloudflare Workers](https://workers.cloudflare.com) via Wrangler:
+
 ```bash
-npm run build
-npm run start
+npm run deploy
 ```
 
-Works on Vercel, Railway, or any Node.js host. Set the `ARTIFICIAL_ANALYSIS_API_KEY` environment variable in your deployment dashboard
+Set production secrets with `wrangler secret put`:
+
+```bash
+wrangler secret put ARTIFICIAL_ANALYSIS_API_KEY
+wrangler secret put CRON_SECRET
+```
+
+The KV namespace (`MODELS_KV`) and Cron Trigger are configured in `wrangler.jsonc`.
+A scheduled handler (`src/server.ts`) pre-warms the KV cache every 30 minutes so
+user requests never pay for the upstream scrape.

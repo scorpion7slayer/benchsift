@@ -1,5 +1,3 @@
-"use client";
-
 import {
   createContext,
   useCallback,
@@ -9,7 +7,7 @@ import {
   useRef,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter, useRouterState } from "@tanstack/react-router";
 
 const PAGE_EXIT_MS = 540;
 const PAGE_CLEANUP_MS = 1200;
@@ -42,7 +40,7 @@ function isModifiedClick(event: MouseEvent | ReactMouseEvent) {
 
 export function PageTransitionProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const leavingRef = useRef(false);
   const navTimerRef = useRef<number | null>(null);
   const cleanupTimerRef = useRef<number | null>(null);
@@ -60,7 +58,7 @@ export function PageTransitionProvider({ children }: { children: React.ReactNode
       if (!next) return;
 
       if (prefersReducedMotion()) {
-        router[mode](next);
+        router.navigate({ href: next, replace: mode === "replace" });
         return;
       }
 
@@ -69,7 +67,7 @@ export function PageTransitionProvider({ children }: { children: React.ReactNode
       document.documentElement.classList.add("page-route-leaving");
 
       navTimerRef.current = window.setTimeout(() => {
-        router[mode](next);
+        router.navigate({ href: next, replace: mode === "replace" });
         cleanupTimerRef.current = window.setTimeout(() => {
           document.documentElement.classList.remove("page-route-leaving");
           leavingRef.current = false;

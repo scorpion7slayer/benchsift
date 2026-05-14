@@ -1,5 +1,3 @@
-"use client";
-
 import { use, Suspense } from "react";
 import {
   Zap, DollarSign, BarChart3, TrendingUp, GitCompareArrows,

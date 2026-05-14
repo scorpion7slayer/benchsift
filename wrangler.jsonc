@@ -1,11 +1,12 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"main": "./custom-worker.ts",
 	"name": "nxtaicard",
 	"compatibility_date": "2025-09-27",
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+	// Custom worker entry: TanStack Start fetch handler + a `scheduled` cron handler.
+	"main": "src/server.ts",
 	"limits": {
 		// Cap CPU per request to keep monthly spend predictable on Workers Paid.
 		// Quota: 30M CPU ms/month → 100ms/req ⇒ ~300k requests before overage.
@@ -14,22 +15,9 @@
 	},
 	"triggers": {
 		// Pre-warm the KV cache so user requests don't trigger the AA scrape.
-		// The scheduled handler runs on its own Cron Trigger budget (15 min on Paid),
+		// The scheduled handler runs on its own Cron Trigger budget,
 		// independent of `limits.cpu_ms` which only caps the fetch handler.
 		"crons": ["*/30 * * * *"]
-	},
-	"assets": {
-		"directory": ".open-next/assets",
-		"binding": "ASSETS"
-	},
-	"services": [
-		{
-			"binding": "WORKER_SELF_REFERENCE",
-			"service": "nxtaicard"
-		}
-	],
-	"images": {
-		"binding": "IMAGES"
 	},
 	"workers_dev": false,
 	"preview_urls": false,
@@ -38,7 +26,7 @@
 	},
 	"kv_namespaces": [
 		{
-			"binding": "NEXT_INC_CACHE_KV",
+			"binding": "MODELS_KV",
 			"id": "2f526a06d8a349d49c446cd70b6e3786"
 		}
 	]
