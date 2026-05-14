@@ -1,5 +1,3 @@
-"use client";
-
 import { useTheme } from "next-themes";
 import { ProviderIcon, ZAI, KwaiKAT, Inception, Ai2, Liquid, DeepCogito, OpenChat, Aws, Cursor } from "@lobehub/icons";
 import { Bot } from "lucide-react";

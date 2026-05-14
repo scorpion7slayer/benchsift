@@ -1,17 +1,13 @@
-"use client";
-
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { useRouter } from "@tanstack/react-router";
+import type { ErrorComponentProps } from "@tanstack/react-router";
 import { Brain, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 
-export default function Error({
-  error,
-  unstable_retry,
-}: {
-  error: Error & { digest?: string };
-  unstable_retry: () => void;
-}) {
+// Replaces the Next.js `app/error.tsx` route-level error boundary.
+export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
+  const router = useRouter();
   const { t } = useI18n();
   const isRateLimit = error.message.includes("429");
 
@@ -20,7 +16,7 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="flex flex-col items-center justify-center flex-1 gap-4 p-8 text-center">
+    <div className="flex flex-col items-center justify-center flex-1 min-h-[60vh] gap-4 p-8 text-center">
       <Brain className="size-10 text-muted-foreground" />
       <div>
         <h2 className="text-lg font-semibold">{t.error.title}</h2>
@@ -31,7 +27,9 @@ export default function Error({
       <Button
         variant="outline"
         size="sm"
-        onClick={unstable_retry}
+        onClick={() => {
+          void router.invalidate();
+        }}
       >
         <RefreshCw className="size-4 mr-2" />
         {t.error.retry}

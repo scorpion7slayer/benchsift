@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, GitCompareArrows, Plus, Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";

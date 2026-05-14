@@ -1,0 +1,15 @@
+# Local development secrets, loaded by the Cloudflare Vite plugin.
+# Copy to `.dev.vars` and fill in. For production, set these via
+# `wrangler secret put <NAME>`.
+
+# Artificial Analysis API — https://artificialanalysis.ai
+# The code tries each key in order until one succeeds (rate-limit fallback).
+# Fill in as many as you have; empty ones are skipped.
+ARTIFICIAL_ANALYSIS_API_KEY=
+ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY=
+ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_2=
+ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_3=
+ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_4=
+
+# Shared secret for the manual cron-refresh endpoint (/api/cron/refresh).
+CRON_SECRET=

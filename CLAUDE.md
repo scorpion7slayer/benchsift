@@ -1,8 +1,23 @@
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+<!-- BEGIN:tanstack-start-agent-rules -->
+# Stack: TanStack Start (migrated off Next.js)
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+This app runs on **TanStack Start + TanStack Router + Vite**, deployed to
+**Cloudflare Workers** via Wrangler. It is no longer a Next.js app.
+
+Key conventions:
+- File-based routes live in `src/routes/`; `__root.tsx` is the root layout.
+- Server-side data fetching uses `createServerFn` (`lib/server-fns.ts`), called
+  from route `loader`s. Components read data via `Route.useLoaderData()`.
+- API endpoints are route files with `server.handlers` (e.g. `src/routes/api/...`).
+- `lib/api.ts`, `lib/cf-env.ts` and friends are **server-only** — never
+  value-import them from client components (type-only imports are fine).
+  `cf-env.ts` carries the `@tanstack/react-start/server-only` marker.
+- Cloudflare bindings (KV, vars) come from `cloudflare:workers` via
+  `lib/cf-env.ts`. The cron `scheduled` handler lives in `src/server.ts`.
+- Page metadata is set via each route's `head()` option.
+- Check current API details against the docs before writing code — APIs may
+  differ from training data.
+<!-- END:tanstack-start-agent-rules -->
 ## Workflow Orchestration
 
 ### 1. Plan Node Default

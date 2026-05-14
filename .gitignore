@@ -4,20 +4,18 @@
 /node_modules
 /.pnp
 .pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
 
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
-
-# production
+# build output
+/dist
+/.output
+/.vinxi
+/.tanstack
+/.next
+/.open-next
+/out
 /build
 
 # misc
@@ -29,21 +27,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+.grepai/
 
 # env files (can opt-in for committing if needed)
 .env
 .env.local
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-.grepai/
-
-# OpenNext
-.open-next
 
 # wrangler files
 .wrangler
@@ -51,5 +39,11 @@ next-env.d.ts
 !.dev.vars.example
 !.env.example
 
-#local
+# typescript
+*.tsbuildinfo
+
+# local
 tasks/
+
+# Claude Code agent worktrees (harness-created, never commit)
+.claude/worktrees/

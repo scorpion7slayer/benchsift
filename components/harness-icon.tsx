@@ -1,5 +1,3 @@
-"use client";
-
 import {
   ClaudeCode, Cursor, OpenCode, Codex, OpenHands, Cline, Amp,
   Antigravity, Junie, Trae, Windsurf, GithubCopilot, Copilot,

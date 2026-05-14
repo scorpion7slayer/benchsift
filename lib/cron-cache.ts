@@ -1,8 +1,8 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { getModelsKV } from "@/lib/cf-env";
 import type { LLMModel } from "@/lib/api";
 
-// Dedicated KV key kept distinct from OpenNext's `unstable_cache` entries.
-// The list is refreshed by the scheduled handler in `custom-worker.ts`.
+// Dedicated KV key for the pre-computed models list.
+// The list is refreshed by the scheduled handler in `src/server.ts`.
 const MODELS_KEY = "nxtaicard:models:v1";
 
 // Stale-but-readable window: even if the cron is broken, the page keeps
@@ -15,21 +15,8 @@ interface ModelsCacheEntry {
   refreshedAt: number; // ms epoch
 }
 
-function getContext() {
-  try {
-    return getCloudflareContext();
-  } catch {
-    return null;
-  }
-}
-
-function getKV(): KVNamespace | null {
-  const c = getContext();
-  return c?.env.NEXT_INC_CACHE_KV ?? null;
-}
-
 export async function readModelsCache(): Promise<ModelsCacheEntry | null> {
-  const kv = getKV();
+  const kv = getModelsKV();
   if (!kv) return null;
   const raw = await kv.get(MODELS_KEY, "json");
   if (!raw || typeof raw !== "object") return null;
@@ -39,7 +26,7 @@ export async function readModelsCache(): Promise<ModelsCacheEntry | null> {
 }
 
 export async function writeModelsCache(models: LLMModel[]): Promise<void> {
-  const kv = getKV();
+  const kv = getModelsKV();
   if (!kv) return;
   const entry: ModelsCacheEntry = { models, refreshedAt: Date.now() };
   await kv.put(MODELS_KEY, JSON.stringify(entry), {
@@ -48,12 +35,13 @@ export async function writeModelsCache(models: LLMModel[]): Promise<void> {
 }
 
 /**
- * Best-effort background write. Schedules the put via `ctx.waitUntil` so the
- * caller (typically a user-facing request) returns immediately without paying
- * the KV write CPU/latency cost. Silently no-ops if no Cloudflare context.
+ * Best-effort background write. Fires the KV put without awaiting so the
+ * caller (typically a user-facing request) returns immediately. Silently
+ * no-ops if no Cloudflare KV binding is available.
  */
 export function scheduleWriteModelsCache(models: LLMModel[]): void {
-  const c = getContext();
-  if (!c?.env.NEXT_INC_CACHE_KV) return;
-  c.ctx.waitUntil(writeModelsCache(models));
+  if (!getModelsKV()) return;
+  void writeModelsCache(models).catch(() => {
+    // Best-effort — the next cron run repopulates KV anyway.
+  });
 }

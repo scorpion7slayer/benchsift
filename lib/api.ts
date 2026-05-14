@@ -1,6 +1,7 @@
-import { unstable_cache } from "next/cache";
+import { cached } from "@/lib/kv-cache";
 import { getCreatorDisplayName, resolveCreatorFromModelSlug } from "@/lib/provider-map";
 import { readModelsCache, writeModelsCache, scheduleWriteModelsCache } from "@/lib/cron-cache";
+import type { CodingAgent } from "@/lib/coding-agents";
 
 const BASE_URL = "https://artificialanalysis.ai/api/v2";
 const OR_BASE = "https://openrouter.ai/api/v1";
@@ -72,7 +73,7 @@ interface OpenRouterModel {
   supported_parameters: string[] | null;
 }
 
-const getOpenRouterModels = unstable_cache(
+const getOpenRouterModels = cached(
   async (): Promise<OpenRouterModel[]> => {
     try {
       const res = await fetchWithTimeout(`${OR_BASE}/models`);
@@ -84,7 +85,7 @@ const getOpenRouterModels = unstable_cache(
     }
   },
   ["openrouter-models"],
-  { revalidate: CACHE_API_SECONDS, tags: ["llm-models"] }
+  { revalidate: CACHE_API_SECONDS }
 );
 
 /** Finds the OR model matching an AA slug via multiple strategies. / Trouve le modèle OR correspondant via plusieurs stratégies. */
@@ -618,7 +619,7 @@ async function scrapeAA(slug: string): Promise<Partial<LLMModel>> {
  *
  * OR takes priority for context & modalities; AA for the rest. Cached 24h.
  */
-const scrapeModelCapabilities = unstable_cache(
+const scrapeModelCapabilities = cached(
   async (slug: string): Promise<Partial<LLMModel>> => {
     const [aa, orModels] = await Promise.all([
       scrapeAA(slug),
@@ -654,7 +655,7 @@ const scrapeModelCapabilities = unstable_cache(
   },
   ["aa-model-caps"],
   // Capabilities (params, modalities, openness, cutoff) change rarely → 24h cache.
-  { revalidate: CACHE_SCRAPE_SECONDS, tags: ["llm-models"] }
+  { revalidate: CACHE_SCRAPE_SECONDS }
 );
 
 /**
@@ -832,54 +833,10 @@ export async function getLLMModel(slug: string): Promise<LLMModel | undefined> {
 // La page coding-agents d'AA mesure comment chaque harnais (Claude Code, Cursor CLI…)
 // performe avec un modèle donné sur 3 benchmarks composites.
 
-export interface CodingAgent {
-  id: string;                              // unique row id from AA
-  agent_name: string;                      // harness name (Claude Code, Cursor CLI…)
-  agent_slug: string;                      // harness slug for icon lookup
-  display_label: string;                   // "Claude Code - Opus 4.7 (Medium)"
-  model_name: string;                      // underlying model name (full)
-  model_short: string;                     // shorter display name
-  model_slug: string;                      // underlying model slug
-  model_creator_slug: string;              // for provider icon
-  release_date: string | null;             // ISO date
-  coding_agent_index: number | null;       // composite 0-100 (× 100 from raw 0-1)
-  swe_bench_pro_hard_aa: number | null;    // pass@1 (0-1)
-  terminal_bench_v2: number | null;        // pass@1 (0-1)
-  swe_atlas_qna: number | null;            // pass@1 (0-1)
-  cost_per_task_usd: number | null;        // USD per task
-  time_per_task_seconds: number | null;    // wall time per task
-  input_tokens_per_task: number | null;
-  cached_input_tokens_per_task: number | null;
-  output_tokens_per_task: number | null;
-  total_tokens_per_task: number | null;
-  cache_hit_rate: number | null;           // 0-1
-  steps_per_task: number | null;
-}
-
-/**
- * Known coding-agent harnesses with their @lobehub/icons keys.
- * Harnais connus avec leurs clés d'icônes @lobehub/icons.
- */
-export const CODING_AGENT_HARNESSES: Record<string, { name: string; icon: string }> = {
-  "claude-code":   { name: "Claude Code",   icon: "claudecode" },
-  "cursor-cli":    { name: "Cursor CLI",    icon: "cursor" },
-  "cursor":        { name: "Cursor",        icon: "cursor" },
-  "opencode":      { name: "OpenCode",      icon: "opencode" },
-  "codex":         { name: "Codex CLI",     icon: "codex" },
-  "codex-cli":     { name: "Codex CLI",     icon: "codex" },
-  "openhands":     { name: "OpenHands",     icon: "openhands" },
-  "cline":         { name: "Cline",         icon: "cline" },
-  "amp":           { name: "Amp",           icon: "amp" },
-  "antigravity":   { name: "Antigravity",   icon: "antigravity" },
-  "junie":         { name: "Junie",         icon: "junie" },
-  "trae":          { name: "Trae",          icon: "trae" },
-  "windsurf":      { name: "Windsurf",      icon: "windsurf" },
-  "github-copilot": { name: "GitHub Copilot", icon: "githubcopilot" },
-  "copilot":       { name: "Copilot",       icon: "copilot" },
-  "gemini-cli":    { name: "Gemini CLI",    icon: "geminicli" },
-  "kilo-code":     { name: "KiloCode",      icon: "kilocode" },
-  "roo-code":      { name: "RooCode",       icon: "roocode" },
-};
+// `CodingAgent` and `CODING_AGENT_HARNESSES` live in `lib/coding-agents.ts`
+// (client-safe) and are re-exported here for backwards-compatible imports.
+export type { CodingAgent };
+export { CODING_AGENT_HARNESSES } from "@/lib/coding-agents";
 
 const AA_AGENTS_PAGE = "https://artificialanalysis.ai/agents/coding-agents";
 
@@ -960,7 +917,7 @@ function harnessSlug(agentName: string): string {
  * Cached 24h to avoid hammering AA's frontend.
  * Mise en cache 24h pour ne pas surcharger AA.
  */
-const getCodingAgentsCached = unstable_cache(
+const getCodingAgentsCached = cached(
   async (): Promise<CodingAgent[]> => {
     try {
       const res = await fetchWithTimeout(
@@ -1033,7 +990,7 @@ const getCodingAgentsCached = unstable_cache(
   },
   ["aa-coding-agents"],
   // RSC payload is bigger; refresh every 6h — leaderboard changes rarely.
-  { revalidate: CACHE_RSC_SECONDS, tags: ["aa-coding-agents"] }
+  { revalidate: CACHE_RSC_SECONDS }
 );
 
 export async function getCodingAgents(): Promise<CodingAgent[]> {

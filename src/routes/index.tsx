@@ -1,17 +1,12 @@
-import { Suspense } from "react";
-import { connection } from "next/server";
-import { getLLMModels, type LLMModel } from "@/lib/api";
+import { createFileRoute } from "@tanstack/react-router";
+import { fetchModels } from "@/lib/server-fns";
+import { type LLMModel } from "@/lib/api";
 import { ModelGrid } from "@/components/model-grid";
 import { SiteHeader } from "@/components/site-header";
 import { HomeHero, type LatestModelSummary } from "@/components/home-hero";
 import { SiteFooter } from "@/components/site-footer";
 import { Separator } from "@/components/ui/separator";
 import { ScrollToTop } from "@/components/scroll-to-top";
-
-export const metadata = {
-  title: "Nxt AI Card",
-  description: "Compare AI models — benchmarks, performance and pricing",
-};
 
 function getLatestModelSummary(models: LLMModel[]): LatestModelSummary | null {
   const latest = models.reduce<LLMModel | null>((current, model) => {
@@ -31,9 +26,22 @@ function getLatestModelSummary(models: LLMModel[]): LatestModelSummary | null {
   };
 }
 
-async function PageContent() {
-  await connection();
-  const models = await getLLMModels();
+export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Nxt AI Card" },
+      {
+        name: "description",
+        content: "Compare AI models — benchmarks, performance and pricing",
+      },
+    ],
+  }),
+  loader: async () => fetchModels(),
+  component: HomePage,
+});
+
+function HomePage() {
+  const models = Route.useLoaderData();
   const latestModel = getLatestModelSummary(models);
   const compareModels = models.map((model) => ({
     slug: model.slug,
@@ -43,28 +51,20 @@ async function PageContent() {
   }));
 
   return (
-    <>
+    <div className="flex flex-col flex-1">
       <SiteHeader modelCount={models.length} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
-        <HomeHero count={models.length} latestModel={latestModel} compareModels={compareModels} />
+        <HomeHero
+          count={models.length}
+          latestModel={latestModel}
+          compareModels={compareModels}
+        />
         <Separator className="mb-6" />
-        <Suspense>
-          <ModelGrid models={models} />
-        </Suspense>
+        <ModelGrid models={models} />
       </main>
 
       <SiteFooter />
-    </>
-  );
-}
-
-export default function HomePage() {
-  return (
-    <div className="flex flex-col flex-1">
-      <Suspense>
-        <PageContent />
-      </Suspense>
       <ScrollToTop />
     </div>
   );

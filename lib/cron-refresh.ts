@@ -1,8 +1,8 @@
 // Standalone refresh logic for the KV models cache.
-// Intentionally has NO dependency on Next.js / OpenNext — it only needs the
-// raw `CloudflareEnv` bindings, so it can be called from:
-//   - `custom-worker.ts > scheduled()` (cron, 15-min CPU budget on Paid)
-//   - `app/api/cron/refresh/route.ts`  (manual trigger via HTTP, capped by
+// Intentionally has NO framework dependency — it only needs the raw
+// `CloudflareEnv` bindings, so it can be called from:
+//   - `src/server.ts > scheduled()` (cron, runs on its own CPU budget)
+//   - `src/routes/api/cron/refresh.ts` (manual trigger via HTTP, capped by
 //     `limits.cpu_ms`)
 
 const AA_MODELS_URL = "https://artificialanalysis.ai/api/v2/data/llms/models";
@@ -20,7 +20,7 @@ async function fetchModelsFromAA(env: CloudflareEnv): Promise<unknown[]> {
     env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY,
     env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_2,
     env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_3,
-    (env as unknown as { ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_4?: string }).ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_4,
+    env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_4,
   ].filter((k): k is string => typeof k === "string" && k.length > 0);
 
   let lastStatus = 0;
@@ -55,8 +55,8 @@ export interface RefreshResult {
 
 export async function refreshKVCache(env: CloudflareEnv): Promise<RefreshResult> {
   const started = Date.now();
-  const kv = env.NEXT_INC_CACHE_KV;
-  if (!kv) throw new Error("NEXT_INC_CACHE_KV binding missing");
+  const kv = env.MODELS_KV;
+  if (!kv) throw new Error("MODELS_KV binding missing");
   const models = await fetchModelsFromAA(env);
   const entry = { models, refreshedAt: Date.now() };
   await kv.put(KV_KEY, JSON.stringify(entry), {
