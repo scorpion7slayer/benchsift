@@ -21,6 +21,7 @@ export interface Translations {
       aime_25: string;
       speed: string;
       ttft: string;
+      openrouter_popular: string;
       price_asc: string;
       price_desc: string;
       newest: string;
@@ -46,6 +47,11 @@ export interface Translations {
     removeCompare: string;
     newBadge: string;
     thinkingBadge: string;
+    openrouter: string;
+    weeklyTokens: string;
+    weeklyRequests: string;
+    agentic: string;
+    designArena: string;
   };
   detail: {
     aaIndices: string;
@@ -55,6 +61,12 @@ export interface Translations {
     outputSpeed: string;
     ttft: string;
     firstAnswer: string;
+    openrouterWeeklyRank: string;
+    openrouterWeeklyTokens: string;
+    openrouterWeeklyRequests: string;
+    openrouterWeeklyToolCalls: string;
+    openrouterWeeklyImages: string;
+    openrouterWeeklyAudioInputs: string;
     endToEnd: string;
     endToEndTooltip: string;
     inputTokens: string;
@@ -125,6 +137,12 @@ export interface Translations {
       opennessIndex: string;
       verbosity: string;
       evalCost: string;
+      openrouterWeeklyRank: string;
+      openrouterWeeklyTokens: string;
+      openrouterWeeklyRequests: string;
+      openrouterWeeklyToolCalls: string;
+      openrouterWeeklyImages: string;
+      openrouterWeeklyAudioInputs: string;
     };
     best: string;
     wins: (n: number) => string;
@@ -200,7 +218,7 @@ const T: Record<Lang, Translations> = {
     nav: { back: "Retour", source: "Artificial Analysis", feedback: "Feedback", codingAgents: "Coding Agents", models: "Modèles" },
     hero: {
       title: "Modèles d'IA",
-      description: "Benchmarks, performances et prix — données via Artificial Analysis. Mis à jour toutes les heures.",
+      description: "Benchmarks, performances, prix et popularité OpenRouter — données via Artificial Analysis et OpenRouter. Mis à jour toutes les heures.",
       latestModels: "Latest models",
     },
     grid: {
@@ -218,6 +236,7 @@ const T: Record<Lang, Translations> = {
         aime_25: "AIME 2025 (meilleur)",
         speed: "Vitesse (plus rapide)",
         ttft: "TTFT (plus rapide)",
+        openrouter_popular: "Plus populaires OpenRouter",
         price_asc: "Prix (moins cher)",
         price_desc: "Prix (plus cher)",
         newest: "Date (plus récent)",
@@ -244,6 +263,11 @@ const T: Record<Lang, Translations> = {
       removeCompare: "Retirer de la comparaison",
       newBadge: "Nouveau",
       thinkingBadge: "Thinking",
+      openrouter: "OpenRouter",
+      weeklyTokens: "tokens/sem.",
+      weeklyRequests: "req./sem.",
+      agentic: "Agentic",
+      designArena: "Design Arena",
     },
     detail: {
       aaIndices: "Indices Artificial Analysis",
@@ -253,6 +277,12 @@ const T: Record<Lang, Translations> = {
       outputSpeed: "Vitesse de sortie",
       ttft: "Temps 1er token (TTFT)",
       firstAnswer: "Temps 1ère réponse",
+      openrouterWeeklyRank: "Rang OpenRouter hebdo",
+      openrouterWeeklyTokens: "Tokens hebdo OpenRouter",
+      openrouterWeeklyRequests: "Requêtes hebdo OpenRouter",
+      openrouterWeeklyToolCalls: "Tool calls hebdo OpenRouter",
+      openrouterWeeklyImages: "Images hebdo OpenRouter",
+      openrouterWeeklyAudioInputs: "Audio inputs hebdo OpenRouter",
       endToEnd: "Temps de réponse total (500 t)",
       endToEndTooltip: "Temps total nécessaire pour générer une réponse de 500 tokens. Inclut le temps d'attente initial, le temps de raisonnement (pour les modèles à raisonnement) et le temps de génération.",
       inputTokens: "Tokens d'entrée",
@@ -323,6 +353,12 @@ const T: Record<Lang, Translations> = {
         opennessIndex: "Indice d'ouverture",
         verbosity: "Verbosité",
         evalCost: "Coût d'éval.",
+        openrouterWeeklyRank: "Rang OpenRouter hebdo",
+        openrouterWeeklyTokens: "Tokens hebdo OpenRouter",
+        openrouterWeeklyRequests: "Requêtes hebdo OpenRouter",
+        openrouterWeeklyToolCalls: "Tool calls hebdo OpenRouter",
+        openrouterWeeklyImages: "Images hebdo OpenRouter",
+        openrouterWeeklyAudioInputs: "Audio hebdo OpenRouter",
       },
       best: "Meilleur",
       wins: (n) => `Meilleur dans ${n} catégorie${n > 1 ? "s" : ""}`,
@@ -405,7 +441,7 @@ const T: Record<Lang, Translations> = {
     nav: { back: "Back", source: "Artificial Analysis", feedback: "Feedback", codingAgents: "Coding Agents", models: "Models" },
     hero: {
       title: "AI Models",
-      description: "Benchmarks, performance and pricing — data via Artificial Analysis. Updated every hour.",
+      description: "Benchmarks, performance, pricing and OpenRouter popularity — data via Artificial Analysis and OpenRouter. Updated every hour.",
       latestModels: "Latest models",
     },
     grid: {
@@ -423,6 +459,7 @@ const T: Record<Lang, Translations> = {
         aime_25: "AIME 2025 (best)",
         speed: "Speed (fastest)",
         ttft: "TTFT (fastest)",
+        openrouter_popular: "Most popular on OpenRouter",
         price_asc: "Price (cheapest)",
         price_desc: "Price (most expensive)",
         newest: "Date (newest)",
@@ -449,6 +486,11 @@ const T: Record<Lang, Translations> = {
       removeCompare: "Remove from comparison",
       newBadge: "New",
       thinkingBadge: "Thinking",
+      openrouter: "OpenRouter",
+      weeklyTokens: "tokens/wk",
+      weeklyRequests: "req/wk",
+      agentic: "Agentic",
+      designArena: "Design Arena",
     },
     detail: {
       aaIndices: "Artificial Analysis Indices",
@@ -458,6 +500,12 @@ const T: Record<Lang, Translations> = {
       outputSpeed: "Output speed",
       ttft: "Time to first token (TTFT)",
       firstAnswer: "Time to first answer",
+      openrouterWeeklyRank: "OpenRouter weekly rank",
+      openrouterWeeklyTokens: "OpenRouter weekly tokens",
+      openrouterWeeklyRequests: "OpenRouter weekly requests",
+      openrouterWeeklyToolCalls: "OpenRouter weekly tool calls",
+      openrouterWeeklyImages: "OpenRouter weekly images",
+      openrouterWeeklyAudioInputs: "OpenRouter weekly audio inputs",
       endToEnd: "End-to-end response (500 t)",
       endToEndTooltip: "Total time to generate a 500-token response. Includes the initial wait time, thinking time (for reasoning models), and generation time.",
       inputTokens: "Input tokens",
@@ -528,6 +576,12 @@ const T: Record<Lang, Translations> = {
         opennessIndex: "Openness",
         verbosity: "Verbosity",
         evalCost: "Eval cost",
+        openrouterWeeklyRank: "OpenRouter weekly rank",
+        openrouterWeeklyTokens: "OpenRouter weekly tokens",
+        openrouterWeeklyRequests: "OpenRouter weekly requests",
+        openrouterWeeklyToolCalls: "OpenRouter weekly tool calls",
+        openrouterWeeklyImages: "OpenRouter weekly images",
+        openrouterWeeklyAudioInputs: "OpenRouter weekly audio",
       },
       best: "Best",
       wins: (n) => `Best in ${n} categor${n > 1 ? "ies" : "y"}`,

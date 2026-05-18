@@ -11,5 +11,9 @@ ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_2=
 ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_3=
 ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_4=
 
+# OpenRouter API — https://openrouter.ai
+# Optional, but recommended for authenticated /api/v1/models metadata requests.
+OPENROUTER_API_KEY=
+
 # Shared secret for the manual cron-refresh endpoint (/api/cron/refresh).
 CRON_SECRET=

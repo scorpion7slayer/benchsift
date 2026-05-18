@@ -9,6 +9,7 @@ type SortKey =
   | "intelligence" | "coding" | "math"
   | "gpqa" | "mmlu_pro" | "hle" | "livecodebench" | "math_500" | "aime_25"
   | "speed" | "ttft"
+  | "openrouter_popular"
   | "price_asc" | "price_desc"
   | "newest" | "name";
 
@@ -29,6 +30,7 @@ const SORT_OPTIONS: SortOption[] = [
   { value: "aime_25",       group: "Benchmarks" },
   { value: "speed",         group: "Performance" },
   { value: "ttft",          group: "Performance" },
+  { value: "openrouter_popular", group: "OpenRouter" },
   { value: "price_asc",     group: "Prix" },
   { value: "price_desc",    group: "Prix" },
   { value: "newest",        group: "Général" },
@@ -60,6 +62,8 @@ function sortModels(models: LLMModel[], key: SortKey): LLMModel[] {
         return (b.median_output_tokens_per_second ?? -1) - (a.median_output_tokens_per_second ?? -1);
       case "ttft":
         return (a.median_time_to_first_token_seconds ?? Infinity) - (b.median_time_to_first_token_seconds ?? Infinity);
+      case "openrouter_popular":
+        return (a.openrouter_weekly_rank ?? Infinity) - (b.openrouter_weekly_rank ?? Infinity);
       case "price_asc":
         return (a.pricing.price_1m_blended_3_to_1 ?? Infinity) - (b.pricing.price_1m_blended_3_to_1 ?? Infinity);
       case "price_desc":

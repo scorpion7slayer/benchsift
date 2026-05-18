@@ -1,5 +1,5 @@
 import { Link } from "@/components/link";
-import { Zap, Timer, DollarSign, ChevronRight, Plus, Check, Brain, ImageIcon, Video, Mic, Type } from "lucide-react";
+import { Zap, Timer, DollarSign, ChevronRight, Plus, Check, Brain, ImageIcon, Video, Mic, Type, BarChart3, Trophy } from "lucide-react";
 import {
   Card,
   CardHeader,
@@ -25,6 +25,14 @@ function fmtCtx(tokens: number | null): string {
   if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(1)}M`;
   if (tokens >= 1_000) return `${Math.round(tokens / 1_000)}K`;
   return String(tokens);
+}
+
+function fmtCompact(value: number | null | undefined): string {
+  if (value == null || isNaN(value)) return "—";
+  if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)}B`;
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  return String(value);
 }
 
 function scoreBg(val: number | null): string {
@@ -84,6 +92,53 @@ function ModalityChips({ model }: { model: LLMModel }) {
           {label}
         </span>
       ))}
+    </div>
+  );
+}
+
+function OpenRouterStats({ model }: { model: LLMModel }) {
+  const { t } = useI18n();
+  const daBenchmarks = Object.entries(model.evaluations)
+    .filter(([key, value]) => key.startsWith("openrouter_da_") && typeof value === "number")
+    .map(([key, value]) => ({ key, value: value as number }))
+    .sort((a, b) => b.value - a.value);
+  const bestDA = daBenchmarks[0];
+  const hasUsage =
+    model.openrouter_weekly_rank != null ||
+    model.openrouter_weekly_tokens != null ||
+    model.openrouter_weekly_requests != null;
+
+  if (!bestDA && !hasUsage) return null;
+
+  return (
+    <div className="rounded-md border bg-muted/30 px-2 py-1.5 space-y-1.5">
+      <div className="flex items-center justify-between gap-2 text-[10px] font-medium text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5">
+          <BarChart3 className="size-3" />
+          {t.card.openrouter}
+        </span>
+        {model.openrouter_weekly_rank != null && (
+          <span className="inline-flex items-center gap-1 rounded bg-background px-1.5 py-0.5 text-foreground">
+            <Trophy className="size-2.5" />
+            #{model.openrouter_weekly_rank}
+          </span>
+        )}
+      </div>
+      {bestDA && (
+        <div className="rounded bg-background px-1.5 py-1 text-[10px] text-muted-foreground">
+          {t.card.designArena}: <span className="font-medium text-foreground">{fmt(bestDA.value)}%</span>
+        </div>
+      )}
+      {hasUsage && (
+        <div className="flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
+          {model.openrouter_weekly_tokens != null && (
+            <span>{fmtCompact(model.openrouter_weekly_tokens)} {t.card.weeklyTokens}</span>
+          )}
+          {model.openrouter_weekly_requests != null && (
+            <span>{fmtCompact(model.openrouter_weekly_requests)} {t.card.weeklyRequests}</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -149,6 +204,7 @@ export function ModelCard({ model }: { model: LLMModel }) {
             <ScoreRow label={t.card.intelligence} value={evaluations.artificial_analysis_intelligence_index} />
             <ScoreRow label={t.card.coding} value={evaluations.artificial_analysis_coding_index} />
             <ScoreRow label={t.card.math} value={evaluations.artificial_analysis_math_index} />
+            <OpenRouterStats model={model} />
             <ModalityChips model={model} />
           </CardContent>
 

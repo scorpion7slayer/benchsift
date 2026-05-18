@@ -3,6 +3,7 @@ import { fetchCompareData } from "@/lib/server-fns";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { CompareTable } from "@/components/compare-table";
+import { absoluteUrl, seo } from "@/lib/seo";
 
 interface CompareSearch {
   models?: string;
@@ -17,9 +18,19 @@ export const Route = createFileRoute("/compare")({
     const slugs = (deps.models ?? "").split(",").filter(Boolean).slice(0, 4);
     return fetchCompareData({ data: slugs });
   },
-  head: () => ({
-    meta: [{ title: "Comparateur de modèles — Nxt AI Card" }],
-  }),
+  head: () =>
+    seo({
+      title: "AI Model Compare - Nxt AI Card",
+      description:
+        "Compare AI models side by side across benchmarks, pricing, latency, throughput, context window and capabilities.",
+      path: "/compare",
+      jsonLd: {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: "AI Model Compare",
+        url: absoluteUrl("/compare"),
+      },
+    }),
   component: ComparePage,
 });
 

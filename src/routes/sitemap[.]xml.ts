@@ -1,19 +1,45 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getLLMModels } from "@/lib/api";
-
-const BASE = "https://nxtaicard.nxtaigen.com";
+import { absoluteUrl } from "@/lib/seo";
 
 interface SitemapEntry {
   url: string;
   changeFrequency: string;
+  lastModified: string;
   priority: number;
+}
+
+function escapeXml(value: string): string {
+  return value.replace(/[<>&'"]/g, (char) => {
+    switch (char) {
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case "&":
+        return "&amp;";
+      case "'":
+        return "&apos;";
+      case '"':
+        return "&quot;";
+      default:
+        return char;
+    }
+  });
+}
+
+function toIsoDate(value: string | null | undefined, fallback: string): string {
+  if (!value) return fallback;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return fallback;
+  return date.toISOString().slice(0, 10);
 }
 
 function renderSitemap(entries: SitemapEntry[]): string {
   const urls = entries
     .map(
       (e) =>
-        `  <url>\n    <loc>${e.url}</loc>\n    <changefreq>${e.changeFrequency}</changefreq>\n    <priority>${e.priority}</priority>\n  </url>`,
+        `  <url>\n    <loc>${escapeXml(e.url)}</loc>\n    <lastmod>${e.lastModified}</lastmod>\n    <changefreq>${e.changeFrequency}</changefreq>\n    <priority>${e.priority}</priority>\n  </url>`,
     )
     .join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
@@ -24,19 +50,40 @@ export const Route = createFileRoute("/sitemap.xml")({
     handlers: {
       GET: async () => {
         const models = await getLLMModels();
+        const today = new Date().toISOString().slice(0, 10);
 
         const entries: SitemapEntry[] = [
-          { url: BASE, changeFrequency: "daily", priority: 1 },
-          { url: `${BASE}/compare`, changeFrequency: "weekly", priority: 0.8 },
+          {
+            url: absoluteUrl("/"),
+            lastModified: today,
+            changeFrequency: "daily",
+            priority: 1,
+          },
+          {
+            url: absoluteUrl("/compare"),
+            lastModified: today,
+            changeFrequency: "weekly",
+            priority: 0.8,
+          },
+          {
+            url: absoluteUrl("/agents/coding"),
+            lastModified: today,
+            changeFrequency: "daily",
+            priority: 0.8,
+          },
           ...models.map((model) => ({
-            url: `${BASE}/models/${model.slug}`,
+            url: absoluteUrl(`/models/${encodeURIComponent(model.slug)}`),
+            lastModified: toIsoDate(model.release_date, today),
             changeFrequency: "weekly",
             priority: 0.7,
           })),
         ];
 
         return new Response(renderSitemap(entries), {
-          headers: { "content-type": "application/xml; charset=utf-8" },
+          headers: {
+            "content-type": "application/xml; charset=utf-8",
+            "cache-control": "public, max-age=3600, s-maxage=3600",
+          },
         });
       },
     },

@@ -8,6 +8,8 @@
 interface CloudflareEnv {
   /** 4th Artificial Analysis API fallback key (Worker secret). */
   ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_4?: string;
+  /** OpenRouter API key used for authenticated model metadata requests. */
+  OPENROUTER_API_KEY?: string;
   /** Shared bearer secret guarding the manual /api/cron/refresh endpoint. */
   CRON_SECRET?: string;
 }
@@ -15,5 +17,6 @@ interface CloudflareEnv {
 declare namespace NodeJS {
   interface ProcessEnv {
     ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_4?: string;
+    OPENROUTER_API_KEY?: string;
   }
 }

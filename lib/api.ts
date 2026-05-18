@@ -1,10 +1,15 @@
 import { cached } from "@/lib/kv-cache";
 import { getCreatorDisplayName, resolveCreatorFromModelSlug } from "@/lib/provider-map";
 import { readModelsCache, writeModelsCache, scheduleWriteModelsCache } from "@/lib/cron-cache";
+import {
+  enrichModelsWithOpenRouter,
+  findOpenRouterModel,
+  getOpenRouterModels as fetchOpenRouterModels,
+  openRouterCapabilities,
+} from "@/lib/openrouter";
 import type { CodingAgent } from "@/lib/coding-agents";
 
 const BASE_URL = "https://artificialanalysis.ai/api/v2";
-const OR_BASE = "https://openrouter.ai/api/v1";
 const API_FETCH_TIMEOUT_MS = 8_000;
 const SCRAPE_FETCH_TIMEOUT_MS = 6_000;
 const PARTIAL_MODEL_CHUNK_SIZE = 5;
@@ -43,97 +48,11 @@ function getApiKeys(): string[] {
   ].filter((k): k is string => typeof k === "string" && k.length > 0);
 }
 
-// OpenRouter types / Types OpenRouter
-
-interface OpenRouterModel {
-  id: string;
-  canonical_slug: string;
-  hugging_face_id: string | null;
-  name: string;
-  created: number;
-  context_length: number;
-  architecture: {
-    modality: string;
-    input_modalities: string[];
-    output_modalities: string[];
-    tokenizer: string;
-    instruct_type: string | null;
-  };
-  pricing: {
-    prompt: string;
-    completion: string;
-    image?: string;
-    audio?: string;
-  };
-  top_provider: {
-    context_length: number | null;
-    max_completion_tokens: number | null;
-    is_moderated: boolean;
-  } | null;
-  supported_parameters: string[] | null;
-}
-
 const getOpenRouterModels = cached(
-  async (): Promise<OpenRouterModel[]> => {
-    try {
-      const res = await fetchWithTimeout(`${OR_BASE}/models`);
-      if (!res.ok) return [];
-      const json = (await res.json()) as { data?: OpenRouterModel[] };
-      return json.data ?? [];
-    } catch {
-      return [];
-    }
-  },
+  async () => fetchOpenRouterModels({ apiKey: process.env.OPENROUTER_API_KEY }),
   ["openrouter-models"],
   { revalidate: CACHE_API_SECONDS }
 );
-
-/** Finds the OR model matching an AA slug via multiple strategies. / Trouve le modèle OR correspondant via plusieurs stratégies. */
-function findOrModel(aaSlug: string, orModels: OpenRouterModel[]): OpenRouterModel | undefined {
-  const norm = (s: string) => s.toLowerCase().replace(/[\s_.]/g, "-");
-  const ns = norm(aaSlug);
-  // 1. exact canonical_slug
-  let m = orModels.find((o) => norm(o.canonical_slug) === ns);
-  if (m) return m;
-  // 2. exact OR id suffix (after "/") / suffixe exact
-  m = orModels.find((o) => norm(o.id.split("/").pop() ?? "") === ns);
-  if (m) return m;
-  // 3. substring match (fuzzy) / l'un contient l'autre
-  return orModels.find((o) => {
-    const c = norm(o.canonical_slug);
-    const s = norm(o.id.split("/").pop() ?? "");
-    return c.includes(ns) || ns.includes(c) || s.includes(ns) || ns.includes(s);
-  });
-}
-
-/** Converts an OR model to our capabilities format. / Convertit un modèle OR en capacités. */
-function orCapabilities(or: OpenRouterModel): Partial<LLMModel> {
-  const inp = or.architecture?.input_modalities ?? [];
-  const out = or.architecture?.output_modalities ?? [];
-  const params = or.supported_parameters ?? [];
-  const has = (arr: string[], ...keys: string[]) =>
-    keys.some((k) => arr.includes(k)) ? true : undefined;
-  return {
-    context_window_tokens: or.context_length || or.top_provider?.context_length || null,
-    // Reasoning: "reasoning" or "include_reasoning" in supported_parameters (reliable) / fiable
-    reasoning_model: params.includes("reasoning") || params.includes("include_reasoning")
-      ? true
-      : undefined,
-    // is_open_weights: removed from OR — hugging_face_id != null is unreliable
-    // (some closed models have an HF presence for their tokenizer / certains modèles fermés ont une présence HF)
-    // NOTE: OpenRouter reports "file" for PDF/document input on some models (e.g. GPT-5).
-    // AA does not expose "file" as a distinct modality — we follow AA and ignore it.
-    // AA ne distingue pas "file" comme modalité — on s'aligne sur AA.
-    input_modality_text:    has(inp, "text"),
-    input_modality_image:   has(inp, "image"),
-    input_modality_speech:  has(inp, "audio"),
-    input_modality_video:   has(inp, "video"),
-    output_modality_text:   has(out, "text"),
-    output_modality_image:  has(out, "image"),
-    output_modality_speech: has(out, "audio"),
-    output_modality_video:  has(out, "video"),
-  };
-}
 
 
 export interface ModelCreator {
@@ -210,6 +129,13 @@ export interface LLMModel {
   openness_index?: number | null;              // 0-100 scale / échelle 0-100
   intelligence_index_tokens?: number | null;   // tokens used to run AA Intelligence Index (verbosity)
   intelligence_index_cost_usd?: number | null; // USD cost to run AA Intelligence Index
+  openrouter_weekly_rank?: number | null;       // OpenRouter weekly Top Models rank
+  openrouter_weekly_tokens?: number | null;     // OpenRouter weekly usage ranking tokens
+  openrouter_weekly_requests?: number | null;   // OpenRouter weekly request count
+  openrouter_weekly_tool_calls?: number | null; // OpenRouter weekly tool-call count
+  openrouter_weekly_images?: number | null;     // OpenRouter weekly image prompt/completion count
+  openrouter_weekly_audio_inputs?: number | null; // OpenRouter weekly audio input count
+  openrouter_variant?: string | null;           // OpenRouter ranking variant (free/standard)
 }
 
 let lastSuccessfulModels: LLMModel[] | null = null;
@@ -627,8 +553,8 @@ const scrapeModelCapabilities = cached(
     ]);
 
     const or = (() => {
-      const match = findOrModel(slug, orModels);
-      return match ? orCapabilities(match) : {};
+      const match = findOpenRouterModel(slug, orModels);
+      return match ? openRouterCapabilities(match) : {};
     })();
 
     return {
@@ -665,7 +591,11 @@ const scrapeModelCapabilities = cached(
  * inside the Workers Free 10 ms CPU budget on cold-start.
  */
 async function fetchLightModels(): Promise<LLMModel[]> {
-  return apiFetch<LLMModel[]>("/data/llms/models");
+  const models = await apiFetch<LLMModel[]>("/data/llms/models");
+  return enrichModelsWithOpenRouter(models, {
+    apiKey: process.env.OPENROUTER_API_KEY,
+    includeUsageRankings: true,
+  });
 }
 
 /**
@@ -678,7 +608,12 @@ export async function fetchModelsForCron(): Promise<LLMModel[]> {
     scrapeAllModelSlugs(),
   ]);
 
-  if (validSlugs.length === 0) return apiModels;
+  if (validSlugs.length === 0) {
+    return enrichModelsWithOpenRouter(apiModels, {
+      apiKey: process.env.OPENROUTER_API_KEY,
+      includeUsageRankings: true,
+    });
+  }
 
   const validSlugSet = new Set(validSlugs);
   const realApiModels = apiModels.filter((m) => validSlugSet.has(m.slug));
@@ -686,7 +621,12 @@ export async function fetchModelsForCron(): Promise<LLMModel[]> {
   const apiSlugSet = new Set(realApiModels.map((m) => m.slug));
   const missingSlugs = validSlugs.filter((s) => !apiSlugSet.has(s));
 
-  if (missingSlugs.length === 0) return realApiModels;
+  if (missingSlugs.length === 0) {
+    return enrichModelsWithOpenRouter(realApiModels, {
+      apiKey: process.env.OPENROUTER_API_KEY,
+      includeUsageRankings: true,
+    });
+  }
 
   const extraModels: LLMModel[] = [];
   for (let i = 0; i < missingSlugs.length; i += PARTIAL_MODEL_CHUNK_SIZE) {
@@ -697,7 +637,10 @@ export async function fetchModelsForCron(): Promise<LLMModel[]> {
     }
   }
 
-  return [...realApiModels, ...extraModels];
+  return enrichModelsWithOpenRouter([...realApiModels, ...extraModels], {
+    apiKey: process.env.OPENROUTER_API_KEY,
+    includeUsageRankings: true,
+  });
 }
 
 /**

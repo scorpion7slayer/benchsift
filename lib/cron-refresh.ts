@@ -5,8 +5,11 @@
 //   - `src/routes/api/cron/refresh.ts` (manual trigger via HTTP, capped by
 //     `limits.cpu_ms`)
 
+import { enrichModelsWithOpenRouter } from "@/lib/openrouter";
+import type { LLMModel } from "@/lib/api";
+
 const AA_MODELS_URL = "https://artificialanalysis.ai/api/v2/data/llms/models";
-export const KV_KEY = "nxtaicard:models:v1";
+export const KV_KEY = "nxtaicard:models:v3";
 const KV_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
 interface AAApiResponse<T> {
@@ -57,7 +60,11 @@ export async function refreshKVCache(env: CloudflareEnv): Promise<RefreshResult>
   const started = Date.now();
   const kv = env.MODELS_KV;
   if (!kv) throw new Error("MODELS_KV binding missing");
-  const models = await fetchModelsFromAA(env);
+  const aaModels = (await fetchModelsFromAA(env)) as LLMModel[];
+  const models = await enrichModelsWithOpenRouter(aaModels, {
+    apiKey: env.OPENROUTER_API_KEY,
+    includeUsageRankings: true,
+  });
   const entry = { models, refreshedAt: Date.now() };
   await kv.put(KV_KEY, JSON.stringify(entry), {
     expirationTtl: KV_TTL_SECONDS,
