@@ -7,6 +7,7 @@ import { HomeHero, type LatestModelSummary } from "@/components/home-hero";
 import { SiteFooter } from "@/components/site-footer";
 import { Separator } from "@/components/ui/separator";
 import { ScrollToTop } from "@/components/scroll-to-top";
+import { SITE_NAME, absoluteUrl, seo, websiteJsonLd } from "@/lib/seo";
 
 function getLatestModelSummary(models: LLMModel[]): LatestModelSummary | null {
   const latest = models.reduce<LLMModel | null>((current, model) => {
@@ -27,15 +28,25 @@ function getLatestModelSummary(models: LLMModel[]): LatestModelSummary | null {
 }
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Nxt AI Card" },
-      {
-        name: "description",
-        content: "Compare AI models — benchmarks, performance and pricing",
-      },
-    ],
-  }),
+  head: ({ loaderData }) =>
+    seo({
+      title: SITE_NAME,
+      description:
+        "Compare AI models by intelligence, coding, math, speed, latency and price. Updated hourly with Artificial Analysis data.",
+      path: "/",
+      jsonLd: [
+        websiteJsonLd(),
+        {
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: SITE_NAME,
+          url: absoluteUrl("/"),
+          description:
+            "A ranked directory of AI models with benchmarks, performance and pricing.",
+          numberOfItems: loaderData?.length,
+        },
+      ],
+    }),
   loader: async () => fetchModels(),
   component: HomePage,
 });

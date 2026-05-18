@@ -61,7 +61,15 @@ function fmtDynamic(val: number | null): string {
   return `${(val * 100).toFixed(1)}%`;
 }
 function formatBenchmarkKey(key: string): string {
-  return key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  const title = (value: string) =>
+    value.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  if (key.startsWith("openrouter_benchmark_")) {
+    return `OpenRouter ${title(key.replace("openrouter_benchmark_", ""))}`;
+  }
+  if (key.startsWith("openrouter_da_")) {
+    return `OpenRouter DA ${title(key.replace("openrouter_da_", "").replace(/_win_rate$/, ""))} Win Rate`;
+  }
+  return title(key);
 }
 
 // ─── Score helpers ────────────────────────────────────────────────────────────
@@ -968,7 +976,13 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
                 <>
                   <SectionHeader label={t.detail.extraBenchmarks} />
                   {extraBenchmarkKeys.map(key => (
-                    <MetricRow key={key} label={formatBenchmarkKey(key)} values={ev.map(e => e[key] ?? null)} dir="higher" format={fmtDynamic} />
+                    <MetricRow
+                      key={key}
+                      label={formatBenchmarkKey(key)}
+                      values={ev.map(e => e[key] ?? null)}
+                      dir="higher"
+                      format={key.startsWith("openrouter_da_") ? (v) => v !== null ? `${v.toFixed(1)}%` : "—" : fmtDynamic}
+                    />
                   ))}
                 </>
               )}
@@ -1064,6 +1078,75 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
                 values={models.map(m => m.intelligence_index_cost_usd ?? null)}
                 dir="lower"
                 format={v => v !== null ? `$${v.toFixed(2)}` : "—"}
+              />
+              <MetricRow
+                label={t.compare.fields.openrouterWeeklyRank}
+                values={models.map(m => m.openrouter_weekly_rank ?? null)}
+                dir="lower"
+                format={v => v !== null ? `#${v.toFixed(0)}` : "—"}
+                noBar
+              />
+              <MetricRow
+                label={t.compare.fields.openrouterWeeklyTokens}
+                values={models.map(m => m.openrouter_weekly_tokens ?? null)}
+                dir="higher"
+                format={v => {
+                  if (v === null) return "—";
+                  if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(1)}B`;
+                  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+                  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
+                  return String(v);
+                }}
+                noBar
+              />
+              <MetricRow
+                label={t.compare.fields.openrouterWeeklyRequests}
+                values={models.map(m => m.openrouter_weekly_requests ?? null)}
+                dir="higher"
+                format={v => {
+                  if (v === null) return "—";
+                  if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(1)}B`;
+                  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+                  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
+                  return String(v);
+                }}
+                noBar
+              />
+              <MetricRow
+                label={t.compare.fields.openrouterWeeklyToolCalls}
+                values={models.map(m => m.openrouter_weekly_tool_calls ?? null)}
+                dir="higher"
+                format={v => {
+                  if (v === null) return "—";
+                  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+                  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
+                  return String(v);
+                }}
+                noBar
+              />
+              <MetricRow
+                label={t.compare.fields.openrouterWeeklyImages}
+                values={models.map(m => m.openrouter_weekly_images ?? null)}
+                dir="higher"
+                format={v => {
+                  if (v === null) return "—";
+                  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+                  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
+                  return String(v);
+                }}
+                noBar
+              />
+              <MetricRow
+                label={t.compare.fields.openrouterWeeklyAudioInputs}
+                values={models.map(m => m.openrouter_weekly_audio_inputs ?? null)}
+                dir="higher"
+                format={v => {
+                  if (v === null) return "—";
+                  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+                  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
+                  return String(v);
+                }}
+                noBar
               />
             </tbody>
           </table>

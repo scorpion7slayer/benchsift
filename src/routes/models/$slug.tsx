@@ -3,6 +3,7 @@ import { fetchModelBasic, fetchModelCapabilities } from "@/lib/server-fns";
 import { ModelDetailClient } from "@/components/model-detail-client";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { absoluteUrl, seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/models/$slug")({
   loader: async ({ params }) => {
@@ -16,14 +17,35 @@ export const Route = createFileRoute("/models/$slug")({
   head: ({ loaderData }) => {
     const model = loaderData?.model;
     if (!model) return {};
+    const description = `${model.name} by ${model.model_creator.name}: AI model benchmarks, coding and math scores, speed, latency and pricing.`;
     return {
-      meta: [
-        { title: `${model.name} — Nxt AI Card` },
-        {
-          name: "description",
-          content: `${model.name} by ${model.model_creator.name} — benchmarks, performance and pricing.`,
+      ...seo({
+        title: `${model.name} - Nxt AI Card`,
+        description,
+        path: `/models/${model.slug}`,
+        jsonLd: {
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          name: model.name,
+          applicationCategory: "AI model",
+          operatingSystem: "Cloud",
+          url: absoluteUrl(`/models/${model.slug}`),
+          creator: {
+            "@type": "Organization",
+            name: model.model_creator.name,
+          },
+          datePublished: model.release_date ?? undefined,
+          offers:
+            model.pricing.price_1m_blended_3_to_1 === null
+              ? undefined
+              : {
+                  "@type": "Offer",
+                  price: model.pricing.price_1m_blended_3_to_1,
+                  priceCurrency: "USD",
+                  unitText: "1M tokens",
+                },
         },
-      ],
+      }),
     };
   },
   component: ModelPage,

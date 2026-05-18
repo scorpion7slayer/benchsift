@@ -278,7 +278,15 @@ function fmtDynamic(val: number | null | undefined): string {
 }
 
 function formatBenchmarkKey(key: string): string {
-  return key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  const title = (value: string) =>
+    value.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  if (key.startsWith("openrouter_benchmark_")) {
+    return `OpenRouter ${title(key.replace("openrouter_benchmark_", ""))}`;
+  }
+  if (key.startsWith("openrouter_da_")) {
+    return `OpenRouter DA ${title(key.replace("openrouter_da_", "").replace(/_win_rate$/, ""))} Win Rate`;
+  }
+  return title(key);
 }
 
 function scoreBg(val: number | null) {
@@ -549,12 +557,13 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
               <CardContent className="space-y-4">
                 {extraBenchmarks.map(([key, val]) => {
                   const numVal = val as number;
-                  const barPct = numVal > 1 ? numVal : numVal * 100;
+                  const isPercentScore = key.startsWith("openrouter_da_");
+                  const barPct = isPercentScore ? numVal : numVal > 1 ? numVal : numVal * 100;
                   return (
                     <BenchmarkRow
                       key={key}
                       label={formatBenchmarkKey(key)}
-                      displayValue={fmtDynamic(numVal)}
+                      displayValue={isPercentScore ? `${fmt(numVal)}%` : fmtDynamic(numVal)}
                       barPct={barPct}
                     />
                   );
@@ -576,6 +585,24 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
               <StatRow label={t.detail.outputSpeed}  value={median_output_tokens_per_second !== null ? `${fmt(median_output_tokens_per_second, 0)} tokens/s` : "—"} />
               <StatRow label={t.detail.ttft}         value={median_time_to_first_token_seconds !== null ? `${fmt(median_time_to_first_token_seconds, 2)} s` : "—"} />
               <StatRow label={t.detail.firstAnswer}  value={median_time_to_first_answer_token !== null ? `${fmt(median_time_to_first_answer_token, 2)} s` : "—"} />
+              {model.openrouter_weekly_rank != null && (
+                <StatRow label={t.detail.openrouterWeeklyRank} value={`#${model.openrouter_weekly_rank}`} />
+              )}
+              {model.openrouter_weekly_tokens != null && (
+                <StatRow label={t.detail.openrouterWeeklyTokens} value={fmtTokens(model.openrouter_weekly_tokens)} />
+              )}
+              {model.openrouter_weekly_requests != null && (
+                <StatRow label={t.detail.openrouterWeeklyRequests} value={fmtTokens(model.openrouter_weekly_requests)} />
+              )}
+              {model.openrouter_weekly_tool_calls != null && model.openrouter_weekly_tool_calls > 0 && (
+                <StatRow label={t.detail.openrouterWeeklyToolCalls} value={fmtTokens(model.openrouter_weekly_tool_calls)} />
+              )}
+              {model.openrouter_weekly_images != null && model.openrouter_weekly_images > 0 && (
+                <StatRow label={t.detail.openrouterWeeklyImages} value={fmtTokens(model.openrouter_weekly_images)} />
+              )}
+              {model.openrouter_weekly_audio_inputs != null && model.openrouter_weekly_audio_inputs > 0 && (
+                <StatRow label={t.detail.openrouterWeeklyAudioInputs} value={fmtTokens(model.openrouter_weekly_audio_inputs)} />
+              )}
               {model.end_to_end_response_time_seconds != null && (
                 <StatRow
                   label={t.detail.endToEnd}

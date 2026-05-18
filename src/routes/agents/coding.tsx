@@ -5,18 +5,22 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { CodingAgentsTable } from "@/components/coding-agents-table";
 import { CodingAgentsPageTitle } from "@/components/coding-agents-page-title";
+import { absoluteUrl, seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/agents/coding")({
-  head: () => ({
-    meta: [
-      { title: "Coding Agents — Nxt AI Card" },
-      {
-        name: "description",
-        content:
-          "Artificial Analysis Coding Agent Index: harnesses (Claude Code, Cursor CLI, OpenCode…) on SWE-Bench-Pro-Hard-AA, Terminal-Bench v2 and SWE-Atlas-QnA.",
+  head: () =>
+    seo({
+      title: "Coding Agents - Nxt AI Card",
+      description:
+        "Artificial Analysis Coding Agent Index: compare Claude Code, Cursor CLI, OpenCode and other harnesses on SWE-Bench-Pro-Hard-AA, Terminal-Bench v2 and SWE-Atlas-QnA.",
+      path: "/agents/coding",
+      jsonLd: {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        name: "Coding Agents",
+        url: absoluteUrl("/agents/coding"),
       },
-    ],
-  }),
+    }),
   loader: async () => fetchCodingAgents(),
   component: CodingAgentsPage,
 });

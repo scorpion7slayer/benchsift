@@ -30,10 +30,13 @@ You'll need an Artificial Analysis API key — grab one at [artificialanalysis.a
 
 ```env
 ARTIFICIAL_ANALYSIS_API_KEY=your_key_here
+OPENROUTER_API_KEY=your_openrouter_key_here
 ```
 
 `.dev.vars` is read by the Cloudflare Vite plugin for local development.
-OpenRouter is used without an API key (public endpoint).
+OpenRouter is used for model metadata, weekly usage rankings and benchmark enrichment.
+`OPENROUTER_API_KEY` is optional, but enables authenticated `/api/v1/models` requests
+instead of relying on the unauthenticated public path.
 
 ## Project structure
 
@@ -85,6 +88,7 @@ Set production secrets with `wrangler secret put`:
 
 ```bash
 wrangler secret put ARTIFICIAL_ANALYSIS_API_KEY
+wrangler secret put OPENROUTER_API_KEY
 wrangler secret put CRON_SECRET
 ```
 

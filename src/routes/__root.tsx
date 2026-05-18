@@ -11,6 +11,7 @@ import { PageTransitionProvider } from "@/components/page-transition-provider";
 import { CookieBanner } from "@/components/cookie-banner";
 import { DefaultCatchBoundary } from "@/components/default-catch-boundary";
 import { fetchPreferences } from "@/lib/server-fns";
+import { SITE_NAME, seo, websiteJsonLd } from "@/lib/seo";
 import appCss from "../styles/globals.css?url";
 
 export const Route = createRootRoute({
@@ -18,11 +19,11 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Nxt AI Card" },
-      {
-        name: "description",
-        content: "Compare AI models — benchmarks, performance and pricing",
-      },
+      ...seo({
+        title: SITE_NAME,
+        path: "/",
+        jsonLd: websiteJsonLd(),
+      }).meta,
     ],
     links: [
       { rel: "stylesheet", href: appCss },
