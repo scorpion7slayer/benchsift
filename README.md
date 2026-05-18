@@ -24,7 +24,7 @@ cp .dev.vars.example .dev.vars   # then fill in your API keys
 npm run dev
 ```
 
-Then open [http://localhost:3000](http://localhost:3000).
+Then open [http://localhost:3000](http://localhost:3000)
 
 You'll need an Artificial Analysis API key — grab one at [artificialanalysis.ai](https://artificialanalysis.ai) and add it to `.dev.vars`:
 
