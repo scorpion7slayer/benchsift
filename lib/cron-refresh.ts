@@ -12,10 +12,9 @@ import {
   enrichModelsWithScrapedCapabilities,
   type LLMModel,
 } from "@/lib/api";
+import { MODELS_TTL_SECONDS, MODELS_WRITE_KEY } from "@/lib/models-cache-keys";
 
 const AA_BASE_URL = "https://artificialanalysis.ai/api/v2";
-export const KV_KEY = "nxtaicard:models:v13";
-const KV_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
 interface AAApiResponse<T> {
   status: number;
@@ -84,8 +83,8 @@ export async function refreshKVCache(env: CloudflareEnv): Promise<RefreshResult>
   });
   const models = await enrichModelsWithScrapedCapabilities(hfEnriched);
   const entry = { models, refreshedAt: Date.now() };
-  await kv.put(KV_KEY, JSON.stringify(entry), {
-    expirationTtl: KV_TTL_SECONDS,
+  await kv.put(MODELS_WRITE_KEY, JSON.stringify(entry), {
+    expirationTtl: MODELS_TTL_SECONDS,
   });
   return { count: models.length, durationMs: Date.now() - started };
 }
