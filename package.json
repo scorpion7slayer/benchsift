@@ -6,10 +6,11 @@
   "scripts": {
     "dev": "vite dev",
     "build": "NODE_OPTIONS=--max-old-space-size=4096 vite build",
+    "postbuild": "node -e \"require('node:fs').rmSync('dist/server/.dev.vars',{force:true})\"",
     "start": "vite start",
     "serve": "vite preview",
-    "deploy": "vite build && wrangler deploy",
-    "preview": "vite build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "preview": "npm run build && wrangler dev",
     "typecheck": "tsc --noEmit",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },

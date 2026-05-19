@@ -1,5 +1,5 @@
 import { Link } from "@/components/link";
-import { Zap, Timer, DollarSign, ChevronRight, Plus, Check, Brain, ImageIcon, Video, Mic, Type, BarChart3, Trophy } from "lucide-react";
+import { Zap, Timer, DollarSign, ChevronRight, Plus, Check, Brain, ImageIcon, Video, Mic, Type, BarChart3, Trophy, Unlock, ExternalLink } from "lucide-react";
 import {
   Card,
   CardHeader,
@@ -13,6 +13,12 @@ import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
 import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
 import { getProviderKey } from "@/lib/provider-map";
+import {
+  hasAAIndexBenchmarks,
+  isOpenWeightsModel,
+  mediaBenchmarkValues,
+  textMetricValue,
+} from "@/lib/model-metrics";
 import type { LLMModel } from "@/lib/api";
 
 function fmt(val: number | null | undefined, decimals = 1): string {
@@ -33,6 +39,31 @@ function fmtCompact(value: number | null | undefined): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
   if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
   return String(value);
+}
+
+function fmtPrice(value: number | null | undefined): string {
+  if (value == null || isNaN(value)) return "—";
+  if (value === 0) return "0";
+  if (value < 0.01) return value.toFixed(6).replace(/0+$/, "").replace(/\.$/, "");
+  if (value < 1) return value.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+  return value.toFixed(2).replace(/\.00$/, "");
+}
+
+function compactUnit(unit: string): string {
+  return unit
+    .replace(/^per /, "/")
+    .replace("/M text tokens", "/1M")
+    .replace("/M audio tokens", "/1M audio")
+    .replace("/M tokens", "/1M")
+    .replace("per 1M characters", "/1M chars");
+}
+
+function cardPriceLabel(pricing: LLMModel["pricing"]): string {
+  const unitRows = pricing.openrouter_display_prices?.filter((row) => row.kind === "unit");
+  const displayRow = unitRows?.[0];
+  if (displayRow) return `${fmtPrice(displayRow.price)} ${compactUnit(displayRow.unit)}`.trim();
+  if (pricing.price_1m_blended_3_to_1 !== null) return `${fmt(pricing.price_1m_blended_3_to_1, 2)}/1M`;
+  return "—";
 }
 
 function scoreBg(val: number | null): string {
@@ -96,10 +127,30 @@ function ModalityChips({ model }: { model: LLMModel }) {
   );
 }
 
+function HuggingFaceStats({ model }: { model: LLMModel }) {
+  const { t } = useI18n();
+  const downloads = model.huggingface_downloads;
+  const likes = model.huggingface_likes;
+  if (downloads == null && likes == null) return null;
+
+  return (
+    <div className="rounded-md border bg-muted/30 px-2 py-1.5 space-y-1">
+      <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
+        <BarChart3 className="size-3" />
+        {t.card.huggingface}
+      </div>
+      <div className="flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
+        {downloads != null && <span>{fmtCompact(downloads)} dl</span>}
+        {likes != null && <span>{fmtCompact(likes)} ♥</span>}
+      </div>
+    </div>
+  );
+}
+
 function OpenRouterStats({ model }: { model: LLMModel }) {
   const { t } = useI18n();
   const daBenchmarks = Object.entries(model.evaluations)
-    .filter(([key, value]) => key.startsWith("openrouter_da_") && typeof value === "number")
+    .filter(([key, value]) => key.startsWith("openrouter_da_") && key.endsWith("_win_rate") && typeof value === "number")
     .map(([key, value]) => ({ key, value: value as number }))
     .sort((a, b) => b.value - a.value);
   const bestDA = daBenchmarks[0];
@@ -143,6 +194,28 @@ function OpenRouterStats({ model }: { model: LLMModel }) {
   );
 }
 
+function MediaBenchmarkStats({ model }: { model: LLMModel }) {
+  const { t, lang } = useI18n();
+  const rows = mediaBenchmarkValues(model);
+  const best = rows[0];
+  if (!best) return null;
+
+  return (
+    <div className="rounded-md border bg-muted/30 px-2 py-1.5 space-y-1">
+      <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
+        <BarChart3 className="size-3" />
+        {t.detail.mediaBenchmarks}
+      </div>
+      <div className="flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
+        <span className="font-medium text-foreground">
+          {best.label[lang]}: {fmt(best.elo, 0)}
+        </span>
+        {best.rank != null && <span>#{fmt(best.rank, 0)}</span>}
+      </div>
+    </div>
+  );
+}
+
 const NEW_BADGE_DAYS = 30;
 
 export function ModelCard({ model }: { model: LLMModel }) {
@@ -152,12 +225,14 @@ export function ModelCard({ model }: { model: LLMModel }) {
     name, slug, release_date, model_creator, evaluations, pricing,
     median_output_tokens_per_second, median_time_to_first_token_seconds,
     context_window_tokens, reasoning_model,
+    is_open_weights, huggingface_url, huggingface_official,
   } = model;
 
   const providerKey = getProviderKey(model_creator.slug);
-  const intelligence = evaluations.artificial_analysis_intelligence_index;
+  const intelligence = textMetricValue(model, "artificial_analysis_intelligence_index");
   const selected = isSelected(slug);
   const ctxLabel = fmtCtx(context_window_tokens ?? null);
+  const officialHuggingFaceUrl = huggingface_official === true ? huggingface_url : null;
 
   const isNew = Boolean(
     release_date &&
@@ -186,6 +261,15 @@ export function ModelCard({ model }: { model: LLMModel }) {
                     {t.card.thinkingBadge}
                   </Badge>
                 )}
+                {isOpenWeightsModel(model) && (
+                  <Badge
+                    variant="outline"
+                    className="text-xs px-1.5 py-0 gap-1 font-medium bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900"
+                  >
+                    <Unlock className="size-2.5" />
+                    {t.card.openWeightsBadge}
+                  </Badge>
+                )}
                 {intelligence !== null && (
                   <Badge
                     variant="outline"
@@ -201,10 +285,22 @@ export function ModelCard({ model }: { model: LLMModel }) {
           </CardHeader>
 
           <CardContent className="space-y-2.5 flex-1">
-            <ScoreRow label={t.card.intelligence} value={evaluations.artificial_analysis_intelligence_index} />
-            <ScoreRow label={t.card.coding} value={evaluations.artificial_analysis_coding_index} />
-            <ScoreRow label={t.card.math} value={evaluations.artificial_analysis_math_index} />
+            {(() => {
+              if (!hasAAIndexBenchmarks(model)) return null;
+              const ii = textMetricValue(model, "artificial_analysis_intelligence_index");
+              const ic = textMetricValue(model, "artificial_analysis_coding_index");
+              const im = textMetricValue(model, "artificial_analysis_math_index");
+              return (
+                <>
+                  <ScoreRow label={t.card.intelligence} value={ii} />
+                  <ScoreRow label={t.card.coding} value={ic} />
+                  <ScoreRow label={t.card.math} value={im} />
+                </>
+              );
+            })()}
+            <MediaBenchmarkStats model={model} />
             <OpenRouterStats model={model} />
+            <HuggingFaceStats model={model} />
             <ModalityChips model={model} />
           </CardContent>
 
@@ -229,14 +325,26 @@ export function ModelCard({ model }: { model: LLMModel }) {
             )}
             <span className="flex items-center gap-1 ml-auto">
               <DollarSign className="size-3" />
-              {pricing.price_1m_blended_3_to_1 !== null
-                ? `${fmt(pricing.price_1m_blended_3_to_1, 2)}/1M`
-                : "—"}
+              {cardPriceLabel(pricing)}
             </span>
             <ChevronRight className="size-3 opacity-0 group-hover:opacity-100 transition-opacity" />
           </CardFooter>
         </Card>
       </Link>
+
+      {officialHuggingFaceUrl && (
+        <a
+          href={officialHuggingFaceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(event) => event.stopPropagation()}
+          aria-label={t.card.viewOnHuggingFace}
+          title={t.card.viewOnHuggingFace}
+          className="absolute top-2 right-2 inline-flex size-6 items-center justify-center rounded-md border border-border bg-background text-muted-foreground opacity-0 transition-all hover:bg-muted hover:text-foreground group-hover:opacity-100 z-10"
+        >
+          <ExternalLink className="size-3" />
+        </a>
+      )}
 
       {/* Bouton comparer */}
       <button

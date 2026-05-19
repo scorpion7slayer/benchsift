@@ -10,10 +10,12 @@ const CREATOR_TO_PROVIDER: Record<string, string> = {
   google: "google",
   meta: "meta",
   mistral: "mistral",
+  mistralai: "mistral",
   cohere: "cohere",
   deepseek: "deepseek",
   nvidia: "nvidia",
   xai: "xai",
+  "x-ai": "xai",
   perplexity: "perplexity",
 
   // Cloud / infra
@@ -27,6 +29,7 @@ const CREATOR_TO_PROVIDER: Record<string, string> = {
   // Chinese AI labs
   alibaba: "alibaba",
   zai: "zai",             // Z.AI (GLM) → ZAI.Avatar via ModelProviderIcon
+  "z-ai": "zai",
   zhipu: "zhipu",
   baidu: "baidu",
   bytedance_seed: "bytedance", // ByteDance Seed team

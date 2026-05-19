@@ -2,7 +2,7 @@ import { use, Suspense } from "react";
 import {
   Zap, DollarSign, BarChart3, TrendingUp, GitCompareArrows,
   Brain, ImageIcon, Video, Mic, Type, Lock, Unlock, BookOpen, Info,
-  Sparkles,
+  Sparkles, ExternalLink,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,14 @@ import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
 import { getProviderKey } from "@/lib/provider-map";
 import { usePageTransition } from "@/components/page-transition-provider";
+import {
+  applicableExtraBenchmarkEntries,
+  hasAAIndexBenchmarks,
+  hasPricingData,
+  hasStandardTextBenchmarks,
+  mediaBenchmarkValues,
+  textMetricValue,
+} from "@/lib/model-metrics";
 import type { LLMModel } from "@/lib/api";
 
 type Caps = Partial<LLMModel>;
@@ -41,6 +49,26 @@ function ScrapedBadges({ promise, t }: { promise: Promise<Caps>; t: { reasoning:
       ) : null}
     </>
   );
+}
+
+function HuggingFaceAnchor({ url, label }: { url: string; label: string }) {
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+    >
+      <ExternalLink className="size-3" />
+      {label}
+    </a>
+  );
+}
+
+function StreamedHuggingFaceLink({ promise, label }: { promise: Promise<Caps>; label: string }) {
+  const caps = use(promise);
+  if (caps.huggingface_official !== true || !caps.huggingface_url) return null;
+  return <HuggingFaceAnchor url={caps.huggingface_url} label={label} />;
 }
 
 function fmtParams(b: number): string {
@@ -235,27 +263,17 @@ function fmtTokens(n: number): string {
 
 // Helpers
 
-const AA_INDEX_KEYS = new Set([
-  "artificial_analysis_intelligence_index",
-  "artificial_analysis_coding_index",
-  "artificial_analysis_math_index",
-  "intelligence_index",
-  "coding_index",
-  "math_index",
-  "agentic_index",
-]);
-
-const KNOWN_BENCHMARK_KEYS = new Set([
-  "mmlu_pro", "gpqa", "hle", "livecodebench", "scicode",
-  "math_500", "aime", "aime_25", "aime25", "ifbench", "lcr",
-  "terminalbench_hard", "tau2",
-  "humaneval", "omniscience", "multilingual_aa", "mmmu_pro", "critpt", "gdpval",
-  "apex_agents", "omniscience_non_hallucination",
-]);
-
 function fmt(val: number | null | undefined, decimals = 1) {
   if (val == null || isNaN(val)) return "—";
   return val.toFixed(decimals);
+}
+
+function fmtPrice(value: number | null | undefined): string {
+  if (value == null || isNaN(value)) return "—";
+  if (value === 0) return "0";
+  if (value < 0.01) return value.toFixed(6).replace(/0+$/, "").replace(/\.$/, "");
+  if (value < 1) return value.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+  return value.toFixed(2).replace(/\.00$/, "");
 }
 
 function fmtCtx(tokens: number | null): string {
@@ -361,11 +379,66 @@ function ModalityChip({ icon, label, active }: { icon: React.ReactNode; label: s
   );
 }
 
+function MediaBenchmarksSection({
+  model,
+  t,
+  lang,
+}: {
+  model: LLMModel;
+  t: ReturnType<typeof useI18n>["t"];
+  lang: ReturnType<typeof useI18n>["lang"];
+}) {
+  const rows = mediaBenchmarkValues(model);
+  if (rows.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-sm font-medium">
+          <BarChart3 className="size-4 text-muted-foreground" />
+          {t.detail.mediaBenchmarks}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {rows.map((row) => {
+          const rank = row.rank != null ? ` · #${fmt(row.rank, 0)}` : "";
+          const appearances =
+            row.appearances != null ? ` · ${fmtTokens(row.appearances)} ${t.detail.appearances}` : "";
+          return (
+            <BenchmarkRow
+              key={row.eloKey}
+              label={row.label[lang]}
+              displayValue={`${fmt(row.elo, 0)} ELO${rank}${appearances}`}
+              barPct={Math.min(100, Math.max(0, (row.elo / 1400) * 100))}
+            />
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}
+
+function NoBenchmarksCard({ t }: { t: ReturnType<typeof useI18n>["t"] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-sm font-medium">
+          <BarChart3 className="size-4 text-muted-foreground" />
+          {t.detail.noBenchmarks}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">{t.detail.noBenchmarksDescription}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
 // Main component / Composant principal
 
 export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMModel; capabilitiesPromise?: Promise<Caps> }) {
-  const { t } = useI18n();
-  const { toggle, isSelected } = useCompare();
+  const { t, lang } = useI18n();
+  const { toggle, isSelected, selected } = useCompare();
   const { push } = usePageTransition();
   const {
     name, model_creator, evaluations: ev, pricing,
@@ -374,41 +447,56 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
   } = model;
 
   const providerKey = getProviderKey(model_creator.slug);
-  const intelligence = ev.artificial_analysis_intelligence_index;
+  const intelligence = textMetricValue(model, "artificial_analysis_intelligence_index");
   const isComp = isSelected(model.slug);
+  const openRouterDisplayPrices = pricing.openrouter_display_prices ?? [];
+  const usesOpenRouterDisplayPrices = openRouterDisplayPrices.length > 0;
+  const officialHuggingFaceUrl =
+    model.huggingface_official === true ? model.huggingface_url : null;
 
 
   // Known benchmarks as % / Benchmarks connus en %
   const benchmarksPct = {
-    mmlu_pro: pct(ev.mmlu_pro),
-    gpqa: pct(ev.gpqa),
-    hle: pct(ev.hle),
-    livecodebench: pct(ev.livecodebench),
-    scicode: pct(ev.scicode),
-    math_500: pct(ev.math_500),
-    aime: pct(ev.aime),
-    aime_25: pct(ev.aime_25),
-    ifbench: pct(ev.ifbench),
-    lcr: pct(ev.lcr),
-    terminalbench_hard: pct(ev.terminalbench_hard),
-    tau2: pct(ev.tau2),
-    humaneval: pct(ev.humaneval),
-    omniscience: pct(ev.omniscience),
-    multilingual_aa: pct(ev.multilingual_aa),
-    mmmu_pro: pct(ev.mmmu_pro),
-    critpt: pct(ev.critpt),
-    apex_agents: pct(ev.apex_agents),
-    omniscience_non_hallucination: pct(ev.omniscience_non_hallucination),
+    mmlu_pro: pct(textMetricValue(model, "mmlu_pro")),
+    gpqa: pct(textMetricValue(model, "gpqa")),
+    hle: pct(textMetricValue(model, "hle")),
+    livecodebench: pct(textMetricValue(model, "livecodebench")),
+    scicode: pct(textMetricValue(model, "scicode")),
+    math_500: pct(textMetricValue(model, "math_500")),
+    aime: pct(textMetricValue(model, "aime")),
+    aime_25: pct(textMetricValue(model, "aime_25")),
+    ifbench: pct(textMetricValue(model, "ifbench")),
+    lcr: pct(textMetricValue(model, "lcr")),
+    terminalbench_hard: pct(textMetricValue(model, "terminalbench_hard")),
+    tau2: pct(textMetricValue(model, "tau2")),
+    humaneval: pct(textMetricValue(model, "humaneval")),
+    omniscience: pct(textMetricValue(model, "omniscience")),
+    multilingual_aa: pct(textMetricValue(model, "multilingual_aa")),
+    mmmu_pro: pct(textMetricValue(model, "mmmu_pro")),
+    critpt: pct(textMetricValue(model, "critpt")),
+    apex_agents: pct(textMetricValue(model, "apex_agents")),
+    omniscience_non_hallucination: pct(textMetricValue(model, "omniscience_non_hallucination")),
   };
 
   // Unknown additional benchmarks / Benchmarks supplémentaires non connus
-  const extraBenchmarks = Object.entries(ev)
-    .filter(([key, val]) =>
-      !AA_INDEX_KEYS.has(key) &&
-      !KNOWN_BENCHMARK_KEYS.has(key) &&
-      val !== null
-    )
-    .sort(([a], [b]) => a.localeCompare(b));
+  const extraBenchmarks = applicableExtraBenchmarkEntries(model);
+  const showAAIndices = hasAAIndexBenchmarks(model);
+  const showStandardBenchmarks = hasStandardTextBenchmarks(model);
+  const showMediaBenchmarks = mediaBenchmarkValues(model).length > 0;
+  const showNoBenchmarks = !showAAIndices && !showStandardBenchmarks && !showMediaBenchmarks && extraBenchmarks.length === 0;
+  const showPerformance = [
+    median_output_tokens_per_second,
+    median_time_to_first_token_seconds,
+    median_time_to_first_answer_token,
+    model.end_to_end_response_time_seconds,
+    model.openrouter_weekly_rank,
+    model.openrouter_weekly_tokens,
+    model.openrouter_weekly_requests,
+    model.openrouter_weekly_tool_calls,
+    model.openrouter_weekly_images,
+    model.openrouter_weekly_audio_inputs,
+  ].some((value) => value != null);
+  const showPricing = hasPricingData(model);
 
   return (
     <div className="space-y-6">
@@ -439,12 +527,28 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
                 />
               </Suspense>
             )}
+            {officialHuggingFaceUrl ? (
+              <HuggingFaceAnchor url={officialHuggingFaceUrl} label={t.card.huggingface} />
+            ) : capabilitiesPromise ? (
+              <Suspense>
+                <StreamedHuggingFaceLink promise={capabilitiesPromise} label={t.card.huggingface} />
+              </Suspense>
+            ) : null}
           </div>
         </div>
         <Button
           variant={isComp ? "default" : "outline"}
           size="sm"
-          onClick={() => { toggle(model.slug); push(`/compare?models=${model.slug}`); }}
+          onClick={() => {
+            const nextSelection = isComp
+              ? selected.filter((slug) => slug !== model.slug)
+              : [...selected, model.slug].slice(-4);
+            toggle(model.slug);
+            const target = nextSelection.length > 0
+              ? `/compare?models=${nextSelection.join(",")}`
+              : "/compare";
+            push(target);
+          }}
           className="shrink-0 gap-1.5"
         >
           <GitCompareArrows className="size-4" />
@@ -480,24 +584,33 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
         {/* Left: benchmarks */}
         <div className="space-y-6">
           {/* AA Indices */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <TrendingUp className="size-4 text-muted-foreground" />
-                {t.detail.aaIndices}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <BenchmarkRow label={t.benchmarks.intelligence} displayValue={fmt(ev.artificial_analysis_intelligence_index)} barPct={ev.artificial_analysis_intelligence_index ?? 0} />
-              <BenchmarkRow label={t.benchmarks.coding}       displayValue={fmt(ev.artificial_analysis_coding_index)}       barPct={ev.artificial_analysis_coding_index ?? 0} />
-              <BenchmarkRow label={t.benchmarks.math}         displayValue={fmt(ev.artificial_analysis_math_index)}         barPct={ev.artificial_analysis_math_index ?? 0} />
-              {ev.agentic_index !== null && ev.agentic_index !== undefined && (
-                <BenchmarkRow label={t.benchmarks.agentic} displayValue={fmt(ev.agentic_index)} barPct={ev.agentic_index ?? 0} />
-              )}
-            </CardContent>
-          </Card>
+          {showAAIndices && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <TrendingUp className="size-4 text-muted-foreground" />
+                  {t.detail.aaIndices}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {textMetricValue(model, "artificial_analysis_intelligence_index") != null && (
+                  <BenchmarkRow label={t.benchmarks.intelligence} displayValue={fmt(textMetricValue(model, "artificial_analysis_intelligence_index"))} barPct={textMetricValue(model, "artificial_analysis_intelligence_index") ?? 0} />
+                )}
+                {textMetricValue(model, "artificial_analysis_coding_index") != null && (
+                  <BenchmarkRow label={t.benchmarks.coding} displayValue={fmt(textMetricValue(model, "artificial_analysis_coding_index"))} barPct={textMetricValue(model, "artificial_analysis_coding_index") ?? 0} />
+                )}
+                {textMetricValue(model, "artificial_analysis_math_index") != null && (
+                  <BenchmarkRow label={t.benchmarks.math} displayValue={fmt(textMetricValue(model, "artificial_analysis_math_index"))} barPct={textMetricValue(model, "artificial_analysis_math_index") ?? 0} />
+                )}
+                {textMetricValue(model, "agentic_index") != null && (
+                  <BenchmarkRow label={t.benchmarks.agentic} displayValue={fmt(textMetricValue(model, "agentic_index"))} barPct={textMetricValue(model, "agentic_index") ?? 0} />
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Standard benchmarks */}
+          {showStandardBenchmarks && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
@@ -544,6 +657,9 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
               )}
             </CardContent>
           </Card>
+          )}
+
+          <MediaBenchmarksSection model={model} t={t} lang={lang} />
 
           {/* Additional benchmarks (dynamic) / Supplémentaires dynamiques */}
           {extraBenchmarks.length > 0 && (
@@ -571,10 +687,13 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
               </CardContent>
             </Card>
           )}
+
+          {showNoBenchmarks && <NoBenchmarksCard t={t} />}
         </div>
 
         {/* Right: perf + pricing */}
         <div className="space-y-6">
+          {showPerformance && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
@@ -582,9 +701,15 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
               </CardTitle>
             </CardHeader>
             <CardContent className="divide-y">
-              <StatRow label={t.detail.outputSpeed}  value={median_output_tokens_per_second !== null ? `${fmt(median_output_tokens_per_second, 0)} tokens/s` : "—"} />
-              <StatRow label={t.detail.ttft}         value={median_time_to_first_token_seconds !== null ? `${fmt(median_time_to_first_token_seconds, 2)} s` : "—"} />
-              <StatRow label={t.detail.firstAnswer}  value={median_time_to_first_answer_token !== null ? `${fmt(median_time_to_first_answer_token, 2)} s` : "—"} />
+              {median_output_tokens_per_second !== null && (
+                <StatRow label={t.detail.outputSpeed} value={`${fmt(median_output_tokens_per_second, 0)} tokens/s`} />
+              )}
+              {median_time_to_first_token_seconds !== null && (
+                <StatRow label={t.detail.ttft} value={`${fmt(median_time_to_first_token_seconds, 2)} s`} />
+              )}
+              {median_time_to_first_answer_token !== null && (
+                <StatRow label={t.detail.firstAnswer} value={`${fmt(median_time_to_first_answer_token, 2)} s`} />
+              )}
               {model.openrouter_weekly_rank != null && (
                 <StatRow label={t.detail.openrouterWeeklyRank} value={`#${model.openrouter_weekly_rank}`} />
               )}
@@ -612,7 +737,9 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
               )}
             </CardContent>
           </Card>
+          )}
 
+          {showPricing && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
@@ -620,25 +747,37 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
               </CardTitle>
             </CardHeader>
             <CardContent className="divide-y">
-              <StatRow label={t.detail.inputTokens}  value={pricing.price_1m_input_tokens !== null ? `$${fmt(pricing.price_1m_input_tokens, 2)}` : "—"} />
-              {pricing.price_1m_cache_hit_tokens != null && (
+              {openRouterDisplayPrices.map((row) => (
                 <StatRow
-                  label={t.detail.cacheHit}
-                  tooltip={t.detail.cacheHitTooltip}
-                  value={`$${fmt(pricing.price_1m_cache_hit_tokens, 3)}`}
+                  key={`${row.label}-${row.unit}-${row.price}`}
+                  label={row.label}
+                  value={`$${fmtPrice(row.price)} ${row.unit}`.trim()}
                 />
-              )}
-              <StatRow label={t.detail.outputTokens} value={pricing.price_1m_output_tokens !== null ? `$${fmt(pricing.price_1m_output_tokens, 2)}` : "—"} />
-              <StatRow label={t.detail.blended} tooltip={t.detail.blendedTooltip} value={pricing.price_1m_blended_3_to_1 !== null ? `$${fmt(pricing.price_1m_blended_3_to_1, 2)}` : "—"} />
-              {pricing.price_1m_blended_7_2_1 != null && (
-                <StatRow
-                  label={t.detail.blended721}
-                  tooltip={t.detail.blended721Tooltip}
-                  value={`$${fmt(pricing.price_1m_blended_7_2_1, 2)}`}
-                />
+              ))}
+              {!usesOpenRouterDisplayPrices && (
+                <>
+                  <StatRow label={t.detail.inputTokens}  value={pricing.price_1m_input_tokens !== null ? `$${fmt(pricing.price_1m_input_tokens, 2)}` : "—"} />
+                  {pricing.price_1m_cache_hit_tokens != null && (
+                    <StatRow
+                      label={t.detail.cacheHit}
+                      tooltip={t.detail.cacheHitTooltip}
+                      value={`$${fmt(pricing.price_1m_cache_hit_tokens, 3)}`}
+                    />
+                  )}
+                  <StatRow label={t.detail.outputTokens} value={pricing.price_1m_output_tokens !== null ? `$${fmt(pricing.price_1m_output_tokens, 2)}` : "—"} />
+                  <StatRow label={t.detail.blended} tooltip={t.detail.blendedTooltip} value={pricing.price_1m_blended_3_to_1 !== null ? `$${fmt(pricing.price_1m_blended_3_to_1, 2)}` : "—"} />
+                  {pricing.price_1m_blended_7_2_1 != null && (
+                    <StatRow
+                      label={t.detail.blended721}
+                      tooltip={t.detail.blended721Tooltip}
+                      value={`$${fmt(pricing.price_1m_blended_7_2_1, 2)}`}
+                    />
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
+          )}
 
           {capabilitiesPromise && (
             <Suspense>

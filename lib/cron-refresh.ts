@@ -6,10 +6,15 @@
 //     `limits.cpu_ms`)
 
 import { enrichModelsWithOpenRouter } from "@/lib/openrouter";
-import type { LLMModel } from "@/lib/api";
+import { enrichModelsWithHuggingFace } from "@/lib/huggingface";
+import { fetchAAMediaModels, mergeAAMediaModels } from "@/lib/aa-media";
+import {
+  enrichModelsWithScrapedCapabilities,
+  type LLMModel,
+} from "@/lib/api";
 
-const AA_MODELS_URL = "https://artificialanalysis.ai/api/v2/data/llms/models";
-export const KV_KEY = "nxtaicard:models:v3";
+const AA_BASE_URL = "https://artificialanalysis.ai/api/v2";
+export const KV_KEY = "nxtaicard:models:v13";
 const KV_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
 interface AAApiResponse<T> {
@@ -17,7 +22,7 @@ interface AAApiResponse<T> {
   data: T;
 }
 
-async function fetchModelsFromAA(env: CloudflareEnv): Promise<unknown[]> {
+async function fetchFromAA<T>(env: CloudflareEnv, endpoint: string): Promise<T> {
   const keys = [
     env.ARTIFICIAL_ANALYSIS_API_KEY,
     env.ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY,
@@ -30,7 +35,7 @@ async function fetchModelsFromAA(env: CloudflareEnv): Promise<unknown[]> {
   let lastErrorName = "";
   for (let i = 0; i < keys.length; i++) {
     try {
-      const res = await fetch(AA_MODELS_URL, {
+      const res = await fetch(`${AA_BASE_URL}${endpoint}`, {
         headers: { "x-api-key": keys[i] },
         signal: AbortSignal.timeout(8000),
       });
@@ -38,8 +43,8 @@ async function fetchModelsFromAA(env: CloudflareEnv): Promise<unknown[]> {
         lastStatus = res.status;
         continue;
       }
-      const json = (await res.json()) as AAApiResponse<unknown[]>;
-      return json.data ?? [];
+      const json = (await res.json()) as AAApiResponse<T>;
+      return json.data;
     } catch (e) {
       lastErrorName = e instanceof Error ? e.name : "Error";
     }
@@ -51,6 +56,10 @@ async function fetchModelsFromAA(env: CloudflareEnv): Promise<unknown[]> {
   );
 }
 
+async function fetchModelsFromAA(env: CloudflareEnv): Promise<unknown[]> {
+  return fetchFromAA<unknown[]>(env, "/data/llms/models");
+}
+
 export interface RefreshResult {
   count: number;
   durationMs: number;
@@ -60,11 +69,20 @@ export async function refreshKVCache(env: CloudflareEnv): Promise<RefreshResult>
   const started = Date.now();
   const kv = env.MODELS_KV;
   if (!kv) throw new Error("MODELS_KV binding missing");
-  const aaModels = (await fetchModelsFromAA(env)) as LLMModel[];
-  const models = await enrichModelsWithOpenRouter(aaModels, {
+  const [aaModels, mediaModels] = await Promise.all([
+    fetchModelsFromAA(env) as Promise<LLMModel[]>,
+    fetchAAMediaModels((endpoint) => fetchFromAA(env, endpoint)),
+  ]);
+  const baseModels = mergeAAMediaModels(aaModels, mediaModels);
+  const openRouterEnriched = await enrichModelsWithOpenRouter(baseModels, {
     apiKey: env.OPENROUTER_API_KEY,
     includeUsageRankings: true,
+    includeOpenRouterOnly: true,
   });
+  const hfEnriched = await enrichModelsWithHuggingFace(openRouterEnriched, {
+    apiKey: env.HUGGINGFACE_API_KEY || env.HUGGING_FACE_API_KEY,
+  });
+  const models = await enrichModelsWithScrapedCapabilities(hfEnriched);
   const entry = { models, refreshedAt: Date.now() };
   await kv.put(KV_KEY, JSON.stringify(entry), {
     expirationTtl: KV_TTL_SECONDS,

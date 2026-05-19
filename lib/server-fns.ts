@@ -7,7 +7,7 @@ import {
   getLLMModels,
   getLLMModelBasic,
   getLLMModel,
-  scrapeModelCapabilities,
+  getLLMModelSupplementary,
   getCodingAgents,
   type LLMModel,
 } from "@/lib/api";
@@ -15,7 +15,7 @@ import type { Lang } from "@/lib/i18n";
 
 /** Validates a model slug the same way the AA scraper does. */
 function isSafeSlug(slug: string): boolean {
-  return /^[a-z0-9\-_.]+$/i.test(slug);
+  return /^[a-z0-9][a-z0-9._-]{1,119}$/i.test(slug);
 }
 
 /** Full models list (fast KV-cached path). */
@@ -36,7 +36,7 @@ export const fetchModelCapabilities = createServerFn({ method: "GET" })
   .inputValidator((slug: string) => slug)
   .handler(async ({ data }): Promise<Partial<LLMModel>> => {
     if (!isSafeSlug(data)) return {};
-    return scrapeModelCapabilities(data);
+    return getLLMModelSupplementary(data);
   });
 
 /** Data for the compare page: every model + the selected (enriched) ones. */

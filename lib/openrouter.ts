@@ -1,4 +1,5 @@
 import type { LLMModel } from "@/lib/api";
+import { createEmptyEvaluations } from "@/lib/model-metrics";
 
 const OR_BASE = "https://openrouter.ai/api/v1";
 const OPENROUTER_RANKINGS_PAGE = "https://openrouter.ai/rankings";
@@ -10,6 +11,34 @@ const DA_BENCHMARK_RANKINGS_ACTION_ID = "00f63ea3aac04d141ad7cda1cbafdc6bb12dc75
 
 const OPENROUTER_ACTION_TIMEOUT_MS = 8_000;
 const OPENROUTER_API_TIMEOUT_MS = 8_000;
+const OPENROUTER_PAGE_TIMEOUT_MS = 5_000;
+const OPENROUTER_MODEL_OUTPUT_CATEGORIES = [
+  "text",
+  "image",
+  "embeddings",
+  "audio",
+  "video",
+  "rerank",
+  "speech",
+  "transcription",
+];
+const OPENROUTER_DISPLAY_PRICING_CATEGORIES = new Set([
+  "image",
+  "audio",
+  "video",
+  "rerank",
+  "speech",
+  "transcription",
+]);
+const TOKEN_DISPLAY_MODALITIES = new Set(["text", "audio"]);
+
+interface OpenRouterDisplayPricingRow {
+  kind?: string;
+  sku_label?: string;
+  price?: string;
+  displayMultiplier?: number;
+  unitLabel?: string;
+}
 
 export interface OpenRouterModel {
   id: string;
@@ -30,6 +59,7 @@ export interface OpenRouterModel {
     completion: string;
     image?: string;
     audio?: string;
+    input_cache_read?: string;
   };
   top_provider: {
     context_length: number | null;
@@ -37,6 +67,8 @@ export interface OpenRouterModel {
     is_moderated: boolean;
   } | null;
   supported_parameters: string[] | null;
+  supported_voices?: string[] | null;
+  display_pricing?: OpenRouterDisplayPricingRow[];
 }
 
 interface OpenRouterRankingRow {
@@ -68,6 +100,7 @@ interface OpenRouterEnrichmentOptions {
   apiKey?: string;
   includeUsageRankings?: boolean;
   includeBenchmarks?: boolean;
+  includeOpenRouterOnly?: boolean;
 }
 
 function fetchWithTimeout(
@@ -93,15 +126,123 @@ export async function getOpenRouterModels(
   options: { apiKey?: string } = {},
 ): Promise<OpenRouterModel[]> {
   try {
-    const res = await fetchWithTimeout(`${OR_BASE}/models`, {
-      headers: openRouterHeaders(options.apiKey),
-    });
-    if (!res.ok) return [];
-    const json = (await res.json()) as { data?: OpenRouterModel[] };
-    return json.data ?? [];
+    const headers = openRouterHeaders(options.apiKey);
+    const responses = await Promise.allSettled(
+      OPENROUTER_MODEL_OUTPUT_CATEGORIES.map(async (category) => {
+        const res = await fetchWithTimeout(
+          `${OR_BASE}/models?output_modalities=${encodeURIComponent(category)}`,
+          { headers },
+        );
+        if (!res.ok) return [];
+        const json = (await res.json()) as { data?: OpenRouterModel[] };
+        return json.data ?? [];
+      }),
+    );
+    const byId = new Map<string, OpenRouterModel>();
+    for (const response of responses) {
+      if (response.status !== "fulfilled") continue;
+      for (const model of response.value) {
+        byId.set(model.id, model);
+      }
+    }
+    const models = [...byId.values()];
+    await enrichOpenRouterDisplayPricing(models);
+    return models;
   } catch {
     return [];
   }
+}
+
+function needsDisplayPricing(model: OpenRouterModel): boolean {
+  const modalities = [
+    ...(model.architecture?.input_modalities ?? []),
+    ...(model.architecture?.output_modalities ?? []),
+  ];
+  return modalities.some((modality) => OPENROUTER_DISPLAY_PRICING_CATEGORIES.has(modality));
+}
+
+async function enrichOpenRouterDisplayPricing(models: OpenRouterModel[]): Promise<void> {
+  const candidates = models.filter(needsDisplayPricing);
+  const batchSize = 8;
+
+  for (let i = 0; i < candidates.length; i += batchSize) {
+    const batch = candidates.slice(i, i + batchSize);
+    const rows = await Promise.allSettled(
+      batch.map((model) => getOpenRouterDisplayPricing(model.id)),
+    );
+
+    rows.forEach((result, index) => {
+      if (result.status === "fulfilled" && result.value.length > 0) {
+        batch[index].display_pricing = result.value;
+      }
+    });
+  }
+}
+
+async function getOpenRouterDisplayPricing(modelId: string): Promise<OpenRouterDisplayPricingRow[]> {
+  try {
+    const res = await fetchWithTimeout(
+      `https://openrouter.ai/${modelId}`,
+      {},
+      OPENROUTER_PAGE_TIMEOUT_MS,
+    );
+    if (!res.ok) return [];
+    return extractOpenRouterDisplayPricing(await res.text());
+  } catch {
+    return [];
+  }
+}
+
+function extractOpenRouterDisplayPricing(html: string): OpenRouterDisplayPricingRow[] {
+  const marker = 'displayPricing":';
+  const escapedMarker = 'displayPricing\\":';
+  let markerIndex = html.indexOf(marker);
+  let isEscapedJson = false;
+  if (markerIndex < 0) {
+    markerIndex = html.indexOf(escapedMarker);
+    isEscapedJson = markerIndex >= 0;
+  }
+  if (markerIndex < 0) return [];
+
+  const start = html.indexOf("[", markerIndex + (isEscapedJson ? escapedMarker.length : marker.length));
+  if (start < 0) return [];
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = start; i < html.length; i++) {
+    const char = html[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (char === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    if (char === "[") depth++;
+    if (char === "]") {
+      depth--;
+      if (depth === 0) {
+        const raw = html.slice(start, i + 1);
+        try {
+          const json = isEscapedJson ? raw.replace(/\\"/g, '"') : raw;
+          const parsed = JSON.parse(json) as OpenRouterDisplayPricingRow[];
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+    }
+  }
+
+  return [];
 }
 
 /** Finds the OR model matching an AA slug via multiple strategies. */
@@ -109,17 +250,7 @@ export function findOpenRouterModel(
   aaSlug: string,
   orModels: OpenRouterModel[],
 ): OpenRouterModel | undefined {
-  const norm = (s: string) => s.toLowerCase().replace(/[\s_.]/g, "-");
-  const ns = norm(aaSlug);
-  let m = orModels.find((o) => norm(o.canonical_slug) === ns);
-  if (m) return m;
-  m = orModels.find((o) => norm(o.id.split("/").pop() ?? "") === ns);
-  if (m) return m;
-  return orModels.find((o) => {
-    const c = norm(o.canonical_slug);
-    const s = norm(o.id.split("/").pop() ?? "");
-    return c.includes(ns) || ns.includes(c) || s.includes(ns) || ns.includes(s);
-  });
+  return orModels.find((or) => openRouterModelMatchesSlug(aaSlug, or));
 }
 
 /** Converts an OR model to our capabilities format. */
@@ -136,12 +267,18 @@ export function openRouterCapabilities(or: OpenRouterModel): Partial<LLMModel> {
       : undefined,
     input_modality_text: has(inp, "text"),
     input_modality_image: has(inp, "image"),
-    input_modality_speech: has(inp, "audio"),
+    input_modality_speech: has(inp, "audio", "speech"),
     input_modality_video: has(inp, "video"),
     output_modality_text: has(out, "text"),
     output_modality_image: has(out, "image"),
-    output_modality_speech: has(out, "audio"),
+    output_modality_speech: has(out, "audio", "speech", "transcription"),
     output_modality_video: has(out, "video"),
+    openrouter_input_modalities: inp,
+    openrouter_output_modalities: out,
+    openrouter_supported_voices: or.supported_voices ?? undefined,
+    huggingface_id: or.hugging_face_id ?? undefined,
+    huggingface_url: or.hugging_face_id ? `https://huggingface.co/${or.hugging_face_id}` : undefined,
+    huggingface_source: or.hugging_face_id ? "openrouter" : undefined,
   };
 }
 
@@ -207,7 +344,67 @@ function idCandidates(id: string | null | undefined): string[] {
   const norm = normaliseId(id);
   if (!norm) return [];
   const suffix = norm.split("/").pop() ?? norm;
-  return [...new Set([norm, suffix, stripDateSuffix(norm), stripDateSuffix(suffix)])];
+  const dashed = norm.replace(/\./g, "-");
+  const dashedSuffix = dashed.split("/").pop() ?? dashed;
+  return [...new Set([
+    norm,
+    suffix,
+    stripDateSuffix(norm),
+    stripDateSuffix(suffix),
+    dashed,
+    dashedSuffix,
+    stripDateSuffix(dashed),
+    stripDateSuffix(dashedSuffix),
+  ])];
+}
+
+function openRouterModelPart(or: OpenRouterModel): string {
+  const fromId = or.id.split("/").pop();
+  const fromCanonical = or.canonical_slug?.split("/").pop();
+  return stripDateSuffix(normaliseId(fromId) ?? normaliseId(fromCanonical) ?? or.id);
+}
+
+function providerSlug(or: OpenRouterModel): string {
+  const slug = (normaliseId(or.id.split("/")[0]) ?? "openrouter").replace(/[^a-z0-9-]+/g, "-");
+  const aliases: Record<string, string> = {
+    "mistralai": "mistral",
+    "x-ai": "xai",
+    "z-ai": "zai",
+  };
+  return aliases[slug] ?? slug;
+}
+
+function openRouterModelMatchesSlug(slug: string, or: OpenRouterModel): boolean {
+  const normSlug = normaliseId(slug);
+  if (!normSlug) return false;
+
+  const modelPart = openRouterModelPart(or);
+  const fullCandidates = new Set([
+    ...idCandidates(or.id),
+    ...idCandidates(or.canonical_slug),
+  ]);
+  if (fullCandidates.has(normSlug)) return true;
+
+  const slugPart = normSlug.split("/").pop() ?? normSlug;
+  if (modelPart === slugPart) return true;
+
+  // Some AA pages use the family slug while OpenRouter names the same release
+  // with a lightweight lifecycle suffix, e.g. AA `hy3` vs OR `hy3-preview`.
+  const dashedModelPart = modelPart.replace(/\./g, "-");
+  const dashedSlugPart = slugPart.replace(/\./g, "-");
+  if (dashedModelPart === dashedSlugPart) return true;
+
+  const toleratedSuffixes = ["preview", "beta", "alpha", "experimental", "exp"];
+  for (const suffix of toleratedSuffixes) {
+    if (
+      modelPart === `${slugPart}-${suffix}` ||
+      dashedModelPart === `${dashedSlugPart}-${suffix}`
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function modelCandidates(model: LLMModel, orModel?: OpenRouterModel): Set<string> {
@@ -254,7 +451,12 @@ function mergeOpenRouterData(
     if (!category.startsWith("models-")) continue;
     const row = rows.find((r) => typeof r.win_rate === "number" && matchesModel(modelIds, r));
     if (row?.win_rate != null) {
-      evaluations[`openrouter_da_${metricKey(category.replace(/^models-/, ""))}_win_rate`] = row.win_rate;
+      const key = metricKey(category.replace(/^models-/, ""));
+      evaluations[`openrouter_da_${key}_win_rate`] = row.win_rate;
+      if (typeof row.score === "number") evaluations[`openrouter_da_${key}_score`] = row.score;
+      if (typeof row.avg_generation_time_ms === "number") {
+        evaluations[`openrouter_da_${key}_generation_seconds`] = row.avg_generation_time_ms / 1000;
+      }
     }
   }
 
@@ -293,6 +495,266 @@ function mergeDefined<T extends object>(base: T, patch: Partial<T>): T {
   return next;
 }
 
+function pricePerMillion(price: string | undefined): number | null {
+  if (!price) return null;
+  const value = Number(price);
+  return Number.isFinite(value) ? value * 1_000_000 : null;
+}
+
+function rawPrice(price: string | undefined): number | null {
+  if (!price) return null;
+  const value = Number(price);
+  return Number.isFinite(value) ? value : null;
+}
+
+function openRouterDisplayPrices(or: OpenRouterModel): LLMModel["pricing"]["openrouter_display_prices"] {
+  const rows = or.display_pricing ?? [];
+  const prices = rows
+    .map((row) => {
+      if (!row) return null;
+      const rawPrice = Number(row.price);
+      const multiplier = row.displayMultiplier ?? 1;
+      if (!Number.isFinite(rawPrice) || !Number.isFinite(multiplier)) return null;
+      return {
+        label: row.sku_label || "Price",
+        price: rawPrice * multiplier,
+        unit: row.unitLabel || "",
+        kind: row.kind,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null);
+
+  if (prices.length > 0) return prices;
+
+  const output = or.architecture?.output_modalities ?? [];
+  const prompt = rawPrice(or.pricing?.prompt);
+  const completion = rawPrice(or.pricing?.completion);
+  const image = rawPrice(or.pricing?.image);
+  const audio = rawPrice(or.pricing?.audio);
+
+  if (image != null && image > 0) {
+    return [{
+      label: "Image",
+      price: image,
+      unit: "per image",
+      kind: "unit",
+    }];
+  }
+
+  if (output.includes("speech") && prompt != null && completion === 0) {
+    return [{
+      label: "Characters",
+      price: prompt * 1_000_000,
+      unit: "per 1M characters",
+      kind: "unit",
+    }];
+  }
+
+  if (output.includes("speech")) {
+    const speechPrices: NonNullable<LLMModel["pricing"]["openrouter_display_prices"]> = [];
+    if (prompt != null && prompt > 0) {
+      speechPrices.push({
+        label: "Characters",
+        price: prompt * 1_000_000,
+        unit: "per 1M characters",
+        kind: "unit",
+      });
+    }
+    if (completion != null && completion > 0) {
+      speechPrices.push({
+        label: "Audio output",
+        price: completion * 1_000_000,
+        unit: "per M audio tokens",
+        kind: "unit",
+      });
+    }
+    if (speechPrices.length > 0) return speechPrices;
+  }
+
+  if (audio != null && audio > 0) {
+    const audioPrices: NonNullable<LLMModel["pricing"]["openrouter_display_prices"]> = [];
+    if (prompt != null && prompt > 0) {
+      audioPrices.push({
+        label: "Text input",
+        price: prompt * 1_000_000,
+        unit: "per M text tokens",
+        kind: "token",
+      });
+    }
+    if (completion != null && completion > 0) {
+      audioPrices.push({
+        label: "Text output",
+        price: completion * 1_000_000,
+        unit: "per M text tokens",
+        kind: "token",
+      });
+    }
+    audioPrices.push({
+      label: "Audio",
+      price: audio * 1_000_000,
+      unit: "per M audio tokens",
+      kind: "unit",
+    });
+    return audioPrices;
+  }
+
+  return undefined;
+}
+
+function hasUnitDisplayPricing(or: OpenRouterModel): boolean {
+  const output = or.architecture?.output_modalities ?? [];
+  const prompt = rawPrice(or.pricing?.prompt);
+  const completion = rawPrice(or.pricing?.completion);
+  const image = rawPrice(or.pricing?.image);
+  const audio = rawPrice(or.pricing?.audio);
+
+  if ((or.display_pricing ?? []).some((row) => row?.kind === "unit")) return true;
+  if (image != null && image > 0) return true;
+  if (
+    audio != null &&
+    audio > 0 &&
+    !output.some((modality) => TOKEN_DISPLAY_MODALITIES.has(modality))
+  ) {
+    return true;
+  }
+  if (output.includes("speech") && prompt != null && completion === 0) return true;
+  if (output.includes("transcription") && prompt != null && completion === 0) return true;
+  if (
+    output.some((modality) => ["image", "video", "rerank"].includes(modality)) &&
+    prompt === 0 &&
+    completion === 0
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function blendedThreeToOne(input: number | null, output: number | null): number | null {
+  if (input == null || output == null) return null;
+  return (input * 3 + output) / 4;
+}
+
+function openRouterPricing(or: OpenRouterModel): LLMModel["pricing"] {
+  const displayPrices = openRouterDisplayPrices(or);
+  const unitPriced = hasUnitDisplayPricing(or);
+  const input = unitPriced ? null : pricePerMillion(or.pricing?.prompt);
+  const output = unitPriced ? null : pricePerMillion(or.pricing?.completion);
+
+  return {
+    price_1m_blended_3_to_1: blendedThreeToOne(input, output),
+    price_1m_input_tokens: input,
+    price_1m_output_tokens: output,
+    price_1m_cache_hit_tokens: unitPriced ? null : pricePerMillion(or.pricing?.input_cache_read),
+    openrouter_display_prices: displayPrices,
+  };
+}
+
+function titleFromSlug(slug: string): string {
+  const overrides: Record<string, string> = {
+    ai21: "AI21",
+    anthropic: "Anthropic",
+    deepseek: "DeepSeek",
+    google: "Google",
+    meta: "Meta",
+    mistral: "Mistral",
+    openai: "OpenAI",
+    qwen: "Qwen",
+    xai: "xAI",
+  };
+  return overrides[slug] ?? slug
+    .split("-")
+    .map((part) => part ? part[0].toUpperCase() + part.slice(1) : part)
+    .join(" ");
+}
+
+function displayName(or: OpenRouterModel, creatorName: string): string {
+  const prefix = `${creatorName}:`;
+  if (or.name.toLowerCase().startsWith(prefix.toLowerCase())) {
+    return or.name.slice(prefix.length).trim();
+  }
+  return or.name;
+}
+
+function releaseDate(or: OpenRouterModel): string | null {
+  if (!or.created) return null;
+  const date = new Date(or.created * 1000);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
+}
+
+function isSafeSlug(slug: string): boolean {
+  return /^[a-z0-9][a-z0-9._-]{1,119}$/.test(slug);
+}
+
+function uniqueSlug(baseSlug: string, provider: string, used: Set<string>): string {
+  const normalizedBase = baseSlug
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^[^a-z0-9]+/, "")
+    .replace(/[^a-z0-9]+$/, "")
+    .slice(0, 100);
+  const fallbackBase = `${provider}-${normalizedBase || "model"}`.slice(0, 120);
+  const safeBase = isSafeSlug(normalizedBase) ? normalizedBase : fallbackBase;
+  if (!used.has(safeBase)) return safeBase;
+
+  const prefixed = `${provider}-${safeBase}`.slice(0, 120);
+  if (!used.has(prefixed)) return prefixed;
+
+  let i = 2;
+  while (used.has(`${prefixed}-${i}`)) i++;
+  return `${prefixed}-${i}`;
+}
+
+function openRouterOnlyModel(or: OpenRouterModel, usedSlugs: Set<string>): LLMModel {
+  const creatorSlug = providerSlug(or);
+  const creatorName = titleFromSlug(creatorSlug);
+  const slug = uniqueSlug(openRouterModelPart(or), creatorSlug, usedSlugs);
+
+  return {
+    id: `openrouter:${or.id}`,
+    name: displayName(or, creatorName),
+    slug,
+    release_date: releaseDate(or),
+    model_creator: {
+      id: creatorSlug,
+      name: creatorName,
+      slug: creatorSlug,
+    },
+    evaluations: createEmptyEvaluations(),
+    pricing: openRouterPricing(or),
+    median_output_tokens_per_second: null,
+    median_time_to_first_token_seconds: null,
+    median_time_to_first_answer_token: null,
+    ...openRouterCapabilities(or),
+  };
+}
+
+function addOpenRouterOnlyModels(
+  models: LLMModel[],
+  orModels: OpenRouterModel[],
+  usageRows: OpenRouterRankingRow[],
+  daBenchmarks: Record<string, OpenRouterDABenchmarkRow[]>,
+): LLMModel[] {
+  const usedSlugs = new Set(models.map((model) => model.slug));
+  const next = [...models];
+
+  for (const orModel of orModels) {
+    if (models.some((model) => openRouterModelMatchesSlug(model.slug, orModel))) {
+      continue;
+    }
+    const model = openRouterOnlyModel(orModel, usedSlugs);
+    usedSlugs.add(model.slug);
+    next.push(
+      mergeOpenRouterData(
+        model,
+        modelCandidates(model, orModel),
+        usageRows,
+        daBenchmarks,
+      ),
+    );
+  }
+
+  return next;
+}
+
 export async function enrichModelsWithOpenRouter(
   models: LLMModel[],
   options: OpenRouterEnrichmentOptions = {},
@@ -311,7 +773,7 @@ export async function enrichModelsWithOpenRouter(
     return models;
   }
 
-  return models.map((model) => {
+  const enrichedModels = models.map((model) => {
     const orModel = findOpenRouterModel(model.slug, orModels);
     const caps = orModel ? openRouterCapabilities(orModel) : {};
     const enriched = mergeDefined(model, caps);
@@ -322,4 +784,10 @@ export async function enrichModelsWithOpenRouter(
       daBenchmarks,
     );
   });
+
+  if (options.includeOpenRouterOnly === false || orModels.length === 0) {
+    return enrichedModels;
+  }
+
+  return addOpenRouterOnlyModels(enrichedModels, orModels, usageRows, daBenchmarks);
 }
