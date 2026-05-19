@@ -7,6 +7,8 @@ import {
   getOpenRouterModels as fetchOpenRouterModels,
   openRouterCapabilities,
 } from "@/lib/openrouter";
+import { attachOfficialHuggingFaceHints, enrichModelsWithHuggingFace } from "@/lib/huggingface";
+import { fetchAAMediaModels, mergeAAMediaModels } from "@/lib/aa-media";
 import type { CodingAgent } from "@/lib/coding-agents";
 
 const BASE_URL = "https://artificialanalysis.ai/api/v2";
@@ -54,6 +56,10 @@ const getOpenRouterModels = cached(
   { revalidate: CACHE_API_SECONDS }
 );
 
+function getHuggingFaceApiKey(): string | undefined {
+  return process.env.HUGGINGFACE_API_KEY || process.env.HUGGING_FACE_API_KEY;
+}
+
 
 export interface ModelCreator {
   id: string;
@@ -90,6 +96,12 @@ export interface Pricing {
   price_1m_blended_3_to_1: number | null;
   price_1m_input_tokens: number | null;
   price_1m_output_tokens: number | null;
+  openrouter_display_prices?: {
+    label: string;
+    price: number;
+    unit: string;
+    kind?: string;
+  }[];
   // New AA fields / Nouveaux champs AA
   price_1m_cache_hit_tokens?: number | null;       // cache hit price
   price_1m_blended_7_2_1?: number | null;          // blended cache:input:output 7:2:1
@@ -122,6 +134,9 @@ export interface LLMModel {
   output_modality_image?: boolean;
   output_modality_speech?: boolean;
   output_modality_video?: boolean;
+  openrouter_input_modalities?: string[];
+  openrouter_output_modalities?: string[];
+  openrouter_supported_voices?: string[];
   reasoning_model?: boolean;
   reasoning_properties?: { style: string } | null;
   // New scraped fields from AA model detail page / Nouveaux champs scrapés
@@ -136,6 +151,18 @@ export interface LLMModel {
   openrouter_weekly_images?: number | null;     // OpenRouter weekly image prompt/completion count
   openrouter_weekly_audio_inputs?: number | null; // OpenRouter weekly audio input count
   openrouter_variant?: string | null;           // OpenRouter ranking variant (free/standard)
+  huggingface_id?: string | null;
+  huggingface_url?: string | null;
+  huggingface_official?: boolean | null;
+  huggingface_source?: string | null;
+  huggingface_license?: string | null;
+  huggingface_downloads?: number | null;
+  huggingface_likes?: number | null;
+  huggingface_pipeline_tag?: string | null;
+  huggingface_library_name?: string | null;
+  huggingface_tags?: string[];
+  huggingface_gated?: string | null;
+  huggingface_private?: boolean | null;
 }
 
 let lastSuccessfulModels: LLMModel[] | null = null;
@@ -162,7 +189,7 @@ async function apiFetch<T>(endpoint: string): Promise<T> {
       );
 
       if (!res.ok) {
-        lastError = new Error(`API error ${res.status} on key …${key.slice(-6)}`);
+        lastError = new Error(`API error ${res.status}`);
         continue;
       }
 
@@ -372,7 +399,7 @@ async function buildPartialModel(slug: string, includeCapabilities = true): Prom
     );
 
     // Capabilities (context window, parameters, modalities) — from scrapeAA
-    const caps = includeCapabilities ? await scrapeAA(slug) : {};
+    const caps = includeCapabilities ? await scrapeAACapabilities(slug) : {};
 
     return {
       id: slug,
@@ -399,7 +426,7 @@ async function buildPartialModel(slug: string, includeCapabilities = true): Prom
  * Scrapes the Artificial Analysis website for data missing from the API:
  * parameters, open/closed weights, reasoning. / paramètres, poids, raisonnement.
  */
-async function scrapeAA(slug: string): Promise<Partial<LLMModel>> {
+export async function scrapeAACapabilities(slug: string): Promise<Partial<LLMModel>> {
   try {
     if (!isSafeModelSlug(slug)) return {};
     const res = await fetchWithTimeout(
@@ -548,7 +575,7 @@ async function scrapeAA(slug: string): Promise<Partial<LLMModel>> {
 const scrapeModelCapabilities = cached(
   async (slug: string): Promise<Partial<LLMModel>> => {
     const [aa, orModels] = await Promise.all([
-      scrapeAA(slug),
+      scrapeAACapabilities(slug),
       getOpenRouterModels(),
     ]);
 
@@ -591,11 +618,33 @@ const scrapeModelCapabilities = cached(
  * inside the Workers Free 10 ms CPU budget on cold-start.
  */
 async function fetchLightModels(): Promise<LLMModel[]> {
-  const models = await apiFetch<LLMModel[]>("/data/llms/models");
-  return enrichModelsWithOpenRouter(models, {
+  const [models, mediaModels] = await Promise.all([
+    apiFetch<LLMModel[]>("/data/llms/models"),
+    fetchAAMediaModels(apiFetch),
+  ]);
+  const aaModels = mergeAAMediaModels(models, mediaModels);
+  const enriched = await enrichModelsWithOpenRouter(aaModels, {
     apiKey: process.env.OPENROUTER_API_KEY,
     includeUsageRankings: true,
+    includeOpenRouterOnly: true,
   });
+  // Full HF enrichment runs only in the cron path — too slow for the request
+  // path. Cheap official hints still let known open-weight models expose a
+  // safe HF link before the cron cache is warm.
+  return normaliseUnavailableMetrics(attachOfficialHuggingFaceHints(enriched));
+}
+
+async function enrichCronModelsWithSources(models: LLMModel[]): Promise<LLMModel[]> {
+  const enriched = await enrichModelsWithOpenRouter(models, {
+    apiKey: process.env.OPENROUTER_API_KEY,
+    includeUsageRankings: true,
+    includeOpenRouterOnly: true,
+  });
+  const withCapabilities = await enrichModelsWithScrapedCapabilities(enriched);
+  const hfEnriched = await enrichModelsWithHuggingFace(withCapabilities, {
+    apiKey: getHuggingFaceApiKey(),
+  });
+  return normaliseUnavailableMetrics(hfEnriched);
 }
 
 /**
@@ -603,29 +652,26 @@ async function fetchLightModels(): Promise<LLMModel[]> {
  * CPU-heavy (regex on dozens of HTML pages) — only call from the Cron Trigger.
  */
 export async function fetchModelsForCron(): Promise<LLMModel[]> {
-  const [apiModels, validSlugs] = await Promise.all([
+  const [apiModels, validSlugs, mediaModels] = await Promise.all([
     apiFetch<LLMModel[]>("/data/llms/models"),
     scrapeAllModelSlugs(),
+    fetchAAMediaModels(apiFetch),
   ]);
 
   if (validSlugs.length === 0) {
-    return enrichModelsWithOpenRouter(apiModels, {
-      apiKey: process.env.OPENROUTER_API_KEY,
-      includeUsageRankings: true,
-    });
+    const aaModels = mergeAAMediaModels(apiModels, mediaModels);
+    return enrichCronModelsWithSources(aaModels);
   }
 
   const validSlugSet = new Set(validSlugs);
   const realApiModels = apiModels.filter((m) => validSlugSet.has(m.slug));
+  const realAndMediaModels = mergeAAMediaModels(realApiModels, mediaModels);
 
-  const apiSlugSet = new Set(realApiModels.map((m) => m.slug));
+  const apiSlugSet = new Set(realAndMediaModels.map((m) => m.slug));
   const missingSlugs = validSlugs.filter((s) => !apiSlugSet.has(s));
 
   if (missingSlugs.length === 0) {
-    return enrichModelsWithOpenRouter(realApiModels, {
-      apiKey: process.env.OPENROUTER_API_KEY,
-      includeUsageRankings: true,
-    });
+    return enrichCronModelsWithSources(realAndMediaModels);
   }
 
   const extraModels: LLMModel[] = [];
@@ -637,10 +683,7 @@ export async function fetchModelsForCron(): Promise<LLMModel[]> {
     }
   }
 
-  return enrichModelsWithOpenRouter([...realApiModels, ...extraModels], {
-    apiKey: process.env.OPENROUTER_API_KEY,
-    includeUsageRankings: true,
-  });
+  return enrichCronModelsWithSources([...realAndMediaModels, ...extraModels]);
 }
 
 /**
@@ -732,6 +775,132 @@ async function chunkedScrape(
   return results;
 }
 
+async function chunkedScrapeAA(
+  models: LLMModel[],
+  chunkSize = CAPABILITY_CHUNK_SIZE
+): Promise<Partial<LLMModel>[]> {
+  const results: Partial<LLMModel>[] = [];
+  for (let i = 0; i < models.length; i += chunkSize) {
+    const chunk = models.slice(i, i + chunkSize);
+    const settled = await Promise.allSettled(chunk.map((m) => scrapeAACapabilities(m.slug)));
+    results.push(...settled.map((r) => (r.status === "fulfilled" ? r.value : {})));
+  }
+  return results;
+}
+
+function mergeDefinedModel(model: LLMModel, patch: Partial<LLMModel>): LLMModel {
+  const next = { ...model };
+  for (const [key, value] of Object.entries(patch)) {
+    if (value !== undefined && value !== null) {
+      (next as Record<string, unknown>)[key] = value;
+    }
+  }
+  return next;
+}
+
+function nullIfZero(value: number | null | undefined): number | null | undefined {
+  return value === 0 ? null : value;
+}
+
+function hasOnlyZeroPricing(pricing: Pricing): boolean {
+  const values = [
+    pricing.price_1m_blended_3_to_1,
+    pricing.price_1m_input_tokens,
+    pricing.price_1m_output_tokens,
+    pricing.price_1m_cache_hit_tokens,
+    pricing.price_1m_blended_7_2_1,
+  ];
+  return values.some((v) => v === 0) && values.every((v) => v == null || v === 0);
+}
+
+function normaliseUnavailableModel(model: LLMModel): LLMModel {
+  const isOpenRouterOnly = model.id.startsWith("openrouter:");
+  return {
+    ...model,
+    pricing:
+      !isOpenRouterOnly && hasOnlyZeroPricing(model.pricing)
+        ? {
+            ...model.pricing,
+            price_1m_blended_3_to_1: null,
+            price_1m_input_tokens: null,
+            price_1m_output_tokens: null,
+            price_1m_cache_hit_tokens: null,
+            price_1m_blended_7_2_1: null,
+          }
+        : model.pricing,
+    median_output_tokens_per_second: nullIfZero(model.median_output_tokens_per_second) ?? null,
+    median_time_to_first_token_seconds: nullIfZero(model.median_time_to_first_token_seconds) ?? null,
+    median_time_to_first_answer_token: nullIfZero(model.median_time_to_first_answer_token) ?? null,
+    end_to_end_response_time_seconds:
+      nullIfZero(model.end_to_end_response_time_seconds) ?? null,
+  };
+}
+
+export function normaliseUnavailableMetrics(models: LLMModel[]): LLMModel[] {
+  return models.map(normaliseUnavailableModel);
+}
+
+export async function enrichModelsWithScrapedCapabilities(models: LLMModel[]): Promise<LLMModel[]> {
+  const normalised = normaliseUnavailableMetrics(models);
+  const capabilities = await chunkedScrapeAA(normalised);
+  return normalised.map((model, i) => mergeDefinedModel(model, capabilities[i]));
+}
+
+const HUGGINGFACE_PATCH_KEYS: Array<keyof LLMModel> = [
+  "huggingface_id",
+  "huggingface_url",
+  "huggingface_official",
+  "huggingface_source",
+  "huggingface_license",
+  "huggingface_downloads",
+  "huggingface_likes",
+  "huggingface_pipeline_tag",
+  "huggingface_library_name",
+  "huggingface_tags",
+  "huggingface_gated",
+  "huggingface_private",
+  "is_open_weights",
+];
+
+function pickHuggingFacePatch(model: LLMModel): Partial<LLMModel> {
+  const patch: Partial<LLMModel> = {};
+  for (const key of HUGGINGFACE_PATCH_KEYS) {
+    const value = model[key];
+    if (value !== undefined) {
+      (patch as Record<string, unknown>)[key] = value;
+    }
+  }
+  return patch;
+}
+
+async function enrichSupplementaryWithHuggingFace(
+  model: LLMModel,
+  supplementary: Partial<LLMModel>,
+): Promise<Partial<LLMModel>> {
+  const combined = { ...model, ...supplementary };
+  if (combined.is_open_weights !== true && combined.huggingface_official !== true) {
+    return supplementary;
+  }
+  const [enriched] = await enrichModelsWithHuggingFace([combined], {
+    apiKey: getHuggingFaceApiKey(),
+  });
+  return {
+    ...supplementary,
+    ...pickHuggingFacePatch(enriched),
+  };
+}
+
+export async function getLLMModelSupplementary(slug: string): Promise<Partial<LLMModel>> {
+  if (!isSafeModelSlug(slug)) return {};
+  const [models, supplementary] = await Promise.all([
+    getLLMModels(),
+    scrapeModelCapabilities(slug),
+  ]);
+  const model = models.find((m) => m.slug === slug);
+  if (!model) return supplementary;
+  return enrichSupplementaryWithHuggingFace(model, supplementary);
+}
+
 /**
  * Module-level cache for development. / Cache module-level pour le développement.
  * In dev, Turbopack resets 'use cache' on each recompile.
@@ -766,7 +935,7 @@ export async function getLLMModel(slug: string): Promise<LLMModel | undefined> {
   const models = await getLLMModels();
   const model = models.find((m) => m.slug === slug);
   if (!model) return undefined;
-  const supplementary = await scrapeModelCapabilities(model.slug);
+  const supplementary = await getLLMModelSupplementary(model.slug);
   return { ...model, ...supplementary };
 }
 

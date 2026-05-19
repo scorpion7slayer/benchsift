@@ -11,6 +11,10 @@ declare namespace Cloudflare {
 		ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY: string;
 		ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_2: string;
 		ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_3: string;
+		ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_4: string;
+		OPENROUTER_API_KEY: string;
+		HUGGINGFACE_API_KEY: string;
+		HUGGING_FACE_API_KEY: string;
 	}
 }
 interface CloudflareEnv extends Cloudflare.Env {}
@@ -18,7 +22,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "ARTIFICIAL_ANALYSIS_API_KEY" | "ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY" | "ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_2" | "ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_3">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "ARTIFICIAL_ANALYSIS_API_KEY" | "ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY" | "ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_2" | "ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_3" | "ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_4" | "OPENROUTER_API_KEY" | "HUGGINGFACE_API_KEY" | "HUGGING_FACE_API_KEY">> {}
 }
 
 // Begin runtime types

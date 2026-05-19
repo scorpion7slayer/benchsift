@@ -1,16 +1,16 @@
 # Nxt AI Card
 
-There are hundreds of LLMs out there. This is a simple tool to help you pick the right one — benchmarks, speed, pricing, context windows, all in one place.
+There are hundreds of AI models out there. This is a simple tool to help you pick the right one — text and media benchmarks, speed, pricing, context windows, all in one place.
 
 ![Nxt AI Card](./nxtaicard.png)
 
-Data comes from [Artificial Analysis](https://artificialanalysis.ai) and [OpenRouter](https://openrouter.ai), refreshed every hour.
+Data comes from [Artificial Analysis](https://artificialanalysis.ai), [OpenRouter](https://openrouter.ai), and [Hugging Face](https://huggingface.co), refreshed every hour.
 
 ## Features
 
-- **Model catalogue** — browse all major LLMs with key stats at a glance
+- **Model catalogue** — browse text, image, voice, video and utility models with key stats at a glance
 - **Side-by-side comparison** — pick up to several models and compare them on every metric
-- **Detailed model pages** — context window, output speed, pricing (input/output tokens), quality benchmarks (MMLU, HumanEval, MATH…)
+- **Detailed model pages** — context window, output speed, pricing, text benchmarks (MMLU, HumanEval, MATH…) and media ELO benchmarks when Artificial Analysis exposes them
 - **Search & filter** — find models by name or provider instantly
 - **Light/dark theme** — persisted across sessions
 - **French & English** — language auto-detected, switchable in one click
@@ -37,6 +37,7 @@ OPENROUTER_API_KEY=your_openrouter_key_here
 OpenRouter is used for model metadata, weekly usage rankings and benchmark enrichment.
 `OPENROUTER_API_KEY` is optional, but enables authenticated `/api/v1/models` requests
 instead of relying on the unauthenticated public path.
+Hugging Face is used only for official model repository metadata and links.
 
 ## Project structure
 
@@ -89,6 +90,7 @@ Set production secrets with `wrangler secret put`:
 ```bash
 wrangler secret put ARTIFICIAL_ANALYSIS_API_KEY
 wrangler secret put OPENROUTER_API_KEY
+wrangler secret put HUGGINGFACE_API_KEY
 wrangler secret put CRON_SECRET
 ```
 

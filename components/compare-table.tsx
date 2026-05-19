@@ -12,23 +12,20 @@ import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
 import { getProviderKey } from "@/lib/provider-map";
 import { usePageTransition } from "@/components/page-transition-provider";
+import {
+  AA_MEDIA_BENCHMARK_DEFS,
+  applicableExtraBenchmarkEntries,
+  hasAAIndexBenchmarks,
+  hasMediaBenchmarks,
+  hasStandardTextBenchmarks,
+  numericEval,
+  textMetricValue,
+} from "@/lib/model-metrics";
 import type { LLMModel } from "@/lib/api";
 
 // ─── Benchmark constants ──────────────────────────────────────────────────────
 
 const COMPARE_COLUMN_EXIT_MS = 520;
-
-const AA_INDEX_KEYS = new Set([
-  "artificial_analysis_intelligence_index",
-  "artificial_analysis_coding_index",
-  "artificial_analysis_math_index",
-]);
-
-const KNOWN_BENCHMARK_KEYS = new Set([
-  "mmlu_pro", "gpqa", "hle", "livecodebench", "scicode",
-  "math_500", "aime", "aime_25", "ifbench", "lcr", "terminalbench_hard", "tau2",
-  "apex_agents", "omniscience_non_hallucination",
-]);
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
@@ -42,7 +39,10 @@ function fmtPct(val: number | null): string {
 }
 function fmtPrice(val: number | null): string {
   if (val === null) return "—";
-  return `$${val.toFixed(2)}`;
+  if (val === 0) return "$0";
+  if (val < 0.01) return `$${val.toFixed(6).replace(/0+$/, "").replace(/\.$/, "")}`;
+  if (val < 1) return `$${val.toFixed(4).replace(/0+$/, "").replace(/\.$/, "")}`;
+  return `$${val.toFixed(2).replace(/\.00$/, "")}`;
 }
 function fmtCtx(val: number | null): string {
   if (val === null) return "—";
@@ -121,6 +121,30 @@ function IconBox({ icon, title, active }: { icon: React.ReactNode; title: string
 }
 
 interface ModalityData { text?: boolean; image?: boolean; video?: boolean; audio?: boolean }
+
+interface DisplayPriceMetric {
+  id: string;
+  label: string;
+  unit: string;
+}
+
+function displayPriceMetrics(models: LLMModel[]): DisplayPriceMetric[] {
+  const rows = new Map<string, DisplayPriceMetric>();
+  for (const model of models) {
+    for (const row of model.pricing.openrouter_display_prices ?? []) {
+      const id = `${row.label}|${row.unit}`;
+      if (!rows.has(id)) rows.set(id, { id, label: row.label, unit: row.unit });
+    }
+  }
+  return [...rows.values()];
+}
+
+function displayPriceValue(model: LLMModel, metric: DisplayPriceMetric): number | null {
+  const row = model.pricing.openrouter_display_prices?.find(
+    (candidate) => `${candidate.label}|${candidate.unit}` === metric.id,
+  );
+  return typeof row?.price === "number" ? row.price : null;
+}
 
 // ─── Desktop table components ────────────────────────────────────────────────
 
@@ -311,13 +335,14 @@ interface MobileViewProps {
   onAdd: (model: LLMModel) => void;
   isFull: boolean;
   extraBenchmarkKeys: string[];
+  displayPriceRows: DisplayPriceMetric[];
 }
 
 function MobileCompareView({
   models, allModels, winnerCounts, winnerDetails, maxWins,
-  onRemove, onAdd, isFull, extraBenchmarkKeys,
+  onRemove, onAdd, isFull, extraBenchmarkKeys, displayPriceRows,
 }: MobileViewProps) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [activeIdx, setActiveIdx] = useState(0);
   const [addSearch, setAddSearch] = useState("");
 
@@ -431,9 +456,9 @@ function MobileCompareView({
                     <p className="font-medium truncate">{res.name}</p>
                     <p className="text-xs text-muted-foreground">{res.model_creator.name}</p>
                   </div>
-                  {res.evaluations.artificial_analysis_intelligence_index !== null && (
+                  {textMetricValue(res, "artificial_analysis_intelligence_index") !== null && (
                     <Badge variant="secondary" className="font-mono text-xs shrink-0">
-                      {res.evaluations.artificial_analysis_intelligence_index.toFixed(1)}
+                      {textMetricValue(res, "artificial_analysis_intelligence_index")?.toFixed(1)}
                     </Badge>
                   )}
                 </button>
@@ -447,46 +472,43 @@ function MobileCompareView({
       <div className="rounded-xl border overflow-hidden divide-y">
 
         {/* AA Indices */}
-        {[ev.artificial_analysis_intelligence_index, ev.artificial_analysis_coding_index, ev.artificial_analysis_math_index].some(v => v !== null) && (
+        {hasAAIndexBenchmarks(m) && (
           <>
             <MobileSectionHeader label={t.compare.sections.aaIndices} />
-            <MobileRow label={t.benchmarks.intelligence}
-              value={fmt(ev.artificial_analysis_intelligence_index)}
-              isBest={isB(ev.artificial_analysis_intelligence_index, x => x.evaluations.artificial_analysis_intelligence_index, "higher")}
-              colorClass={scoreBg(ev.artificial_analysis_intelligence_index)}
-              barPct={rb(ev.artificial_analysis_intelligence_index, x => x.evaluations.artificial_analysis_intelligence_index, "higher")}
-            />
-            <MobileRow label={t.benchmarks.coding}
-              value={fmt(ev.artificial_analysis_coding_index)}
-              isBest={isB(ev.artificial_analysis_coding_index, x => x.evaluations.artificial_analysis_coding_index, "higher")}
-              colorClass={scoreBg(ev.artificial_analysis_coding_index)}
-              barPct={rb(ev.artificial_analysis_coding_index, x => x.evaluations.artificial_analysis_coding_index, "higher")}
-            />
-            <MobileRow label={t.benchmarks.math}
-              value={fmt(ev.artificial_analysis_math_index)}
-              isBest={isB(ev.artificial_analysis_math_index, x => x.evaluations.artificial_analysis_math_index, "higher")}
-              colorClass={scoreBg(ev.artificial_analysis_math_index)}
-              barPct={rb(ev.artificial_analysis_math_index, x => x.evaluations.artificial_analysis_math_index, "higher")}
-            />
+            {([
+              [t.benchmarks.intelligence, "artificial_analysis_intelligence_index"],
+              [t.benchmarks.coding, "artificial_analysis_coding_index"],
+              [t.benchmarks.math, "artificial_analysis_math_index"],
+            ] as [string, string][]).map(([label, key]) => {
+              const val = textMetricValue(m, key);
+              return val !== null ? (
+                <MobileRow key={key} label={label}
+                  value={fmt(val)}
+                  isBest={isB(val, x => textMetricValue(x, key), "higher")}
+                  colorClass={scoreBg(val)}
+                  barPct={rb(val, x => textMetricValue(x, key), "higher")}
+                />
+              ) : null;
+            })}
           </>
         )}
 
         {/* Benchmarks */}
-        {[ev.mmlu_pro, ev.gpqa, ev.hle, ev.livecodebench, ev.scicode, ev.math_500, ev.aime_25, ev.ifbench, ev.lcr, ev.terminalbench_hard, ev.tau2].some(v => v !== null) && (
+        {hasStandardTextBenchmarks(m) && (
           <>
             <MobileSectionHeader label={t.compare.sections.benchmarks} />
             {([
-              [t.benchmarks.mmlu_pro,          ev.mmlu_pro,          (x: LLMModel) => x.evaluations.mmlu_pro],
-              [t.benchmarks.gpqa,              ev.gpqa,              (x: LLMModel) => x.evaluations.gpqa],
-              [t.benchmarks.hle,               ev.hle,               (x: LLMModel) => x.evaluations.hle],
-              [t.benchmarks.livecodebench,     ev.livecodebench,     (x: LLMModel) => x.evaluations.livecodebench],
-              [t.benchmarks.scicode,           ev.scicode,           (x: LLMModel) => x.evaluations.scicode],
-              [t.benchmarks.math_500,          ev.math_500,          (x: LLMModel) => x.evaluations.math_500],
-              [t.benchmarks.aime_25,           ev.aime_25,           (x: LLMModel) => x.evaluations.aime_25],
-              [t.benchmarks.ifbench,           ev.ifbench,           (x: LLMModel) => x.evaluations.ifbench],
-              [t.benchmarks.lcr,               ev.lcr,               (x: LLMModel) => x.evaluations.lcr],
-              [t.benchmarks.terminalbench_hard, ev.terminalbench_hard,(x: LLMModel) => x.evaluations.terminalbench_hard],
-              [t.benchmarks.tau2,              ev.tau2,              (x: LLMModel) => x.evaluations.tau2],
+              [t.benchmarks.mmlu_pro,          textMetricValue(m, "mmlu_pro"),          (x: LLMModel) => textMetricValue(x, "mmlu_pro")],
+              [t.benchmarks.gpqa,              textMetricValue(m, "gpqa"),              (x: LLMModel) => textMetricValue(x, "gpqa")],
+              [t.benchmarks.hle,               textMetricValue(m, "hle"),               (x: LLMModel) => textMetricValue(x, "hle")],
+              [t.benchmarks.livecodebench,     textMetricValue(m, "livecodebench"),     (x: LLMModel) => textMetricValue(x, "livecodebench")],
+              [t.benchmarks.scicode,           textMetricValue(m, "scicode"),           (x: LLMModel) => textMetricValue(x, "scicode")],
+              [t.benchmarks.math_500,          textMetricValue(m, "math_500"),          (x: LLMModel) => textMetricValue(x, "math_500")],
+              [t.benchmarks.aime_25,           textMetricValue(m, "aime_25"),           (x: LLMModel) => textMetricValue(x, "aime_25")],
+              [t.benchmarks.ifbench,           textMetricValue(m, "ifbench"),           (x: LLMModel) => textMetricValue(x, "ifbench")],
+              [t.benchmarks.lcr,               textMetricValue(m, "lcr"),               (x: LLMModel) => textMetricValue(x, "lcr")],
+              [t.benchmarks.terminalbench_hard, textMetricValue(m, "terminalbench_hard"),(x: LLMModel) => textMetricValue(x, "terminalbench_hard")],
+              [t.benchmarks.tau2,              textMetricValue(m, "tau2"),              (x: LLMModel) => textMetricValue(x, "tau2")],
             ] as [string, number | null, (x: LLMModel) => number | null][]).map(([label, val, getter]) =>
               val !== null ? (
                 <MobileRow key={String(label)} label={label}
@@ -496,6 +518,22 @@ function MobileCompareView({
                 />
               ) : null
             )}
+          </>
+        )}
+
+        {hasMediaBenchmarks(m) && (
+          <>
+            <MobileSectionHeader label={t.detail.mediaBenchmarks} />
+            {AA_MEDIA_BENCHMARK_DEFS.map((def) => {
+              const val = numericEval(ev, def.eloKey);
+              return val !== null ? (
+                <MobileRow key={def.eloKey} label={def.label[lang]}
+                  value={`${fmt(val, 0)} ELO`}
+                  isBest={isB(val, x => numericEval(x.evaluations, def.eloKey), "higher")}
+                  barPct={rb(val, x => numericEval(x.evaluations, def.eloKey), "higher")}
+                />
+              ) : null;
+            })}
           </>
         )}
 
@@ -546,14 +584,26 @@ function MobileCompareView({
         )}
 
         {/* Pricing */}
-        {[pr.price_1m_input_tokens, pr.price_1m_output_tokens, pr.price_1m_blended_3_to_1].some(v => v !== null) && (
+        {([pr.price_1m_input_tokens, pr.price_1m_output_tokens, pr.price_1m_blended_3_to_1].some(v => v !== null) || displayPriceRows.some((row) => displayPriceValue(m, row) !== null)) && (
           <>
             <MobileSectionHeader label={t.compare.sections.pricing} />
-            <MobileRow label={t.compare.fields.inputPrice}
-              value={fmtPrice(pr.price_1m_input_tokens)}
-              isBest={isB(pr.price_1m_input_tokens, x => x.pricing.price_1m_input_tokens, "lower")}
-              barPct={rb(pr.price_1m_input_tokens, x => x.pricing.price_1m_input_tokens, "lower")}
-            />
+            {displayPriceRows.map((row) => {
+              const value = displayPriceValue(m, row);
+              return value !== null ? (
+                <MobileRow key={row.id} label={`${row.label} ${row.unit}`}
+                  value={fmtPrice(value)}
+                  isBest={isB(value, x => displayPriceValue(x, row), "lower")}
+                  barPct={rb(value, x => displayPriceValue(x, row), "lower")}
+                />
+              ) : null;
+            })}
+            {pr.price_1m_input_tokens !== null && (
+              <MobileRow label={t.compare.fields.inputPrice}
+                value={fmtPrice(pr.price_1m_input_tokens)}
+                isBest={isB(pr.price_1m_input_tokens, x => x.pricing.price_1m_input_tokens, "lower")}
+                barPct={rb(pr.price_1m_input_tokens, x => x.pricing.price_1m_input_tokens, "lower")}
+              />
+            )}
             {pr.price_1m_cache_hit_tokens != null && (
               <MobileRow label={t.compare.fields.cacheHitPrice}
                 value={`$${pr.price_1m_cache_hit_tokens.toFixed(3)}`}
@@ -561,16 +611,20 @@ function MobileCompareView({
                 barPct={rb(pr.price_1m_cache_hit_tokens, x => x.pricing.price_1m_cache_hit_tokens ?? null, "lower")}
               />
             )}
-            <MobileRow label={t.compare.fields.outputPrice}
-              value={fmtPrice(pr.price_1m_output_tokens)}
-              isBest={isB(pr.price_1m_output_tokens, x => x.pricing.price_1m_output_tokens, "lower")}
-              barPct={rb(pr.price_1m_output_tokens, x => x.pricing.price_1m_output_tokens, "lower")}
-            />
-            <MobileRow label={t.compare.fields.blendedPrice}
-              value={fmtPrice(pr.price_1m_blended_3_to_1)}
-              isBest={isB(pr.price_1m_blended_3_to_1, x => x.pricing.price_1m_blended_3_to_1, "lower")}
-              barPct={rb(pr.price_1m_blended_3_to_1, x => x.pricing.price_1m_blended_3_to_1, "lower")}
-            />
+            {pr.price_1m_output_tokens !== null && (
+              <MobileRow label={t.compare.fields.outputPrice}
+                value={fmtPrice(pr.price_1m_output_tokens)}
+                isBest={isB(pr.price_1m_output_tokens, x => x.pricing.price_1m_output_tokens, "lower")}
+                barPct={rb(pr.price_1m_output_tokens, x => x.pricing.price_1m_output_tokens, "lower")}
+              />
+            )}
+            {pr.price_1m_blended_3_to_1 !== null && (
+              <MobileRow label={t.compare.fields.blendedPrice}
+                value={fmtPrice(pr.price_1m_blended_3_to_1)}
+                isBest={isB(pr.price_1m_blended_3_to_1, x => x.pricing.price_1m_blended_3_to_1, "lower")}
+                barPct={rb(pr.price_1m_blended_3_to_1, x => x.pricing.price_1m_blended_3_to_1, "lower")}
+              />
+            )}
             {pr.price_1m_blended_7_2_1 != null && (
               <MobileRow label={t.compare.fields.blended721Price}
                 value={fmtPrice(pr.price_1m_blended_7_2_1)}
@@ -660,9 +714,9 @@ function SearchDropdown({ results, onAdd }: { results: LLMModel[]; onAdd: (m: LL
             <p className="font-medium truncate">{m.name}</p>
             <p className="text-xs text-muted-foreground">{m.model_creator.name}</p>
           </div>
-          {m.evaluations.artificial_analysis_intelligence_index !== null && (
+          {textMetricValue(m, "artificial_analysis_intelligence_index") !== null && (
             <Badge variant="secondary" className="font-mono text-xs shrink-0">
-              {m.evaluations.artificial_analysis_intelligence_index.toFixed(1)}
+              {textMetricValue(m, "artificial_analysis_intelligence_index")?.toFixed(1)}
             </Badge>
           )}
         </button>
@@ -674,7 +728,7 @@ function SearchDropdown({ results, onAdd }: { results: LLMModel[]; onAdd: (m: LL
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function CompareTable({ models, allModels }: { models: LLMModel[]; allModels: LLMModel[] }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { selected, toggle, clear, lastChange } = useCompare();
   const router = useRouter();
   const { push } = usePageTransition();
@@ -734,29 +788,39 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
   const extraBenchmarkKeys = useMemo(() => {
     const keys = new Set<string>();
     models.forEach(m => {
-      Object.keys(m.evaluations).forEach(key => {
-        if (!AA_INDEX_KEYS.has(key) && !KNOWN_BENCHMARK_KEYS.has(key)) keys.add(key);
-      });
+      applicableExtraBenchmarkEntries(m).forEach(([key]) => keys.add(key));
     });
     return [...keys].sort();
   }, [models]);
 
+  const displayPriceRows = useMemo(() => displayPriceMetrics(models), [models]);
+  const hasAAIndexRows = models.some(hasAAIndexBenchmarks);
+  const hasStandardBenchmarkRows = models.some(hasStandardTextBenchmarks);
+  const hasMediaBenchmarkRows = models.some(hasMediaBenchmarks);
+
   const winnerDetails = useMemo(() => {
     const details: string[][] = models.map(() => []);
     const metrics: { vals: (number | null)[]; dir: Direction; label: string }[] = [
-      { vals: models.map(m => m.evaluations.artificial_analysis_intelligence_index), dir: "higher", label: t.benchmarks.intelligence },
-      { vals: models.map(m => m.evaluations.artificial_analysis_coding_index), dir: "higher", label: t.benchmarks.coding },
-      { vals: models.map(m => m.evaluations.artificial_analysis_math_index), dir: "higher", label: t.benchmarks.math },
-      { vals: models.map(m => m.evaluations.mmlu_pro), dir: "higher", label: t.benchmarks.mmlu_pro },
-      { vals: models.map(m => m.evaluations.gpqa), dir: "higher", label: t.benchmarks.gpqa },
-      { vals: models.map(m => m.evaluations.hle), dir: "higher", label: t.benchmarks.hle },
-      { vals: models.map(m => m.evaluations.livecodebench), dir: "higher", label: t.benchmarks.livecodebench },
-      { vals: models.map(m => m.evaluations.math_500), dir: "higher", label: t.benchmarks.math_500 },
-      { vals: models.map(m => m.evaluations.aime_25), dir: "higher", label: t.benchmarks.aime_25 },
+      { vals: models.map(m => textMetricValue(m, "artificial_analysis_intelligence_index")), dir: "higher", label: t.benchmarks.intelligence },
+      { vals: models.map(m => textMetricValue(m, "artificial_analysis_coding_index")), dir: "higher", label: t.benchmarks.coding },
+      { vals: models.map(m => textMetricValue(m, "artificial_analysis_math_index")), dir: "higher", label: t.benchmarks.math },
+      { vals: models.map(m => textMetricValue(m, "mmlu_pro")), dir: "higher", label: t.benchmarks.mmlu_pro },
+      { vals: models.map(m => textMetricValue(m, "gpqa")), dir: "higher", label: t.benchmarks.gpqa },
+      { vals: models.map(m => textMetricValue(m, "hle")), dir: "higher", label: t.benchmarks.hle },
+      { vals: models.map(m => textMetricValue(m, "livecodebench")), dir: "higher", label: t.benchmarks.livecodebench },
+      { vals: models.map(m => textMetricValue(m, "math_500")), dir: "higher", label: t.benchmarks.math_500 },
+      { vals: models.map(m => textMetricValue(m, "aime_25")), dir: "higher", label: t.benchmarks.aime_25 },
       { vals: models.map(m => m.median_output_tokens_per_second), dir: "higher", label: t.compare.fields.outputSpeed },
       { vals: models.map(m => m.median_time_to_first_token_seconds), dir: "lower", label: t.compare.fields.ttft },
       { vals: models.map(m => m.pricing.price_1m_blended_3_to_1), dir: "lower", label: t.compare.fields.blendedPrice },
     ];
+    for (const def of AA_MEDIA_BENCHMARK_DEFS) {
+      metrics.push({
+        vals: models.map((m) => numericEval(m.evaluations, def.eloKey)),
+        dir: "higher",
+        label: def.label[lang],
+      });
+    }
     metrics.forEach(({ vals, dir, label }) => {
       if (vals.every(v => v === null)) return;
       const best = getBest(vals, dir);
@@ -841,6 +905,7 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
           onAdd={addModel}
           isFull={compareIsFull}
           extraBenchmarkKeys={extraBenchmarkKeys}
+          displayPriceRows={displayPriceRows}
         />
       </div>
 
@@ -953,24 +1018,47 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
               <ModalityRow label={t.detail.inputModality}  rows={models.map(m => ({ text: m.input_modality_text, image: m.input_modality_image, video: m.input_modality_video, audio: m.input_modality_speech }))} />
               <ModalityRow label={t.detail.outputModality} rows={models.map(m => ({ text: m.output_modality_text, image: m.output_modality_image, video: m.output_modality_video, audio: m.output_modality_speech }))} />
 
-              <SectionHeader label={t.compare.sections.aaIndices} />
-              <MetricRow label={t.benchmarks.intelligence} values={ev.map(e => e.artificial_analysis_intelligence_index)} dir="higher" format={fmt} colorize />
-              <MetricRow label={t.benchmarks.coding}       values={ev.map(e => e.artificial_analysis_coding_index)} dir="higher" format={fmt} colorize />
-              <MetricRow label={t.benchmarks.math}         values={ev.map(e => e.artificial_analysis_math_index)} dir="higher" format={fmt} colorize />
+              {hasAAIndexRows && (
+                <>
+                  <SectionHeader label={t.compare.sections.aaIndices} />
+                  <MetricRow label={t.benchmarks.intelligence} values={models.map(m => textMetricValue(m, "artificial_analysis_intelligence_index"))} dir="higher" format={fmt} colorize />
+                  <MetricRow label={t.benchmarks.coding}       values={models.map(m => textMetricValue(m, "artificial_analysis_coding_index"))} dir="higher" format={fmt} colorize />
+                  <MetricRow label={t.benchmarks.math}         values={models.map(m => textMetricValue(m, "artificial_analysis_math_index"))} dir="higher" format={fmt} colorize />
+                </>
+              )}
 
-              <SectionHeader label={t.compare.sections.benchmarks} />
-              <MetricRow label={t.benchmarks.mmlu_pro}          values={ev.map(e => e.mmlu_pro)}            dir="higher" format={fmtPct} />
-              <MetricRow label={t.benchmarks.gpqa}              values={ev.map(e => e.gpqa)}               dir="higher" format={fmtPct} />
-              <MetricRow label={t.benchmarks.hle}               values={ev.map(e => e.hle)}                dir="higher" format={fmtPct} />
-              <MetricRow label={t.benchmarks.livecodebench}     values={ev.map(e => e.livecodebench)}      dir="higher" format={fmtPct} />
-              <MetricRow label={t.benchmarks.scicode}           values={ev.map(e => e.scicode)}            dir="higher" format={fmtPct} />
-              <MetricRow label={t.benchmarks.math_500}          values={ev.map(e => e.math_500)}           dir="higher" format={fmtPct} />
-              <MetricRow label={t.benchmarks.aime}              values={ev.map(e => e.aime)}               dir="higher" format={fmtPct} />
-              <MetricRow label={t.benchmarks.aime_25}           values={ev.map(e => e.aime_25)}            dir="higher" format={fmtPct} />
-              <MetricRow label={t.benchmarks.ifbench}           values={ev.map(e => e.ifbench)}            dir="higher" format={fmtPct} />
-              <MetricRow label={t.benchmarks.lcr}               values={ev.map(e => e.lcr)}                dir="higher" format={fmtPct} />
-              <MetricRow label={t.benchmarks.terminalbench_hard} values={ev.map(e => e.terminalbench_hard)} dir="higher" format={fmtPct} />
-              <MetricRow label={t.benchmarks.tau2}              values={ev.map(e => e.tau2)}               dir="higher" format={fmtPct} />
+              {hasStandardBenchmarkRows && (
+                <>
+                  <SectionHeader label={t.compare.sections.benchmarks} />
+                  <MetricRow label={t.benchmarks.mmlu_pro}          values={models.map(m => textMetricValue(m, "mmlu_pro"))}            dir="higher" format={fmtPct} />
+                  <MetricRow label={t.benchmarks.gpqa}              values={models.map(m => textMetricValue(m, "gpqa"))}               dir="higher" format={fmtPct} />
+                  <MetricRow label={t.benchmarks.hle}               values={models.map(m => textMetricValue(m, "hle"))}                dir="higher" format={fmtPct} />
+                  <MetricRow label={t.benchmarks.livecodebench}     values={models.map(m => textMetricValue(m, "livecodebench"))}      dir="higher" format={fmtPct} />
+                  <MetricRow label={t.benchmarks.scicode}           values={models.map(m => textMetricValue(m, "scicode"))}            dir="higher" format={fmtPct} />
+                  <MetricRow label={t.benchmarks.math_500}          values={models.map(m => textMetricValue(m, "math_500"))}           dir="higher" format={fmtPct} />
+                  <MetricRow label={t.benchmarks.aime}              values={models.map(m => textMetricValue(m, "aime"))}               dir="higher" format={fmtPct} />
+                  <MetricRow label={t.benchmarks.aime_25}           values={models.map(m => textMetricValue(m, "aime_25"))}            dir="higher" format={fmtPct} />
+                  <MetricRow label={t.benchmarks.ifbench}           values={models.map(m => textMetricValue(m, "ifbench"))}            dir="higher" format={fmtPct} />
+                  <MetricRow label={t.benchmarks.lcr}               values={models.map(m => textMetricValue(m, "lcr"))}                dir="higher" format={fmtPct} />
+                  <MetricRow label={t.benchmarks.terminalbench_hard} values={models.map(m => textMetricValue(m, "terminalbench_hard"))} dir="higher" format={fmtPct} />
+                  <MetricRow label={t.benchmarks.tau2}              values={models.map(m => textMetricValue(m, "tau2"))}               dir="higher" format={fmtPct} />
+                </>
+              )}
+
+              {hasMediaBenchmarkRows && (
+                <>
+                  <SectionHeader label={t.detail.mediaBenchmarks} />
+                  {AA_MEDIA_BENCHMARK_DEFS.map((def) => (
+                    <MetricRow
+                      key={def.eloKey}
+                      label={def.label[lang]}
+                      values={models.map((m) => numericEval(m.evaluations, def.eloKey))}
+                      dir="higher"
+                      format={(v) => v !== null ? `${fmt(v, 0)} ELO` : "—"}
+                    />
+                  ))}
+                </>
+              )}
 
               {extraBenchmarkKeys.length > 0 && (
                 <>
@@ -1009,6 +1097,15 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
               />
 
               <SectionHeader label={t.compare.sections.pricing} />
+              {displayPriceRows.map((row) => (
+                <MetricRow
+                  key={row.id}
+                  label={`${row.label} ${row.unit}`}
+                  values={models.map((m) => displayPriceValue(m, row))}
+                  dir="lower"
+                  format={fmtPrice}
+                />
+              ))}
               <MetricRow label={t.compare.fields.inputPrice}  values={pr.map(p => p.price_1m_input_tokens)}   dir="lower" format={fmtPrice} />
               <MetricRow
                 label={

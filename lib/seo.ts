@@ -19,6 +19,7 @@ interface SeoOptions {
     path?: string;
     type?: "website" | "article";
     jsonLd?: JsonLd | JsonLd[];
+    robots?: string;
 }
 
 export function absoluteUrl(path = "/"): string {
@@ -33,6 +34,7 @@ export function seo({
     path = "/",
     type = "website",
     jsonLd,
+    robots = "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
 }: SeoOptions): { meta: MetaTag[]; links: LinkTag[] } {
     const url = absoluteUrl(path);
     const meta: MetaTag[] = [
@@ -40,8 +42,7 @@ export function seo({
         { name: "description", content: description },
         {
             name: "robots",
-            content:
-                "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
+            content: robots,
         },
         { property: "og:type", content: type },
         { property: "og:site_name", content: SITE_NAME },

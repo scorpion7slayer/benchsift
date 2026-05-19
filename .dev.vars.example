@@ -15,5 +15,10 @@ ARTIFICIAL_ANALYSIS_FALLBACK_API_KEY_4=
 # Optional, but recommended for authenticated /api/v1/models metadata requests.
 OPENROUTER_API_KEY=
 
+# Hugging Face Hub API — https://huggingface.co/settings/tokens
+# Optional. Used for richer model metadata: license, downloads, gated/private
+# state and Hub links. `HUGGING_FACE_API_KEY` is also accepted.
+HUGGINGFACE_API_KEY=
+
 # Shared secret for the manual cron-refresh endpoint (/api/cron/refresh).
 CRON_SECRET=

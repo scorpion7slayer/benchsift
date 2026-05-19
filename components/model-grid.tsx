@@ -1,8 +1,13 @@
-import { useState, useMemo, useEffect, useRef } from "react";
-import { Search, X, Loader2, ChevronDown, Check } from "lucide-react";
+import { useState, useMemo, useEffect, useLayoutEffect, useRef } from "react";
+import {
+  Search, X, Loader2, ChevronDown, Check, Type, ImageIcon, AudioLines,
+  Video, ArrowUpDown, Mic, Captions, Blocks, Sparkles,
+  type LucideIcon,
+} from "lucide-react";
 import { ModelCard } from "@/components/model-card";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { isOpenWeightsModel, outputModalities, textMetricValue } from "@/lib/model-metrics";
 import type { LLMModel } from "@/lib/api";
 
 type SortKey =
@@ -10,8 +15,21 @@ type SortKey =
   | "gpqa" | "mmlu_pro" | "hle" | "livecodebench" | "math_500" | "aime_25"
   | "speed" | "ttft"
   | "openrouter_popular"
+  | "open_weights"
   | "price_asc" | "price_desc"
   | "newest" | "name";
+
+type CategoryFilter =
+  | "all"
+  | "new"
+  | "text"
+  | "image"
+  | "embeddings"
+  | "audio"
+  | "video"
+  | "rerank"
+  | "speech"
+  | "transcription";
 
 interface SortOption {
   value: SortKey;
@@ -31,43 +49,69 @@ const SORT_OPTIONS: SortOption[] = [
   { value: "speed",         group: "Performance" },
   { value: "ttft",          group: "Performance" },
   { value: "openrouter_popular", group: "OpenRouter" },
+  { value: "open_weights",  group: "Filtres" },
   { value: "price_asc",     group: "Prix" },
   { value: "price_desc",    group: "Prix" },
   { value: "newest",        group: "Général" },
   { value: "name",          group: "Général" },
 ];
 
+const CATEGORY_OPTIONS: Array<{ value: CategoryFilter; icon: LucideIcon }> = [
+  { value: "all", icon: Blocks },
+  { value: "new", icon: Sparkles },
+  { value: "text", icon: Type },
+  { value: "image", icon: ImageIcon },
+  { value: "embeddings", icon: Blocks },
+  { value: "audio", icon: AudioLines },
+  { value: "video", icon: Video },
+  { value: "rerank", icon: ArrowUpDown },
+  { value: "speech", icon: Mic },
+  { value: "transcription", icon: Captions },
+];
+
+function sortablePrice(model: LLMModel): number | null {
+  if (model.pricing.price_1m_blended_3_to_1 != null) {
+    return model.pricing.price_1m_blended_3_to_1;
+  }
+  const prices = (model.pricing.openrouter_display_prices ?? [])
+    .map((row) => row.price)
+    .filter((price): price is number => Number.isFinite(price));
+  return prices.length > 0 ? Math.min(...prices) : null;
+}
+
 function sortModels(models: LLMModel[], key: SortKey): LLMModel[] {
   return [...models].sort((a, b) => {
     switch (key) {
       case "intelligence":
-        return (b.evaluations.artificial_analysis_intelligence_index ?? -1) - (a.evaluations.artificial_analysis_intelligence_index ?? -1);
+        return (textMetricValue(b, "artificial_analysis_intelligence_index") ?? -1) - (textMetricValue(a, "artificial_analysis_intelligence_index") ?? -1);
       case "coding":
-        return (b.evaluations.artificial_analysis_coding_index ?? -1) - (a.evaluations.artificial_analysis_coding_index ?? -1);
+        return (textMetricValue(b, "artificial_analysis_coding_index") ?? -1) - (textMetricValue(a, "artificial_analysis_coding_index") ?? -1);
       case "math":
-        return (b.evaluations.artificial_analysis_math_index ?? -1) - (a.evaluations.artificial_analysis_math_index ?? -1);
+        return (textMetricValue(b, "artificial_analysis_math_index") ?? -1) - (textMetricValue(a, "artificial_analysis_math_index") ?? -1);
       case "gpqa":
-        return (b.evaluations.gpqa ?? -1) - (a.evaluations.gpqa ?? -1);
+        return (textMetricValue(b, "gpqa") ?? -1) - (textMetricValue(a, "gpqa") ?? -1);
       case "mmlu_pro":
-        return (b.evaluations.mmlu_pro ?? -1) - (a.evaluations.mmlu_pro ?? -1);
+        return (textMetricValue(b, "mmlu_pro") ?? -1) - (textMetricValue(a, "mmlu_pro") ?? -1);
       case "hle":
-        return (b.evaluations.hle ?? -1) - (a.evaluations.hle ?? -1);
+        return (textMetricValue(b, "hle") ?? -1) - (textMetricValue(a, "hle") ?? -1);
       case "livecodebench":
-        return (b.evaluations.livecodebench ?? -1) - (a.evaluations.livecodebench ?? -1);
+        return (textMetricValue(b, "livecodebench") ?? -1) - (textMetricValue(a, "livecodebench") ?? -1);
       case "math_500":
-        return (b.evaluations.math_500 ?? -1) - (a.evaluations.math_500 ?? -1);
+        return (textMetricValue(b, "math_500") ?? -1) - (textMetricValue(a, "math_500") ?? -1);
       case "aime_25":
-        return (b.evaluations.aime_25 ?? -1) - (a.evaluations.aime_25 ?? -1);
+        return (textMetricValue(b, "aime_25") ?? -1) - (textMetricValue(a, "aime_25") ?? -1);
       case "speed":
         return (b.median_output_tokens_per_second ?? -1) - (a.median_output_tokens_per_second ?? -1);
       case "ttft":
         return (a.median_time_to_first_token_seconds ?? Infinity) - (b.median_time_to_first_token_seconds ?? Infinity);
       case "openrouter_popular":
         return (a.openrouter_weekly_rank ?? Infinity) - (b.openrouter_weekly_rank ?? Infinity);
+      case "open_weights":
+        return (textMetricValue(b, "artificial_analysis_intelligence_index") ?? -1) - (textMetricValue(a, "artificial_analysis_intelligence_index") ?? -1);
       case "price_asc":
-        return (a.pricing.price_1m_blended_3_to_1 ?? Infinity) - (b.pricing.price_1m_blended_3_to_1 ?? Infinity);
+        return (sortablePrice(a) ?? Infinity) - (sortablePrice(b) ?? Infinity);
       case "price_desc":
-        return (b.pricing.price_1m_blended_3_to_1 ?? -1) - (a.pricing.price_1m_blended_3_to_1 ?? -1);
+        return (sortablePrice(b) ?? -1) - (sortablePrice(a) ?? -1);
       case "newest":
         if (!a.release_date && !b.release_date) return 0;
         if (!a.release_date) return 1;
@@ -77,6 +121,29 @@ function sortModels(models: LLMModel[], key: SortKey): LLMModel[] {
         return a.name.localeCompare(b.name);
     }
   });
+}
+
+function hasOutputModality(model: LLMModel, modality: string): boolean {
+  const out = outputModalities(model);
+  return out.has(modality);
+}
+
+function matchesCategory(model: LLMModel, category: CategoryFilter): boolean {
+  if (category === "all") return true;
+  if (category === "new") {
+    if (!model.release_date) return false;
+    // eslint-disable-next-line react-hooks/purity
+    return new Date(model.release_date) >= new Date(Date.now() - NEW_MODELS_DAYS * 24 * 60 * 60 * 1000);
+  }
+  if (category === "text") return hasOutputModality(model, "text");
+  if (category === "image") return hasOutputModality(model, "image");
+  if (category === "audio") return outputModalities(model).has("audio") || outputModalities(model).has("speech");
+  if (category === "video") return hasOutputModality(model, "video");
+  if (category === "embeddings") return outputModalities(model).has("embeddings");
+  if (category === "rerank") return outputModalities(model).has("rerank");
+  if (category === "speech") return outputModalities(model).has("speech");
+  if (category === "transcription") return outputModalities(model).has("transcription");
+  return true;
 }
 
 // Generic combobox / Combobox générique
@@ -217,18 +284,20 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
   const [appliedQuery, setAppliedQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("intelligence");
   const [providerFilter, setProviderFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState<"all" | "new">("all");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [visibleCount, setVisibleCount] = useState(BATCH);
   const [gridKey, setGridKey] = useState(0);
   const [gridMotion, setGridMotion] = useState<GridMotion>("filter");
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const categoryBarRef = useRef<HTMLDivElement>(null);
+  const categoryButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const isFirstRender = useRef(true);
   const searchSwapTimerRef = useRef<number | null>(null);
   const previousControlsRef = useRef({
     debouncedQuery: "",
     sort: "intelligence" as SortKey,
     providerFilter: "all",
-    categoryFilter: "all" as "all" | "new",
+    categoryFilter: "all" as CategoryFilter,
   });
 
   useEffect(() => {
@@ -290,13 +359,49 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
     [providers, t.grid.allProviders]
   );
 
-  const categoryItems = useMemo<ComboboxItem[]>(
-    () => [
-      { value: "all", label: t.grid.allModels },
-      { value: "new", label: t.grid.newModels },
-    ],
-    [t.grid.allModels, t.grid.newModels]
+  const categoryCounts = useMemo(
+    () =>
+      CATEGORY_OPTIONS.reduce<Record<CategoryFilter, number>>((acc, option) => {
+        acc[option.value] = option.value === "all"
+          ? models.length
+          : models.filter((model) => matchesCategory(model, option.value)).length;
+        return acc;
+      }, {} as Record<CategoryFilter, number>),
+    [models]
   );
+
+  const [categoryIndicator, setCategoryIndicator] = useState({ left: 0, top: 0, width: 0, height: 0, row: 0 });
+
+  useLayoutEffect(() => {
+    const bar = categoryBarRef.current;
+    const active = categoryButtonRefs.current[categoryFilter];
+    if (!bar || !active) return;
+    function measure() {
+      if (!bar || !active) return;
+      const barRect = bar.getBoundingClientRect();
+      const activeRect = active.getBoundingClientRect();
+      const next = {
+        left: activeRect.left - barRect.left,
+        top: activeRect.top - barRect.top,
+        width: activeRect.width,
+        height: activeRect.height,
+        row: Math.round(activeRect.top - barRect.top),
+      };
+      setCategoryIndicator((prev) =>
+        prev.left === next.left && prev.top === next.top && prev.width === next.width && prev.height === next.height && prev.row === next.row
+          ? prev
+          : next,
+      );
+    }
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(bar);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [categoryFilter, categoryCounts]);
 
   const sortItems = useMemo<ComboboxItem[]>(
     () =>
@@ -314,10 +419,11 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
       providerFilter !== "all"
         ? models.filter((m) => m.model_creator.slug === providerFilter)
         : models;
-    if (categoryFilter === "new") {
-      // eslint-disable-next-line react-hooks/purity
-      const cutoff = new Date(Date.now() - NEW_MODELS_DAYS * 24 * 60 * 60 * 1000);
-      base = base.filter((m) => m.release_date && new Date(m.release_date) >= cutoff);
+    if (categoryFilter !== "all") {
+      base = base.filter((m) => matchesCategory(m, categoryFilter));
+    }
+    if (sort === "open_weights") {
+      base = base.filter(isOpenWeightsModel);
     }
     if (q) {
       const tokens = q.split(/\s+/).filter(Boolean);
@@ -354,6 +460,63 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="relative">
+        <div
+          ref={categoryBarRef}
+          className="model-category-bar relative flex flex-wrap items-center gap-1 rounded-xl border border-border/60 bg-muted/30 p-1 shadow-sm dark:bg-muted/20"
+        >
+          <span
+            aria-hidden
+            key={`row-${categoryIndicator.row}`}
+            className="model-category-indicator pointer-events-none absolute rounded-lg border border-border/60 bg-card shadow-sm ring-1 ring-foreground/[0.03]"
+            style={{
+              left: categoryIndicator.left,
+              top: categoryIndicator.top,
+              width: categoryIndicator.width,
+              height: categoryIndicator.height,
+            }}
+          />
+          {CATEGORY_OPTIONS.filter((option) => option.value === "all" || categoryCounts[option.value] > 0).map((option) => {
+            const Icon = option.icon;
+            const active = categoryFilter === option.value;
+            return (
+              <button
+                key={option.value}
+                ref={(node) => {
+                  categoryButtonRefs.current[option.value] = node;
+                }}
+                type="button"
+                onClick={() => setCategoryFilter(option.value)}
+                className={cn(
+                  "relative z-[1] inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-colors",
+                  active
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Icon
+                  className={cn(
+                    "size-4 transition-colors",
+                    active ? "text-cyan-500 dark:text-cyan-400" : "text-muted-foreground/80"
+                  )}
+                />
+                <span>{t.grid.categories[option.value]}</span>
+                <span
+                  className={cn(
+                    "ml-0.5 inline-flex min-w-5 items-center justify-center rounded-md px-1 text-[10px] font-medium tabular-nums transition-colors",
+                    active
+                      ? "bg-foreground/[0.06] text-foreground/70 dark:bg-foreground/10"
+                      : "bg-foreground/[0.04] text-muted-foreground/70 dark:bg-foreground/[0.06]"
+                  )}
+                >
+                  {categoryCounts[option.value]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex flex-1 items-center h-8 gap-2 rounded-lg border border-input bg-card px-3 text-sm shadow-sm transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30">
@@ -381,13 +544,6 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
           placeholder={t.grid.allProviders}
           withSearch
           width="w-full sm:w-52"
-        />
-        <Combobox
-          items={categoryItems}
-          value={categoryFilter}
-          onChange={(v) => setCategoryFilter(v as "all" | "new")}
-          placeholder={t.grid.allModels}
-          width="w-full sm:w-48"
         />
         <Combobox
           items={sortItems}

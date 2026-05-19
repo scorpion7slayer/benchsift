@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getLLMModels } from "@/lib/api";
 import { absoluteUrl } from "@/lib/seo";
+import { shouldIndexModelPage } from "@/lib/model-metrics";
 
 interface SitemapEntry {
   url: string;
   changeFrequency: string;
-  lastModified: string;
+  lastModified?: string;
   priority: number;
 }
 
@@ -39,7 +40,7 @@ function renderSitemap(entries: SitemapEntry[]): string {
   const urls = entries
     .map(
       (e) =>
-        `  <url>\n    <loc>${escapeXml(e.url)}</loc>\n    <lastmod>${e.lastModified}</lastmod>\n    <changefreq>${e.changeFrequency}</changefreq>\n    <priority>${e.priority}</priority>\n  </url>`,
+        `  <url>\n    <loc>${escapeXml(e.url)}</loc>${e.lastModified ? `\n    <lastmod>${e.lastModified}</lastmod>` : ""}\n    <changefreq>${e.changeFrequency}</changefreq>\n    <priority>${e.priority}</priority>\n  </url>`,
     )
     .join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
@@ -71,9 +72,9 @@ export const Route = createFileRoute("/sitemap.xml")({
             changeFrequency: "daily",
             priority: 0.8,
           },
-          ...models.map((model) => ({
+          ...models.filter(shouldIndexModelPage).map((model) => ({
             url: absoluteUrl(`/models/${encodeURIComponent(model.slug)}`),
-            lastModified: toIsoDate(model.release_date, today),
+            lastModified: model.release_date ? toIsoDate(model.release_date, today) : undefined,
             changeFrequency: "weekly",
             priority: 0.7,
           })),

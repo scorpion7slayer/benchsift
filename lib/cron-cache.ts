@@ -3,7 +3,7 @@ import type { LLMModel } from "@/lib/api";
 
 // Dedicated KV key for the pre-computed models list.
 // The list is refreshed by the scheduled handler in `src/server.ts`.
-const MODELS_KEY = "nxtaicard:models:v3";
+const MODELS_KEY = "nxtaicard:models:v13";
 
 // Stale-but-readable window: even if the cron is broken, the page keeps
 // serving the last known list rather than hitting the slow scrape path.

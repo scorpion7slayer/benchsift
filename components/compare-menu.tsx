@@ -32,6 +32,7 @@ export function CompareMenu({
   const searchRef = useRef<HTMLInputElement>(null);
   const selectionSignature = selected.join("|");
   const isBubble = variant === "bubble";
+  const compareHref = selected.length > 0 ? `/compare?models=${selected.join(",")}` : "/compare";
 
   const selectedModels = useMemo(() => {
     const bySlug = new Map(models.map((model) => [model.slug, model]));
@@ -78,8 +79,7 @@ export function CompareMenu({
   }, [open]);
 
   function openComparison() {
-    if (selected.length < 2) return;
-    push(`/compare?models=${selected.join(",")}`);
+    push(compareHref);
     setOpen(false);
   }
 
@@ -117,26 +117,15 @@ export function CompareMenu({
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => setOpen((value) => !value)}
-          aria-expanded={open}
-          aria-haspopup="dialog"
-          className={cn(
-            "transition-all duration-200 motion-safe:hover:-translate-y-0.5 active:scale-[0.97]",
-            open && "scale-[0.98] bg-muted text-foreground shadow-inner"
-          )}
+          onClick={openComparison}
+          className="transition-all duration-200 motion-safe:hover:-translate-y-0.5 active:scale-[0.97]"
         >
-          <GitCompareArrows
-            data-icon="inline-start"
-            className={cn("transition-transform duration-200", open && "rotate-12")}
-          />
+          <GitCompareArrows data-icon="inline-start" />
           {t.compare.compare}
           {selected.length > 0 && (
             <Badge
               variant="secondary"
-              className={cn(
-                "ml-1 h-4 px-1.5 text-[10px] transition-transform duration-200",
-                open && "scale-105"
-              )}
+              className="ml-1 h-4 px-1.5 text-[10px] transition-transform duration-200"
             >
               {selected.length}
             </Badge>
@@ -256,7 +245,6 @@ export function CompareMenu({
               type="button"
               size="sm"
               onClick={openComparison}
-              disabled={selected.length < 2}
             >
               <GitCompareArrows data-icon="inline-start" />
               {t.compare.compare}

@@ -22,6 +22,7 @@ export interface Translations {
       speed: string;
       ttft: string;
       openrouter_popular: string;
+      open_weights: string;
       price_asc: string;
       price_desc: string;
       newest: string;
@@ -34,6 +35,18 @@ export interface Translations {
     showAll: string;
     allModels: string;
     newModels: string;
+    categories: {
+      all: string;
+      new: string;
+      text: string;
+      image: string;
+      embeddings: string;
+      audio: string;
+      video: string;
+      rerank: string;
+      speech: string;
+      transcription: string;
+    };
   };
   card: {
     intelligence: string;
@@ -52,10 +65,17 @@ export interface Translations {
     weeklyRequests: string;
     agentic: string;
     designArena: string;
+    huggingface: string;
+    openWeightsBadge: string;
+    viewOnHuggingFace: string;
   };
   detail: {
     aaIndices: string;
     standardBenchmarks: string;
+    mediaBenchmarks: string;
+    noBenchmarks: string;
+    noBenchmarksDescription: string;
+    appearances: string;
     performance: string;
     pricing: string;
     outputSpeed: string;
@@ -218,7 +238,7 @@ const T: Record<Lang, Translations> = {
     nav: { back: "Retour", source: "Artificial Analysis", feedback: "Feedback", codingAgents: "Coding Agents", models: "Modèles" },
     hero: {
       title: "Modèles d'IA",
-      description: "Benchmarks, performances, prix et popularité OpenRouter — données via Artificial Analysis et OpenRouter. Mis à jour toutes les heures.",
+      description: "Benchmarks texte et média, performances, prix, liens Hugging Face officiels et popularité OpenRouter — données via Artificial Analysis, OpenRouter et Hugging Face.",
       latestModels: "Latest models",
     },
     grid: {
@@ -237,6 +257,7 @@ const T: Record<Lang, Translations> = {
         speed: "Vitesse (plus rapide)",
         ttft: "TTFT (plus rapide)",
         openrouter_popular: "Plus populaires OpenRouter",
+        open_weights: "Poids ouverts uniquement",
         price_asc: "Prix (moins cher)",
         price_desc: "Prix (plus cher)",
         newest: "Date (plus récent)",
@@ -250,6 +271,18 @@ const T: Record<Lang, Translations> = {
       showAll: "Tout afficher",
       allModels: "Tous les modèles",
       newModels: "Nouveaux (30 j)",
+      categories: {
+        all: "Tous",
+        new: "Nouveaux",
+        text: "Texte",
+        image: "Image",
+        embeddings: "Embeddings",
+        audio: "Audio",
+        video: "Vidéo",
+        rerank: "Rerank",
+        speech: "Speech",
+        transcription: "Transcription",
+      },
     },
     card: {
       intelligence: "Intelligence",
@@ -268,12 +301,19 @@ const T: Record<Lang, Translations> = {
       weeklyRequests: "req./sem.",
       agentic: "Agentic",
       designArena: "Design Arena",
+      huggingface: "Hugging Face",
+      openWeightsBadge: "Poids ouverts",
+      viewOnHuggingFace: "Voir sur Hugging Face",
     },
     detail: {
       aaIndices: "Indices Artificial Analysis",
       standardBenchmarks: "Benchmarks standard",
+      mediaBenchmarks: "Benchmarks média Artificial Analysis",
+      noBenchmarks: "Benchmarks indisponibles",
+      noBenchmarksDescription: "Aucune donnée de benchmark n'est disponible pour cette catégorie de modèle via les API suivies. Les prix, modalités et liens officiels restent affichés quand ils existent.",
+      appearances: "apparitions",
       performance: "Performance",
-      pricing: "Tarification (par million de tokens)",
+      pricing: "Tarification",
       outputSpeed: "Vitesse de sortie",
       ttft: "Temps 1er token (TTFT)",
       firstAnswer: "Temps 1ère réponse",
@@ -441,7 +481,7 @@ const T: Record<Lang, Translations> = {
     nav: { back: "Back", source: "Artificial Analysis", feedback: "Feedback", codingAgents: "Coding Agents", models: "Models" },
     hero: {
       title: "AI Models",
-      description: "Benchmarks, performance, pricing and OpenRouter popularity — data via Artificial Analysis and OpenRouter. Updated every hour.",
+      description: "Text and media benchmarks, performance, pricing, official Hugging Face links and OpenRouter popularity — data via Artificial Analysis, OpenRouter and Hugging Face.",
       latestModels: "Latest models",
     },
     grid: {
@@ -460,6 +500,7 @@ const T: Record<Lang, Translations> = {
         speed: "Speed (fastest)",
         ttft: "TTFT (fastest)",
         openrouter_popular: "Most popular on OpenRouter",
+        open_weights: "Open weights only",
         price_asc: "Price (cheapest)",
         price_desc: "Price (most expensive)",
         newest: "Date (newest)",
@@ -473,6 +514,18 @@ const T: Record<Lang, Translations> = {
       showAll: "Show all",
       allModels: "All models",
       newModels: "New (30 days)",
+      categories: {
+        all: "All",
+        new: "New",
+        text: "Text",
+        image: "Image",
+        embeddings: "Embeddings",
+        audio: "Audio",
+        video: "Video",
+        rerank: "Rerank",
+        speech: "Speech",
+        transcription: "Transcription",
+      },
     },
     card: {
       intelligence: "Intelligence",
@@ -491,12 +544,19 @@ const T: Record<Lang, Translations> = {
       weeklyRequests: "req/wk",
       agentic: "Agentic",
       designArena: "Design Arena",
+      huggingface: "Hugging Face",
+      openWeightsBadge: "Open weights",
+      viewOnHuggingFace: "View on Hugging Face",
     },
     detail: {
       aaIndices: "Artificial Analysis Indices",
       standardBenchmarks: "Standard Benchmarks",
+      mediaBenchmarks: "Artificial Analysis media benchmarks",
+      noBenchmarks: "Benchmarks unavailable",
+      noBenchmarksDescription: "No benchmark data is available for this model category from the tracked APIs. Pricing, modalities and official links are still shown when available.",
+      appearances: "appearances",
       performance: "Performance",
-      pricing: "Pricing (per million tokens)",
+      pricing: "Pricing",
       outputSpeed: "Output speed",
       ttft: "Time to first token (TTFT)",
       firstAnswer: "Time to first answer",
