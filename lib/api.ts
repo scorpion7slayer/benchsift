@@ -21,7 +21,7 @@ const API_FETCH_TIMEOUT_MS = 8_000;
 const SCRAPE_FETCH_TIMEOUT_MS = 6_000;
 const PARTIAL_MODEL_CHUNK_SIZE = 5;
 const CAPABILITY_CHUNK_SIZE = 6;
-const SCRAPE_USER_AGENT = "Mozilla/5.0 (compatible; BenchSift/1.0; +https://nxtaicard.nxtaigen.com)";
+const SCRAPE_USER_AGENT = "Mozilla/5.0 (compatible; BenchSift/1.0; +https://benchsift.nxtaigen.com)";
 
 /**
  * Cache TTLs by data volatility / TTL de cache par volatilité des données.

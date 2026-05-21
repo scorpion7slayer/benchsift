@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 
 export const SITE_NAME = "BenchSift";
-export const SITE_URL = "https://nxtaicard.nxtaigen.com";
+export const SITE_URL = "https://benchsift.nxtaigen.com";
 
 export const DEFAULT_DESCRIPTION =
     "Compare AI models with benchmarks, performance, pricing, coding scores and model capabilities.";

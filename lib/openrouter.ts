@@ -3,7 +3,7 @@ import { createEmptyEvaluations } from "@/lib/model-metrics";
 
 const OR_BASE = "https://openrouter.ai/api/v1";
 const OPENROUTER_RANKINGS_PAGE = "https://openrouter.ai/rankings";
-const OPENROUTER_APP_REFERER = "https://nxtaicard.nxtaigen.com";
+const OPENROUTER_APP_REFERER = "https://benchsift.nxtaigen.com";
 const OPENROUTER_APP_TITLE = "BenchSift";
 
 const MODEL_RANKINGS_ACTION_ID = "40824635c5eb77626bdf6795ffbf382c0862b321e1";
