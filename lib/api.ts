@@ -1,10 +1,15 @@
 import { cached } from "@/lib/kv-cache";
-import { getCreatorDisplayName, resolveCreatorFromModelSlug } from "@/lib/provider-map";
+import {
+  getCanonicalCreatorSlug,
+  getCreatorDisplayName,
+  resolveCreatorFromModelSlug,
+} from "@/lib/provider-map";
 import { readModelsCache, writeModelsCache, scheduleWriteModelsCache } from "@/lib/cron-cache";
 import {
   enrichModelsWithOpenRouter,
   findOpenRouterModel,
   getOpenRouterModels as fetchOpenRouterModels,
+  isOpenRouterOnlyMovingAliasModel,
   openRouterCapabilities,
 } from "@/lib/openrouter";
 import { attachOfficialHuggingFaceHints, enrichModelsWithHuggingFace } from "@/lib/huggingface";
@@ -631,7 +636,9 @@ async function fetchLightModels(): Promise<LLMModel[]> {
   // Full HF enrichment runs only in the cron path — too slow for the request
   // path. Cheap official hints still let known open-weight models expose a
   // safe HF link before the cron cache is warm.
-  return normaliseUnavailableMetrics(attachOfficialHuggingFaceHints(enriched));
+  return normaliseUnavailableMetrics(
+    attachOfficialHuggingFaceHints(removeOpenRouterMovingAliases(enriched)),
+  );
 }
 
 async function enrichCronModelsWithSources(models: LLMModel[]): Promise<LLMModel[]> {
@@ -640,7 +647,9 @@ async function enrichCronModelsWithSources(models: LLMModel[]): Promise<LLMModel
     includeUsageRankings: true,
     includeOpenRouterOnly: true,
   });
-  const withCapabilities = await enrichModelsWithScrapedCapabilities(enriched);
+  const withCapabilities = await enrichModelsWithScrapedCapabilities(
+    removeOpenRouterMovingAliases(enriched),
+  );
   const hfEnriched = await enrichModelsWithHuggingFace(withCapabilities, {
     apiKey: getHuggingFaceApiKey(),
   });
@@ -691,7 +700,7 @@ export async function fetchModelsForCron(): Promise<LLMModel[]> {
  * Called by `app/api/cron/refresh/route.ts`.
  */
 export async function refreshModelsCache(): Promise<{ count: number }> {
-  const models = await fetchModelsForCron();
+  const models = normaliseCatalogModels(await fetchModelsForCron());
   await writeModelsCache(models);
   if (models.length > 0) lastSuccessfulModels = models;
   return { count: models.length };
@@ -704,11 +713,19 @@ export async function refreshModelsCache(): Promise<{ count: number }> {
  */
 function normaliseCreatorNames(models: LLMModel[]): LLMModel[] {
   return models.map((m) => {
-    const slug = m.model_creator.slug;
+    const slug = getCanonicalCreatorSlug(m.model_creator.slug);
     const display = getCreatorDisplayName(slug, m.model_creator.name);
-    if (display === m.model_creator.name) return m;
-    return { ...m, model_creator: { ...m.model_creator, name: display } };
+    if (slug === m.model_creator.slug && display === m.model_creator.name) return m;
+    return { ...m, model_creator: { ...m.model_creator, name: display, slug } };
   });
+}
+
+function removeOpenRouterMovingAliases(models: LLMModel[]): LLMModel[] {
+  return models.filter((model) => !isOpenRouterOnlyMovingAliasModel(model));
+}
+
+function normaliseCatalogModels(models: LLMModel[]): LLMModel[] {
+  return normaliseCreatorNames(removeOpenRouterMovingAliases(models));
 }
 
 /**
@@ -722,7 +739,7 @@ export async function getLLMModels(): Promise<LLMModel[]> {
     const cached = await readModelsCache();
     if (cached && cached.models.length > 0) {
       lastSuccessfulModels = cached.models;
-      return normaliseCreatorNames(cached.models);
+      return normaliseCatalogModels(cached.models);
     }
   } catch {
     // Ignore KV failures and fall through to the light fetch.
@@ -730,7 +747,7 @@ export async function getLLMModels(): Promise<LLMModel[]> {
 
   // 2. Cold-start fallback: in-memory copy from a previous request.
   if (lastSuccessfulModels?.length) {
-    return normaliseCreatorNames(lastSuccessfulModels);
+    return normaliseCatalogModels(lastSuccessfulModels);
   }
 
   // 3. Last resort: AA API only. No sitemap, no HTML scraping — minimal CPU.
@@ -740,7 +757,7 @@ export async function getLLMModels(): Promise<LLMModel[]> {
     if (models.length > 0) {
       lastSuccessfulModels = models;
       scheduleWriteModelsCache(models);
-      return normaliseCreatorNames(models);
+      return normaliseCatalogModels(models);
     }
   } catch {
     // Swallow — falling through to public scrape would burn CPU and risk

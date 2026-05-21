@@ -364,6 +364,25 @@ function openRouterModelPart(or: OpenRouterModel): string {
   return stripDateSuffix(normaliseId(fromId) ?? normaliseId(fromCanonical) ?? or.id);
 }
 
+function isMovingAliasPart(modelPart: string): boolean {
+  return modelPart === "latest" || modelPart.endsWith("-latest");
+}
+
+export function isOpenRouterOnlyMovingAliasModel(
+  model: Pick<LLMModel, "id" | "slug">,
+): boolean {
+  if (!model.id.startsWith("openrouter:")) return false;
+  const idPart = stripDateSuffix(
+    normaliseId(model.id.replace(/^openrouter:/, "").split("/").pop()) ?? "",
+  );
+  const slugPart = stripDateSuffix(normaliseId(model.slug) ?? "");
+  return isMovingAliasPart(idPart) || isMovingAliasPart(slugPart);
+}
+
+function isOpenRouterMovingAlias(or: OpenRouterModel): boolean {
+  return isMovingAliasPart(openRouterModelPart(or));
+}
+
 function providerSlug(or: OpenRouterModel): string {
   const slug = (normaliseId(or.id.split("/")[0]) ?? "openrouter").replace(/[^a-z0-9-]+/g, "-");
   const aliases: Record<string, string> = {
@@ -737,6 +756,9 @@ function addOpenRouterOnlyModels(
   const next = [...models];
 
   for (const orModel of orModels) {
+    if (isOpenRouterMovingAlias(orModel)) {
+      continue;
+    }
     if (models.some((model) => openRouterModelMatchesSlug(model.slug, orModel))) {
       continue;
     }

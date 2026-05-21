@@ -73,8 +73,18 @@ const CREATOR_TO_PROVIDER: Record<string, string> = {
   trillionlabs: "trillionlabs",
 };
 
-export function getProviderKey(creatorSlug: string): string {
+const CREATOR_CANONICAL_SLUG: Record<string, string> = {
+  "z-ai": "zai",
+  zhipu: "zai",
+};
+
+export function getCanonicalCreatorSlug(creatorSlug: string): string {
   const slug = creatorSlug.toLowerCase();
+  return CREATOR_CANONICAL_SLUG[slug] ?? slug;
+}
+
+export function getProviderKey(creatorSlug: string): string {
+  const slug = getCanonicalCreatorSlug(creatorSlug);
   return CREATOR_TO_PROVIDER[slug] ?? slug;
 }
 
@@ -101,7 +111,7 @@ const CREATOR_DISPLAY_NAME: Record<string, string> = {
 
 /** Returns the canonical display name for a creator, falling back to the API name. */
 export function getCreatorDisplayName(slug: string, apiName: string): string {
-  return CREATOR_DISPLAY_NAME[slug.toLowerCase()] ?? apiName;
+  return CREATOR_DISPLAY_NAME[getCanonicalCreatorSlug(slug)] ?? apiName;
 }
 
 /**
