@@ -20,7 +20,7 @@ export const Route = createFileRoute("/compare")({
   },
   head: () =>
     seo({
-      title: "AI Model Compare - Nxt AI Card",
+      title: "AI Model Compare - BenchSift",
       description:
         "Compare AI models side by side across benchmarks, pricing, latency, throughput, context window and capabilities.",
       path: "/compare",

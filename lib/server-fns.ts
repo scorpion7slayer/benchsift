@@ -73,8 +73,8 @@ export const fetchPreferences = createServerFn({ method: "GET" }).handler(
     const read = (name: string): string | undefined =>
       cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))?.[1];
 
-    const lang: Lang = read("nxtaicard_lang") === "fr" ? "fr" : "en";
-    const storedTheme = read("nxtaicard_theme");
+    const lang: Lang = read("benchsift_lang") === "fr" ? "fr" : "en";
+    const storedTheme = read("benchsift_theme");
     const theme = ["dark", "light", "system"].includes(storedTheme ?? "")
       ? storedTheme!
       : "system";

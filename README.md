@@ -1,8 +1,8 @@
-# Nxt AI Card
+# BenchSift
 
 There are hundreds of AI models out there. This is a simple tool to help you pick the right one text and media benchmarks, speed, pricing, context windows, all in one place.
 
-![Nxt AI Card](./nxtaicard.png)
+![BenchSift](./benchsift.png)
 
 Data comes from [Artificial Analysis](https://artificialanalysis.ai), [OpenRouter](https://openrouter.ai), and [Hugging Face](https://huggingface.co), refreshed every hour.
 

@@ -43,7 +43,7 @@ export const Route = createFileRoute("/models/$slug")({
       : firstUnitPrice?.unit || undefined;
     return {
       ...seo({
-        title: `${model.name} - Nxt AI Card`,
+        title: `${model.name} - BenchSift`,
         description,
         path: `/models/${model.slug}`,
         robots: shouldIndexModelPage(model)

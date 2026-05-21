@@ -17,7 +17,7 @@ export function ThemeToggle() {
     }
 
     setTheme(next);
-    document.cookie = `nxtaicard_theme=${next};path=/;max-age=31536000;SameSite=Lax`;
+    document.cookie = `benchsift_theme=${next};path=/;max-age=31536000;SameSite=Lax`;
 
     if (!reduceMotion) {
       window.setTimeout(() => html.classList.remove("theme-transitioning"), 200);

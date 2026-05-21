@@ -4,7 +4,7 @@
 // framework deps) can use it.
 //
 // Migration protocol when bumping the schema:
-//   1. Prepend a new key (e.g. `"nxtaicard:models:v14"`) at the top of
+//   1. Prepend a new key (e.g. `"benchsift:models:v2"`) at the top of
 //      MODELS_KEYS — that's what writes target, and what reads try first.
 //   2. Keep the previous key in the list so the site keeps serving its data
 //      during the ~30 min gap between deploy and the next cron tick.
@@ -13,6 +13,7 @@
 // Reads tolerate older entries because every field added to LLMModel is
 // optional — missing fields just render as undefined.
 export const MODELS_KEYS = [
+  "benchsift:models:v1",
   "nxtaicard:models:v13",
   "nxtaicard:models:v3",
 ] as const;

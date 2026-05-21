@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 
-export const SITE_NAME = "Nxt AI Card";
+export const SITE_NAME = "BenchSift";
 export const SITE_URL = "https://nxtaicard.nxtaigen.com";
 
 export const DEFAULT_DESCRIPTION =

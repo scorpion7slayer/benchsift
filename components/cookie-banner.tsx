@@ -15,7 +15,7 @@ export function CookieBanner() {
   const { t } = useI18n();
 
   useEffect(() => {
-    const hasConsent = document.cookie.includes("nxtaicard_consent=1");
+    const hasConsent = document.cookie.includes("benchsift_consent=1");
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!hasConsent) setVisible(true);
   }, []);
@@ -23,7 +23,7 @@ export function CookieBanner() {
   if (!visible) return null;
 
   function accept() {
-    document.cookie = "nxtaicard_consent=1;path=/;max-age=31536000;SameSite=Lax";
+    document.cookie = "benchsift_consent=1;path=/;max-age=31536000;SameSite=Lax";
     setVisible(false);
   }
 

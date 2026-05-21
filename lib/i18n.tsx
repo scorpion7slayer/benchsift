@@ -234,7 +234,7 @@ export interface Translations {
 
 const T: Record<Lang, Translations> = {
   fr: {
-    brand: "Nxt AI Card",
+    brand: "BenchSift",
     nav: { back: "Retour", source: "Artificial Analysis", feedback: "Feedback", codingAgents: "Coding Agents", models: "Modèles" },
     hero: {
       title: "Modèles d'IA",
@@ -444,7 +444,7 @@ const T: Record<Lang, Translations> = {
       empty: "Données coding agents indisponibles pour l'instant.",
       sourceNote: "Données via Artificial Analysis — mises à jour quotidiennement.",
       navLink: "Coding Agents",
-      pageTitle: "Coding Agents — Nxt AI Card",
+      pageTitle: "Coding Agents — BenchSift",
       knownHarnesses: "Harnais suivis",
       previewNotice: "Artificial Analysis n'expose pas encore d'API publique pour les coding agents. Consultez le classement officiel pour les scores live.",
       viewOnAA: "Voir sur Artificial Analysis",
@@ -477,7 +477,7 @@ const T: Record<Lang, Translations> = {
     },
   },
   en: {
-    brand: "Nxt AI Card",
+    brand: "BenchSift",
     nav: { back: "Back", source: "Artificial Analysis", feedback: "Feedback", codingAgents: "Coding Agents", models: "Models" },
     hero: {
       title: "AI Models",
@@ -687,7 +687,7 @@ const T: Record<Lang, Translations> = {
       empty: "Coding agents data unavailable for now.",
       sourceNote: "Data via Artificial Analysis — updated daily.",
       navLink: "Coding Agents",
-      pageTitle: "Coding Agents — Nxt AI Card",
+      pageTitle: "Coding Agents — BenchSift",
       knownHarnesses: "Tracked harnesses",
       previewNotice: "Artificial Analysis does not yet expose a public API for coding agents. Visit the official leaderboard for live scores.",
       viewOnAA: "View on Artificial Analysis",
@@ -759,7 +759,7 @@ export function LanguageProvider({
     }
 
     setLangState(l);
-    document.cookie = `nxtaicard_lang=${l};path=/;max-age=31536000;SameSite=Lax`;
+    document.cookie = `benchsift_lang=${l};path=/;max-age=31536000;SameSite=Lax`;
   }, []);
 
   useEffect(() => {
