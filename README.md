@@ -1,6 +1,6 @@
 # Nxt AI Card
 
-There are hundreds of AI models out there. This is a simple tool to help you pick the right one — text and media benchmarks, speed, pricing, context windows, all in one place.
+There are hundreds of AI models out there. This is a simple tool to help you pick the right one text and media benchmarks, speed, pricing, context windows, all in one place.
 
 ![Nxt AI Card](./nxtaicard.png)
 
