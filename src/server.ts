@@ -7,8 +7,19 @@
 import handler from "@tanstack/react-start/server-entry";
 import { refreshKVCache } from "@/lib/cron-refresh";
 
+const LEGACY_HOSTNAME = "nxtaicard.nxtaigen.com";
+const PRIMARY_HOSTNAME = "benchsift.nxtaigen.com";
+
 export default {
   fetch(request: Request): Response | Promise<Response> {
+    const url = new URL(request.url);
+
+    if (url.hostname === LEGACY_HOSTNAME) {
+      url.protocol = "https:";
+      url.hostname = PRIMARY_HOSTNAME;
+      return Response.redirect(url.toString(), 301);
+    }
+
     return handler.fetch(request);
   },
 

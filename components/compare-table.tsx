@@ -739,6 +739,14 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
   const compareIsFull = models.length >= 4;
   const removingIndex = removingSlug ? models.findIndex((model) => model.slug === removingSlug) : -1;
 
+  function navigateToCompare(slugs: string[]) {
+    router.navigate({
+      to: "/compare",
+      search: slugs.length > 0 ? { models: slugs.join(",") } : {},
+      replace: true,
+    });
+  }
+
   useEffect(() => {
     return () => {
       if (compareUpdateTimerRef.current) window.clearTimeout(compareUpdateTimerRef.current);
@@ -762,10 +770,7 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
   function addModel(model: LLMModel) {
     if (compareIsFull) return;
     if (!selected.includes(model.slug)) toggle(model.slug);
-    router.navigate({
-      href: `/compare?models=${[...models.map(m => m.slug), model.slug].join(",")}`,
-      replace: true,
-    });
+    navigateToCompare([...models.map(m => m.slug), model.slug]);
     setAddSearch("");
   }
 
@@ -776,11 +781,7 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
     compareUpdateTimerRef.current = window.setTimeout(() => {
       toggle(slug);
       const next = models.filter(m => m.slug !== slug).map(m => m.slug);
-      if (next.length >= 1) {
-        router.navigate({ href: `/compare?models=${next.join(",")}`, replace: true });
-      } else {
-        router.navigate({ href: "/compare", replace: true });
-      }
+      navigateToCompare(next);
       compareUpdateTimerRef.current = null;
     }, COMPARE_COLUMN_EXIT_MS);
   }
@@ -883,7 +884,7 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
             size="sm"
             onClick={() => {
               clear();
-              router.navigate({ href: "/compare", replace: true });
+              navigateToCompare([]);
             }}
           >
             {t.compare.clear}

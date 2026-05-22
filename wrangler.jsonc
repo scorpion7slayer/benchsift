@@ -19,6 +19,16 @@
     },
     "workers_dev": false,
     "preview_urls": false,
+    "routes": [
+        {
+            "pattern": "benchsift.nxtaigen.com",
+            "custom_domain": true,
+        },
+        {
+            "pattern": "nxtaicard.nxtaigen.com",
+            "custom_domain": true,
+        },
+    ],
     "observability": {
         "enabled": true,
     },

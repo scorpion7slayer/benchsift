@@ -3,11 +3,11 @@ import { Check, GitCompareArrows, Plus, Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
+import { Link } from "@/components/link";
 import { getProviderKey } from "@/lib/provider-map";
 import { useCompare } from "@/lib/compare-store";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { usePageTransition } from "@/components/page-transition-provider";
 
 export interface CompareMenuModel {
   slug: string;
@@ -23,7 +23,6 @@ export function CompareMenu({
   models: CompareMenuModel[];
   variant?: "default" | "bubble";
 }) {
-  const { push } = usePageTransition();
   const { t } = useI18n();
   const { selected, toggle, clear, isSelected, isFull, lastChange } = useCompare();
   const [open, setOpen] = useState(false);
@@ -78,11 +77,6 @@ export function CompareMenu({
     return () => window.clearTimeout(id);
   }, [open]);
 
-  function openComparison() {
-    push(compareHref);
-    setOpen(false);
-  }
-
   return (
     <div ref={menuRef} className="relative">
       {isBubble ? (
@@ -114,22 +108,23 @@ export function CompareMenu({
         </button>
       ) : (
         <Button
-          type="button"
+          asChild
           variant="outline"
           size="sm"
-          onClick={openComparison}
           className="transition-all duration-200 motion-safe:hover:-translate-y-0.5 active:scale-[0.97]"
         >
-          <GitCompareArrows data-icon="inline-start" />
-          {t.compare.compare}
-          {selected.length > 0 && (
-            <Badge
-              variant="secondary"
-              className="ml-1 h-4 px-1.5 text-[10px] transition-transform duration-200"
-            >
-              {selected.length}
-            </Badge>
-          )}
+          <Link href={compareHref}>
+            <GitCompareArrows data-icon="inline-start" />
+            {t.compare.compare}
+            {selected.length > 0 && (
+              <Badge
+                variant="secondary"
+                className="ml-1 h-4 px-1.5 text-[10px] transition-transform duration-200"
+              >
+                {selected.length}
+              </Badge>
+            )}
+          </Link>
         </Button>
       )}
 
@@ -242,12 +237,13 @@ export function CompareMenu({
               {t.compare.clear}
             </Button>
             <Button
-              type="button"
+              asChild
               size="sm"
-              onClick={openComparison}
             >
-              <GitCompareArrows data-icon="inline-start" />
-              {t.compare.compare}
+              <Link href={compareHref} onClick={() => setOpen(false)}>
+                <GitCompareArrows data-icon="inline-start" />
+                {t.compare.compare}
+              </Link>
             </Button>
           </div>
         </div>
