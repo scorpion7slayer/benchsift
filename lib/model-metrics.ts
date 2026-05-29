@@ -257,13 +257,43 @@ export function hasAnyBenchmarkData(model: LLMModel): boolean {
   );
 }
 
+export function hasPerformanceData(model: LLMModel): boolean {
+  return Boolean(
+    model.median_output_tokens_per_second != null ||
+    model.median_time_to_first_token_seconds != null ||
+    model.median_time_to_first_answer_token != null ||
+    model.end_to_end_response_time_seconds != null,
+  );
+}
+
+export function hasOpenRouterUsageData(model: LLMModel): boolean {
+  return Boolean(
+    model.openrouter_weekly_rank != null ||
+    model.openrouter_weekly_tokens != null ||
+    model.openrouter_weekly_requests != null ||
+    model.openrouter_weekly_tool_calls != null ||
+    model.openrouter_weekly_images != null ||
+    model.openrouter_weekly_audio_inputs != null,
+  );
+}
+
+export function hasHuggingFaceSignal(model: LLMModel): boolean {
+  if (model.huggingface_official !== true || !model.huggingface_url) return false;
+  return Boolean(
+    (model.huggingface_downloads ?? 0) > 0 ||
+    (model.huggingface_likes ?? 0) > 0 ||
+    model.huggingface_license ||
+    model.huggingface_pipeline_tag ||
+    model.huggingface_library_name,
+  );
+}
+
 export function shouldIndexModelPage(model: LLMModel): boolean {
   return Boolean(
     hasAnyBenchmarkData(model) ||
-    hasPricingData(model) ||
-    model.context_window_tokens ||
-    model.openrouter_weekly_rank ||
-    model.huggingface_official,
+    hasPerformanceData(model) ||
+    hasOpenRouterUsageData(model) ||
+    hasHuggingFaceSignal(model),
   );
 }
 

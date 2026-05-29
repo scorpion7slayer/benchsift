@@ -61,12 +61,6 @@ export const Route = createFileRoute("/sitemap.xml")({
             priority: 1,
           },
           {
-            url: absoluteUrl("/compare"),
-            lastModified: today,
-            changeFrequency: "weekly",
-            priority: 0.8,
-          },
-          {
             url: absoluteUrl("/agents/coding"),
             lastModified: today,
             changeFrequency: "daily",

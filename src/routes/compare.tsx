@@ -24,6 +24,7 @@ export const Route = createFileRoute("/compare")({
       description:
         "Compare AI models side by side across benchmarks, pricing, latency, throughput, context window and capabilities.",
       path: "/compare",
+      robots: "noindex, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
       jsonLd: {
         "@context": "https://schema.org",
         "@type": "WebPage",

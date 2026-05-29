@@ -30,7 +30,7 @@ function getLatestModelSummary(models: LLMModel[]): LatestModelSummary | null {
 export const Route = createFileRoute("/")({
   head: ({ loaderData }) =>
     seo({
-      title: SITE_NAME,
+      title: "BenchSift - AI Model Benchmarks, Pricing and Speed",
       description:
         "Compare AI models by intelligence, coding, math, speed, latency and price. Updated hourly with Artificial Analysis data.",
       path: "/",

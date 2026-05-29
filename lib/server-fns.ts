@@ -13,9 +13,12 @@ import {
 } from "@/lib/api";
 import type { Lang } from "@/lib/i18n";
 
-function disableResponseCache(): void {
+function setPublicResponseCache(): void {
   try {
-    setResponseHeader("cache-control", "no-store, max-age=0");
+    setResponseHeader(
+      "cache-control",
+      "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
+    );
   } catch {
     // The header helper only exists during request handling.
   }
@@ -29,7 +32,7 @@ function isSafeSlug(slug: string): boolean {
 /** Full models list (fast KV-cached path). */
 export const fetchModels = createServerFn({ method: "GET" }).handler(
   async (): Promise<LLMModel[]> => {
-    disableResponseCache();
+    setPublicResponseCache();
     return getLLMModels();
   },
 );
@@ -55,7 +58,7 @@ export const fetchCompareData = createServerFn({ method: "GET" })
   .inputValidator((slugs: string[]) => slugs)
   .handler(
     async ({ data }): Promise<{ allModels: LLMModel[]; selected: LLMModel[] }> => {
-      disableResponseCache();
+      setPublicResponseCache();
       const slugs = data.filter(isSafeSlug).slice(0, 4);
       const [allModels, ...selectedModels] = await Promise.all([
         getLLMModels(),
