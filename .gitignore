@@ -17,6 +17,7 @@
 /.open-next
 /out
 /build
+/.data
 
 # misc
 .DS_Store
@@ -33,10 +34,10 @@ yarn-error.log*
 .env
 .env.local
 
-# wrangler files
+# retired Cloudflare local files
 .wrangler
 .dev.vars*
-!.dev.vars.example
+
 !.env.example
 
 # typescript

@@ -12,8 +12,8 @@ interface IconProps {
 }
 
 // `import.meta.env.SSR` is a compile-time constant, so on the server build the
-// `import()` below is dead code — @lobehub/icons (~4 MB) is never bundled into
-// the Cloudflare Worker. On the client it lazy-loads the real component.
+// `import()` below is dead code - @lobehub/icons (~4 MB) is never bundled into
+// the server output. On the client it lazy-loads the real component.
 // This is the equivalent of Next.js's `dynamic(..., { ssr: false })`.
 const LazyModelProviderIcon: ComponentType<IconProps> | null = import.meta.env
   .SSR

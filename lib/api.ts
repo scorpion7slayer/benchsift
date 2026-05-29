@@ -1,4 +1,4 @@
-import { cached } from "@/lib/kv-cache";
+import { cached } from "@/lib/revalidate-cache";
 import {
   getCanonicalCreatorSlug,
   getCreatorDisplayName,
@@ -617,10 +617,10 @@ const scrapeModelCapabilities = cached(
 );
 
 /**
- * Minimal request-path fetch: AA API only — NO sitemap scrape, NO HTML regex.
+ * Minimal request-path fetch: AA API only - NO sitemap scrape, NO HTML regex.
  * The sitemap filter (which removes a handful of meta-models) is cosmetic and
- * runs in the cron instead. Keeping this path as light as possible so it fits
- * inside the Workers Free 10 ms CPU budget on cold-start.
+ * runs in the refresh job instead. Keeping this path light avoids slow first
+ * responses when a Dokploy instance starts with an empty file cache.
  */
 async function fetchLightModels(): Promise<LLMModel[]> {
   const [models, mediaModels] = await Promise.all([
@@ -696,8 +696,8 @@ export async function fetchModelsForCron(): Promise<LLMModel[]> {
 }
 
 /**
- * Public entry point for cron: refreshes the KV cache and returns counts.
- * Called by `app/api/cron/refresh/route.ts`.
+ * Public entry point for refresh jobs: refreshes the persisted models cache.
+ * Called by `src/routes/api/cron/refresh.ts`.
  */
 export async function refreshModelsCache(): Promise<{ count: number }> {
   const models = normaliseCatalogModels(await fetchModelsForCron());
@@ -729,12 +729,11 @@ function normaliseCatalogModels(models: LLMModel[]): LLMModel[] {
 }
 
 /**
- * Reads the pre-computed KV cache populated by the Cron Trigger.
- * This is the fast path — zero CPU-heavy scraping, suitable for user requests
- * on the Workers Free 10 ms CPU budget.
+ * Reads the pre-computed file cache populated by the refresh endpoint.
+ * This is the fast path - zero CPU-heavy scraping for user requests.
  */
 export async function getLLMModels(): Promise<LLMModel[]> {
-  // 1. Fast path: KV cache filled by the cron.
+  // 1. Fast path: persisted cache filled by the refresh endpoint.
   try {
     const cached = await readModelsCache();
     if (cached && cached.models.length > 0) {
@@ -751,7 +750,7 @@ export async function getLLMModels(): Promise<LLMModel[]> {
   }
 
   // 3. Last resort: AA API only. No sitemap, no HTML scraping — minimal CPU.
-  // Schedule a background KV write so subsequent cold-starts are instant.
+  // Schedule a background file write so subsequent requests are instant.
   try {
     const models = await fetchLightModels();
     if (models.length > 0) {

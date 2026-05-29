@@ -1,4 +1,3 @@
-import { Cloudflare } from "@lobehub/icons";
 import { useI18n } from "@/lib/i18n";
 
 export function SiteFooter() {
@@ -43,15 +42,6 @@ export function SiteFooter() {
             className="hover:text-foreground transition-colors"
           >
             MIT License
-          </a>
-          <a
-            href="https://www.cloudflare.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 hover:text-foreground transition-colors text-right sm:text-left justify-end sm:justify-start"
-          >
-            <Cloudflare.Color size={14} />
-            Powered by Cloudflare
           </a>
         </div>
       </div>

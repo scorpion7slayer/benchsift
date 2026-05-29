@@ -2,18 +2,22 @@
 # Stack: TanStack Start (migrated off Next.js)
 
 This app runs on **TanStack Start + TanStack Router + Vite**, deployed to
-**Cloudflare Workers** via Wrangler. It is no longer a Next.js app.
+**Dokploy/Node** via Nitro. It is no longer a Next.js app.
 
 Key conventions:
 - File-based routes live in `src/routes/`; `__root.tsx` is the root layout.
 - Server-side data fetching uses `createServerFn` (`lib/server-fns.ts`), called
   from route `loader`s. Components read data via `Route.useLoaderData()`.
 - API endpoints are route files with `server.handlers` (e.g. `src/routes/api/...`).
-- `lib/api.ts`, `lib/cf-env.ts` and friends are **server-only** — never
+- `lib/api.ts`, `lib/cron-cache.ts` and friends are **server-only** — never
   value-import them from client components (type-only imports are fine).
-  `cf-env.ts` carries the `@tanstack/react-start/server-only` marker.
-- Cloudflare bindings (KV, vars) come from `cloudflare:workers` via
-  `lib/cf-env.ts`. The cron `scheduled` handler lives in `src/server.ts`.
+- Production environment variables come from `process.env`.
+- The models cache persists to `MODELS_CACHE_FILE` (default:
+  `.data/models-cache.json`); mount `/app/.data` in Dokploy if cache persistence
+  across redeploys matters.
+- There is no Worker scheduled handler in this branch. Configure a Dokploy
+  Application Schedule Job that runs `npm run refresh-cache` inside the running
+  container.
 - Page metadata is set via each route's `head()` option.
 - Check current API details against the docs before writing code — APIs may
   differ from training data.

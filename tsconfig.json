@@ -21,7 +21,6 @@
   "exclude": [
     "node_modules",
     "dist",
-    ".wrangler",
     ".output",
     ".next",
     ".open-next",

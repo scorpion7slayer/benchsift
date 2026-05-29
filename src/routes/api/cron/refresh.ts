@@ -1,9 +1,7 @@
-// Manual cron trigger — HTTP endpoint to refresh the KV models cache.
-// The automatic refresh runs from the `scheduled` handler in `src/server.ts`;
-// this route exists for manual testing via `curl -X POST -H "authorization: Bearer …"`.
+// Manual refresh trigger. In Dokploy, schedule an external cron job to call
+// this endpoint with `Authorization: Bearer <CRON_SECRET>`.
 import { createFileRoute } from "@tanstack/react-router";
-import { getCfEnv } from "@/lib/cf-env";
-import { refreshKVCache } from "@/lib/cron-refresh";
+import { refreshModelsCache } from "@/lib/api";
 
 function unauthorized(reason: string): Response {
   return new Response(JSON.stringify({ error: reason }), {
@@ -32,18 +30,16 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 async function handle(request: Request): Promise<Response> {
-  const env = getCfEnv();
-  if (!env) return unauthorized("Cloudflare environment unavailable");
-
-  const expected = env.CRON_SECRET;
+  const expected = process.env.CRON_SECRET;
   if (!expected) return unauthorized("CRON_SECRET not configured");
 
   const header = request.headers.get("authorization") ?? "";
   const provided = header.startsWith("Bearer ") ? header.slice(7) : "";
   if (!provided || !timingSafeEqual(provided, expected)) return unauthorized("invalid token");
 
-  const result = await refreshKVCache(env);
-  return Response.json({ ok: true, ...result });
+  const started = Date.now();
+  const result = await refreshModelsCache();
+  return Response.json({ ok: true, ...result, durationMs: Date.now() - started });
 }
 
 export const Route = createFileRoute("/api/cron/refresh")({

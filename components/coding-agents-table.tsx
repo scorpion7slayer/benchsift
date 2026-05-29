@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
-import { HarnessIcon } from "@/components/harness-icon";
+import { HarnessIcon } from "@/components/harness-icon-lazy";
 import { getProviderKey } from "@/lib/provider-map";
 import { useI18n } from "@/lib/i18n";
 import { CODING_AGENT_HARNESSES, type CodingAgent } from "@/lib/coding-agents";

@@ -84,11 +84,6 @@ function RootDocument({
           data-site-id="8544cf104129"
           defer
         />
-        <script
-          defer
-          src="https://static.cloudflareinsights.com/beacon.min.js"
-          data-cf-beacon='{"token": "5bd070922a22443597ba68ce27a345e6"}'
-        />
       </head>
       <body
         className="min-h-full flex flex-col bg-background antialiased"

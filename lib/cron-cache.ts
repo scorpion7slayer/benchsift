@@ -1,49 +1,68 @@
-import { getModelsKV } from "@/lib/cf-env";
+import "@tanstack/react-start/server-only";
+
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
 import type { LLMModel } from "@/lib/api";
 import {
-  MODELS_KEYS,
   MODELS_TTL_SECONDS,
   MODELS_WRITE_KEY,
 } from "@/lib/models-cache-keys";
 
 interface ModelsCacheEntry {
+  key: string;
   models: LLMModel[];
   refreshedAt: number; // ms epoch
 }
 
+const DEFAULT_CACHE_FILE = ".data/models-cache.json";
+
+function getCacheFilePath(): string {
+  return path.resolve(process.cwd(), process.env.MODELS_CACHE_FILE || DEFAULT_CACHE_FILE);
+}
+
 function isValidEntry(raw: unknown): raw is ModelsCacheEntry {
   if (!raw || typeof raw !== "object") return false;
-  const entry = raw as ModelsCacheEntry;
-  return Array.isArray(entry.models) && entry.models.length > 0;
+  const entry = raw as Partial<ModelsCacheEntry>;
+  return (
+    entry.key === MODELS_WRITE_KEY &&
+    Array.isArray(entry.models) &&
+    entry.models.length > 0 &&
+    typeof entry.refreshedAt === "number"
+  );
+}
+
+function isFresh(entry: ModelsCacheEntry): boolean {
+  return entry.refreshedAt + MODELS_TTL_SECONDS * 1000 > Date.now();
 }
 
 export async function readModelsCache(): Promise<ModelsCacheEntry | null> {
-  const kv = getModelsKV();
-  if (!kv) return null;
-  for (const key of MODELS_KEYS) {
-    const raw = await kv.get(key, "json");
-    if (isValidEntry(raw)) return raw;
+  try {
+    const raw = await readFile(getCacheFilePath(), "utf8");
+    const entry = JSON.parse(raw) as unknown;
+    if (isValidEntry(entry) && isFresh(entry)) return entry;
+  } catch {
+    // Missing or invalid cache files are normal on first boot.
   }
   return null;
 }
 
 export async function writeModelsCache(models: LLMModel[]): Promise<void> {
-  const kv = getModelsKV();
-  if (!kv) return;
-  const entry: ModelsCacheEntry = { models, refreshedAt: Date.now() };
-  await kv.put(MODELS_WRITE_KEY, JSON.stringify(entry), {
-    expirationTtl: MODELS_TTL_SECONDS,
-  });
+  const cacheFile = getCacheFilePath();
+  const entry: ModelsCacheEntry = {
+    key: MODELS_WRITE_KEY,
+    models,
+    refreshedAt: Date.now(),
+  };
+  await mkdir(path.dirname(cacheFile), { recursive: true });
+  await writeFile(cacheFile, JSON.stringify(entry), "utf8");
 }
 
 /**
- * Best-effort background write. Fires the KV put without awaiting so the
- * caller (typically a user-facing request) returns immediately. Silently
- * no-ops if no Cloudflare KV binding is available.
+ * Best-effort background write. This keeps the first successful cold request
+ * useful for later requests even before an external scheduler calls refresh.
  */
 export function scheduleWriteModelsCache(models: LLMModel[]): void {
-  if (!getModelsKV()) return;
   void writeModelsCache(models).catch(() => {
-    // Best-effort — the next cron run repopulates KV anyway.
+    // Best-effort - the next refresh call can repopulate the cache.
   });
 }
