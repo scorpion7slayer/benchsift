@@ -9,14 +9,14 @@ if (!secret) {
   process.exit(1);
 }
 
-function refreshCache() {
+function requestLocalApp(path, method) {
   return new Promise((resolve, reject) => {
     const request = http.request(
       {
         hostname: "127.0.0.1",
         port,
-        path: "/api/cron/refresh",
-        method: "POST",
+        path,
+        method,
         headers: {
           authorization: `Bearer ${secret}`,
         },
@@ -41,9 +41,16 @@ function refreshCache() {
   });
 }
 
-const response = await refreshCache();
+const response = await requestLocalApp("/api/cron/refresh", "POST");
 console.log(response.body || `HTTP ${response.statusCode}`);
 
 if (response.statusCode < 200 || response.statusCode >= 300) {
+  process.exit(1);
+}
+
+const status = await requestLocalApp("/api/cron/status", "GET");
+console.log(`cache-status ${status.body || `HTTP ${status.statusCode}`}`);
+
+if (status.statusCode < 200 || status.statusCode >= 300) {
   process.exit(1);
 }

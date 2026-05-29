@@ -69,11 +69,12 @@ A complete refresh should report a JSON response with source counters, for
 example:
 
 ```json
-{"ok":true,"count":1105,"stats":{"sitemapSlugs":378,"missingSitemapSlugs":140,"builtPartialModels":140}}
+{"ok":true,"count":1105,"stats":{"apiModels":527,"apiModelsNotInSitemap":156,"sitemapSlugs":371,"missingSitemapSlugs":0}}
 ```
 
 If the Artificial Analysis sitemap cannot be fetched, the job now fails instead
-of writing the smaller cold-start cache.
+of writing the smaller cold-start cache. The sitemap is used only to add missing
+models; API models that are not present in the sitemap are still kept.
 
 ## Production Settings
 

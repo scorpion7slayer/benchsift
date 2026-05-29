@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { LLMModel } from "@/lib/api";
 import {
+  MODELS_KEYS,
   MODELS_TTL_SECONDS,
   MODELS_WRITE_KEY,
 } from "@/lib/models-cache-keys";
@@ -12,6 +13,21 @@ interface ModelsCacheEntry {
   key: string;
   models: LLMModel[];
   refreshedAt: number; // ms epoch
+  stats?: Record<string, number>;
+}
+
+export interface ModelsCacheSummary {
+  cacheFile: string;
+  exists: boolean;
+  valid: boolean;
+  fresh: boolean;
+  key?: string;
+  count?: number;
+  refreshedAt?: string;
+  refreshedAtMs?: number;
+  ageSeconds?: number;
+  stats?: Record<string, number>;
+  error?: string;
 }
 
 const DEFAULT_CACHE_FILE = ".data/models-cache.json";
@@ -24,7 +40,8 @@ function isValidEntry(raw: unknown): raw is ModelsCacheEntry {
   if (!raw || typeof raw !== "object") return false;
   const entry = raw as Partial<ModelsCacheEntry>;
   return (
-    entry.key === MODELS_WRITE_KEY &&
+    typeof entry.key === "string" &&
+    MODELS_KEYS.includes(entry.key as (typeof MODELS_KEYS)[number]) &&
     Array.isArray(entry.models) &&
     entry.models.length > 0 &&
     typeof entry.refreshedAt === "number"
@@ -46,12 +63,58 @@ export async function readModelsCache(): Promise<ModelsCacheEntry | null> {
   return null;
 }
 
-export async function writeModelsCache(models: LLMModel[]): Promise<void> {
+export async function readModelsCacheSummary(): Promise<ModelsCacheSummary> {
+  const cacheFile = getCacheFilePath();
+  try {
+    const raw = await readFile(cacheFile, "utf8");
+    const parsed = JSON.parse(raw) as unknown;
+    if (!isValidEntry(parsed)) {
+      return {
+        cacheFile,
+        exists: true,
+        valid: false,
+        fresh: false,
+        error: "Invalid cache shape",
+      };
+    }
+
+    const now = Date.now();
+    return {
+      cacheFile,
+      exists: true,
+      valid: true,
+      fresh: isFresh(parsed),
+      key: parsed.key,
+      count: parsed.models.length,
+      refreshedAt: new Date(parsed.refreshedAt).toISOString(),
+      refreshedAtMs: parsed.refreshedAt,
+      ageSeconds: Math.max(0, Math.round((now - parsed.refreshedAt) / 1000)),
+      stats: parsed.stats,
+    };
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error
+      ? String((error as { code?: unknown }).code)
+      : undefined;
+    return {
+      cacheFile,
+      exists: false,
+      valid: false,
+      fresh: false,
+      error: code === "ENOENT" ? "Cache file does not exist" : String(error),
+    };
+  }
+}
+
+export async function writeModelsCache(
+  models: LLMModel[],
+  stats?: Record<string, number>,
+): Promise<void> {
   const cacheFile = getCacheFilePath();
   const entry: ModelsCacheEntry = {
     key: MODELS_WRITE_KEY,
     models,
     refreshedAt: Date.now(),
+    ...(stats ? { stats } : {}),
   };
   await mkdir(path.dirname(cacheFile), { recursive: true });
   await writeFile(cacheFile, JSON.stringify(entry), "utf8");

@@ -16,6 +16,7 @@ import { Route as CompareRouteImport } from './routes/compare'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ModelsSlugRouteImport } from './routes/models/$slug'
 import { Route as AgentsCodingRouteImport } from './routes/agents/coding'
+import { Route as ApiCronStatusRouteImport } from './routes/api/cron/status'
 import { Route as ApiCronRefreshRouteImport } from './routes/api/cron/refresh'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -53,6 +54,11 @@ const AgentsCodingRoute = AgentsCodingRouteImport.update({
   path: '/agents/coding',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCronStatusRoute = ApiCronStatusRouteImport.update({
+  id: '/api/cron/status',
+  path: '/api/cron/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCronRefreshRoute = ApiCronRefreshRouteImport.update({
   id: '/api/cron/refresh',
   path: '/api/cron/refresh',
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/agents/coding': typeof AgentsCodingRoute
   '/models/$slug': typeof ModelsSlugRoute
   '/api/cron/refresh': typeof ApiCronRefreshRoute
+  '/api/cron/status': typeof ApiCronStatusRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/agents/coding': typeof AgentsCodingRoute
   '/models/$slug': typeof ModelsSlugRoute
   '/api/cron/refresh': typeof ApiCronRefreshRoute
+  '/api/cron/status': typeof ApiCronStatusRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +97,7 @@ export interface FileRoutesById {
   '/agents/coding': typeof AgentsCodingRoute
   '/models/$slug': typeof ModelsSlugRoute
   '/api/cron/refresh': typeof ApiCronRefreshRoute
+  '/api/cron/status': typeof ApiCronStatusRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/agents/coding'
     | '/models/$slug'
     | '/api/cron/refresh'
+    | '/api/cron/status'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/agents/coding'
     | '/models/$slug'
     | '/api/cron/refresh'
+    | '/api/cron/status'
   id:
     | '__root__'
     | '/'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/agents/coding'
     | '/models/$slug'
     | '/api/cron/refresh'
+    | '/api/cron/status'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,6 +144,7 @@ export interface RootRouteChildren {
   AgentsCodingRoute: typeof AgentsCodingRoute
   ModelsSlugRoute: typeof ModelsSlugRoute
   ApiCronRefreshRoute: typeof ApiCronRefreshRoute
+  ApiCronStatusRoute: typeof ApiCronStatusRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -185,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgentsCodingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cron/status': {
+      id: '/api/cron/status'
+      path: '/api/cron/status'
+      fullPath: '/api/cron/status'
+      preLoaderRoute: typeof ApiCronStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/cron/refresh': {
       id: '/api/cron/refresh'
       path: '/api/cron/refresh'
@@ -204,6 +224,7 @@ const rootRouteChildren: RootRouteChildren = {
   AgentsCodingRoute: AgentsCodingRoute,
   ModelsSlugRoute: ModelsSlugRoute,
   ApiCronRefreshRoute: ApiCronRefreshRoute,
+  ApiCronStatusRoute: ApiCronStatusRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

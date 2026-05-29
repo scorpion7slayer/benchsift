@@ -666,11 +666,12 @@ async function enrichCronModelsWithSources(models: LLMModel[]): Promise<LLMModel
  * Full model list, including partial scrapes for slugs missing from the AA API.
  * CPU-heavy (regex on dozens of HTML pages) — only call from the Cron Trigger.
  */
-interface CronFetchStats {
+interface CronFetchStats extends Record<string, number> {
   apiModels: number;
   mediaModels: number;
   sitemapSlugs: number;
   apiModelsInSitemap: number;
+  apiModelsNotInSitemap: number;
   missingSitemapSlugs: number;
   builtPartialModels: number;
 }
@@ -688,22 +689,23 @@ export async function fetchModelsForCron(): Promise<CronFetchResult> {
   ]);
 
   const validSlugSet = new Set(validSlugs);
-  const realApiModels = apiModels.filter((m) => validSlugSet.has(m.slug));
-  const realAndMediaModels = mergeAAMediaModels(realApiModels, mediaModels);
+  const apiModelsInSitemap = apiModels.filter((m) => validSlugSet.has(m.slug));
+  const apiAndMediaModels = mergeAAMediaModels(apiModels, mediaModels);
 
-  const apiSlugSet = new Set(realAndMediaModels.map((m) => m.slug));
-  const missingSlugs = validSlugs.filter((s) => !apiSlugSet.has(s));
+  const baseSlugSet = new Set(apiAndMediaModels.map((m) => m.slug));
+  const missingSlugs = validSlugs.filter((s) => !baseSlugSet.has(s));
   const statsBase = {
     apiModels: apiModels.length,
     mediaModels: mediaModels.length,
     sitemapSlugs: validSlugs.length,
-    apiModelsInSitemap: realApiModels.length,
+    apiModelsInSitemap: apiModelsInSitemap.length,
+    apiModelsNotInSitemap: apiModels.length - apiModelsInSitemap.length,
     missingSitemapSlugs: missingSlugs.length,
   };
 
   if (missingSlugs.length === 0) {
     return {
-      models: await enrichCronModelsWithSources(realAndMediaModels),
+      models: await enrichCronModelsWithSources(apiAndMediaModels),
       stats: { ...statsBase, builtPartialModels: 0 },
     };
   }
@@ -724,7 +726,7 @@ export async function fetchModelsForCron(): Promise<CronFetchResult> {
   }
 
   return {
-    models: await enrichCronModelsWithSources([...realAndMediaModels, ...extraModels]),
+    models: await enrichCronModelsWithSources([...apiAndMediaModels, ...extraModels]),
     stats: { ...statsBase, builtPartialModels: extraModels.length },
   };
 }
@@ -742,7 +744,7 @@ export async function refreshModelsCache(): Promise<{ count: number; stats: Cron
       `Refusing to replace ${previous.models.length} cached models with ${models.length}`,
     );
   }
-  await writeModelsCache(models);
+  await writeModelsCache(models, stats);
   if (models.length > 0) lastSuccessfulModels = models;
   return { count: models.length, stats };
 }

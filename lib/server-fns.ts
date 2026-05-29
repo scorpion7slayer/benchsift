@@ -2,7 +2,7 @@
 // used to happen inside Next.js Server Components. Each wraps a `lib/api`
 // call so it runs only on the server (route loaders call these).
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestHeader } from "@tanstack/react-start/server";
+import { getRequestHeader, setResponseHeader } from "@tanstack/react-start/server";
 import {
   getLLMModels,
   getLLMModelBasic,
@@ -13,6 +13,14 @@ import {
 } from "@/lib/api";
 import type { Lang } from "@/lib/i18n";
 
+function disableResponseCache(): void {
+  try {
+    setResponseHeader("cache-control", "no-store, max-age=0");
+  } catch {
+    // The header helper only exists during request handling.
+  }
+}
+
 /** Validates a model slug the same way the AA scraper does. */
 function isSafeSlug(slug: string): boolean {
   return /^[a-z0-9][a-z0-9._-]{1,119}$/i.test(slug);
@@ -20,7 +28,10 @@ function isSafeSlug(slug: string): boolean {
 
 /** Full models list (fast KV-cached path). */
 export const fetchModels = createServerFn({ method: "GET" }).handler(
-  async (): Promise<LLMModel[]> => getLLMModels(),
+  async (): Promise<LLMModel[]> => {
+    disableResponseCache();
+    return getLLMModels();
+  },
 );
 
 /** A single model's base data (no scraped capabilities). */
@@ -44,6 +55,7 @@ export const fetchCompareData = createServerFn({ method: "GET" })
   .inputValidator((slugs: string[]) => slugs)
   .handler(
     async ({ data }): Promise<{ allModels: LLMModel[]; selected: LLMModel[] }> => {
+      disableResponseCache();
       const slugs = data.filter(isSafeSlug).slice(0, 4);
       const [allModels, ...selectedModels] = await Promise.all([
         getLLMModels(),
