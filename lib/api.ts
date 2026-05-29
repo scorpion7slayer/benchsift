@@ -19,6 +19,8 @@ import type { CodingAgent } from "@/lib/coding-agents";
 const BASE_URL = "https://artificialanalysis.ai/api/v2";
 const API_FETCH_TIMEOUT_MS = 8_000;
 const SCRAPE_FETCH_TIMEOUT_MS = 6_000;
+const SITEMAP_FETCH_TIMEOUT_MS = 30_000;
+const MIN_SITEMAP_MODEL_SLUGS = 250;
 const PARTIAL_MODEL_CHUNK_SIZE = 5;
 const CAPABILITY_CHUNK_SIZE = 6;
 const SCRAPE_USER_AGENT = "Mozilla/5.0 (compatible; BenchSift/1.0; +https://benchsift.nxtaigen.com)";
@@ -279,28 +281,32 @@ function aaModelPageUrl(slug: string): string {
  * Called only inside the cached getLLMModels refresh to avoid extra KV entries.
  */
 async function scrapeAllModelSlugs(): Promise<string[]> {
-  try {
-    const res = await fetchWithTimeout(
-      "https://artificialanalysis.ai/sitemap.xml",
-      { headers: { "User-Agent": SCRAPE_USER_AGENT } },
-      SCRAPE_FETCH_TIMEOUT_MS
-    );
-    if (!res.ok) return [];
-    const xml = await res.text();
-    const slugs = new Set<string>();
-    for (const m of xml.matchAll(
-      /https:\/\/artificialanalysis\.ai\/models\/([a-z0-9][a-z0-9\-_.]+?)(?:<|\/|$)/g
-    )) {
-      const s = m[1];
-      // Only keep direct model slugs — skip meta-pages and sub-pages (contain "/")
-      if (s.length > 2 && !SITEMAP_EXCLUDED_SLUGS.has(s) && !s.includes("/")) {
-        slugs.add(s);
-      }
-    }
-    return [...slugs];
-  } catch {
-    return [];
+  const res = await fetchWithTimeout(
+    "https://artificialanalysis.ai/sitemap.xml",
+    { headers: { "User-Agent": SCRAPE_USER_AGENT } },
+    SITEMAP_FETCH_TIMEOUT_MS
+  );
+  if (!res.ok) {
+    throw new Error(`AA sitemap request failed with HTTP ${res.status}`);
   }
+
+  const xml = await res.text();
+  const slugs = new Set<string>();
+  for (const m of xml.matchAll(
+    /https:\/\/artificialanalysis\.ai\/models\/([a-z0-9][a-z0-9\-_.]+?)(?:<|\/|$)/g
+  )) {
+    const s = m[1];
+    // Only keep direct model slugs - skip meta-pages and sub-pages (contain "/").
+    if (s.length > 2 && !SITEMAP_EXCLUDED_SLUGS.has(s) && !s.includes("/")) {
+      slugs.add(s);
+    }
+  }
+
+  if (slugs.size < MIN_SITEMAP_MODEL_SLUGS) {
+    throw new Error(`AA sitemap returned only ${slugs.size} model slugs`);
+  }
+
+  return [...slugs];
 }
 
 // ─── Build partial models for slugs missing from the API ────────────────────
@@ -660,17 +666,26 @@ async function enrichCronModelsWithSources(models: LLMModel[]): Promise<LLMModel
  * Full model list, including partial scrapes for slugs missing from the AA API.
  * CPU-heavy (regex on dozens of HTML pages) — only call from the Cron Trigger.
  */
-export async function fetchModelsForCron(): Promise<LLMModel[]> {
+interface CronFetchStats {
+  apiModels: number;
+  mediaModels: number;
+  sitemapSlugs: number;
+  apiModelsInSitemap: number;
+  missingSitemapSlugs: number;
+  builtPartialModels: number;
+}
+
+interface CronFetchResult {
+  models: LLMModel[];
+  stats: CronFetchStats;
+}
+
+export async function fetchModelsForCron(): Promise<CronFetchResult> {
   const [apiModels, validSlugs, mediaModels] = await Promise.all([
     apiFetch<LLMModel[]>("/data/llms/models"),
     scrapeAllModelSlugs(),
     fetchAAMediaModels(apiFetch),
   ]);
-
-  if (validSlugs.length === 0) {
-    const aaModels = mergeAAMediaModels(apiModels, mediaModels);
-    return enrichCronModelsWithSources(aaModels);
-  }
 
   const validSlugSet = new Set(validSlugs);
   const realApiModels = apiModels.filter((m) => validSlugSet.has(m.slug));
@@ -678,9 +693,19 @@ export async function fetchModelsForCron(): Promise<LLMModel[]> {
 
   const apiSlugSet = new Set(realAndMediaModels.map((m) => m.slug));
   const missingSlugs = validSlugs.filter((s) => !apiSlugSet.has(s));
+  const statsBase = {
+    apiModels: apiModels.length,
+    mediaModels: mediaModels.length,
+    sitemapSlugs: validSlugs.length,
+    apiModelsInSitemap: realApiModels.length,
+    missingSitemapSlugs: missingSlugs.length,
+  };
 
   if (missingSlugs.length === 0) {
-    return enrichCronModelsWithSources(realAndMediaModels);
+    return {
+      models: await enrichCronModelsWithSources(realAndMediaModels),
+      stats: { ...statsBase, builtPartialModels: 0 },
+    };
   }
 
   const extraModels: LLMModel[] = [];
@@ -692,18 +717,34 @@ export async function fetchModelsForCron(): Promise<LLMModel[]> {
     }
   }
 
-  return enrichCronModelsWithSources([...realAndMediaModels, ...extraModels]);
+  if (extraModels.length < missingSlugs.length * 0.5) {
+    throw new Error(
+      `Only built ${extraModels.length}/${missingSlugs.length} partial sitemap models`,
+    );
+  }
+
+  return {
+    models: await enrichCronModelsWithSources([...realAndMediaModels, ...extraModels]),
+    stats: { ...statsBase, builtPartialModels: extraModels.length },
+  };
 }
 
 /**
  * Public entry point for refresh jobs: refreshes the persisted models cache.
  * Called by `src/routes/api/cron/refresh.ts`.
  */
-export async function refreshModelsCache(): Promise<{ count: number }> {
-  const models = normaliseCatalogModels(await fetchModelsForCron());
+export async function refreshModelsCache(): Promise<{ count: number; stats: CronFetchStats }> {
+  const { models: rawModels, stats } = await fetchModelsForCron();
+  const models = normaliseCatalogModels(rawModels);
+  const previous = await readModelsCache();
+  if (previous && previous.models.length > models.length + 20) {
+    throw new Error(
+      `Refusing to replace ${previous.models.length} cached models with ${models.length}`,
+    );
+  }
   await writeModelsCache(models);
   if (models.length > 0) lastSuccessfulModels = models;
-  return { count: models.length };
+  return { count: models.length, stats };
 }
 
 /**

@@ -65,6 +65,16 @@ the running container through `bash -c`. The `refresh-cache` script uses Node's
 HTTP client with a configurable timeout because the full upstream refresh can
 take longer than Node fetch's default header timeout.
 
+A complete refresh should report a JSON response with source counters, for
+example:
+
+```json
+{"ok":true,"count":1105,"stats":{"sitemapSlugs":378,"missingSitemapSlugs":140,"builtPartialModels":140}}
+```
+
+If the Artificial Analysis sitemap cannot be fetched, the job now fails instead
+of writing the smaller cold-start cache.
+
 ## Production Settings
 
 For zero-downtime deploys and automatic rollback, configure Dokploy's Advanced
