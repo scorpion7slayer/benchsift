@@ -29,6 +29,8 @@ OPENROUTER_API_KEY=
 HUGGINGFACE_API_KEY=
 CRON_SECRET=
 MODELS_CACHE_FILE=.data/models-cache.json
+# Optional: default is 1800000 (30 minutes)
+REFRESH_CACHE_TIMEOUT_MS=1800000
 ```
 
 ## Persistent Cache
@@ -59,7 +61,9 @@ cron behavior:
 
 Dokploy requires the target container to be running for Application Schedule
 Jobs. The Docker image installs `bash` because Dokploy executes the command in
-the running container through `bash -c`.
+the running container through `bash -c`. The `refresh-cache` script uses Node's
+HTTP client with a configurable timeout because the full upstream refresh can
+take longer than Node fetch's default header timeout.
 
 ## Production Settings
 
