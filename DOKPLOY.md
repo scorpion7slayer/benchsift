@@ -58,7 +58,8 @@ cron behavior:
 ```
 
 Dokploy requires the target container to be running for Application Schedule
-Jobs.
+Jobs. The Docker image installs `bash` because Dokploy executes the command in
+the running container through `bash -c`.
 
 ## Production Settings
 
