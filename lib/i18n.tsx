@@ -4,7 +4,7 @@ export type Lang = "fr" | "en";
 
 export interface Translations {
   brand: string;
-  nav: { back: string; source: string; feedback: string; codingAgents: string; models: string };
+  nav: { back: string; source: string; feedback: string; codingAgents: string; deepSwe: string; models: string };
   hero: { title: string; description: string; latestModels: string };
   grid: {
     search: string;
@@ -204,6 +204,28 @@ export interface Translations {
     previewNotice: string;
     viewOnAA: string;
   };
+  deepSwe: {
+    title: string;
+    description: string;
+    methodLabel: string;
+    methodDescription: string;
+    empty: string;
+    sourceNote: string;
+    viewOnDeepSwe: string;
+    stats: {
+      configs: string;
+      tasks: string;
+      best: string;
+      updated: string;
+    };
+    headers: {
+      model: string;
+      effort: string;
+      cost: string;
+      time: string;
+      outputTokens: string;
+    };
+  };
   benchmarks: {
     intelligence: string;
     coding: string;
@@ -235,7 +257,7 @@ export interface Translations {
 const T: Record<Lang, Translations> = {
   fr: {
     brand: "BenchSift",
-    nav: { back: "Retour", source: "Artificial Analysis", feedback: "Feedback", codingAgents: "Coding Agents", models: "Modèles" },
+    nav: { back: "Retour", source: "Artificial Analysis", feedback: "Feedback", codingAgents: "Coding Agents", deepSwe: "DeepSWE", models: "Modèles" },
     hero: {
       title: "Modèles d'IA",
       description: "Benchmarks texte et média, performances, prix, liens Hugging Face officiels et popularité OpenRouter — données via Artificial Analysis, OpenRouter et Hugging Face.",
@@ -449,6 +471,28 @@ const T: Record<Lang, Translations> = {
       previewNotice: "Artificial Analysis n'expose pas encore d'API publique pour les coding agents. Consultez le classement officiel pour les scores live.",
       viewOnAA: "Voir sur Artificial Analysis",
     },
+    deepSwe: {
+      title: "DeepSWE",
+      description: "Classement Datacurve des agents de programmation sur des tâches de génie logiciel long-horizon, originales et vérifiées par tests.",
+      methodLabel: "Méthodologie DeepSWE",
+      methodDescription: "DeepSWE mesure des configurations modèle + harnais + effort de raisonnement. Les lignes ci-dessous conservent cette séparation au lieu de fusionner les résultats dans les indices de modèles.",
+      empty: "Données DeepSWE indisponibles pour l'instant.",
+      sourceNote: "Données via Datacurve DeepSWE.",
+      viewOnDeepSwe: "Voir sur DeepSWE",
+      stats: {
+        configs: "Configurations",
+        tasks: "Tâches",
+        best: "Meilleur pass@1",
+        updated: "Mis à jour",
+      },
+      headers: {
+        model: "Modèle",
+        effort: "Effort",
+        cost: "Coût",
+        time: "Temps",
+        outputTokens: "Tokens sortie",
+      },
+    },
     benchmarks: {
       intelligence: "Intelligence",
       coding: "Coding",
@@ -478,7 +522,7 @@ const T: Record<Lang, Translations> = {
   },
   en: {
     brand: "BenchSift",
-    nav: { back: "Back", source: "Artificial Analysis", feedback: "Feedback", codingAgents: "Coding Agents", models: "Models" },
+    nav: { back: "Back", source: "Artificial Analysis", feedback: "Feedback", codingAgents: "Coding Agents", deepSwe: "DeepSWE", models: "Models" },
     hero: {
       title: "AI Models",
       description: "Text and media benchmarks, performance, pricing, official Hugging Face links and OpenRouter popularity — data via Artificial Analysis, OpenRouter and Hugging Face.",
@@ -691,6 +735,28 @@ const T: Record<Lang, Translations> = {
       knownHarnesses: "Tracked harnesses",
       previewNotice: "Artificial Analysis does not yet expose a public API for coding agents. Visit the official leaderboard for live scores.",
       viewOnAA: "View on Artificial Analysis",
+    },
+    deepSwe: {
+      title: "DeepSWE",
+      description: "Datacurve leaderboard for coding agents on original, long-horizon software engineering tasks with program-based verifiers.",
+      methodLabel: "DeepSWE methodology",
+      methodDescription: "DeepSWE measures model + harness + reasoning-effort configurations. This page keeps those rows separate instead of folding them into the model indices.",
+      empty: "DeepSWE data unavailable for now.",
+      sourceNote: "Data via Datacurve DeepSWE.",
+      viewOnDeepSwe: "View on DeepSWE",
+      stats: {
+        configs: "Configurations",
+        tasks: "Tasks",
+        best: "Best pass@1",
+        updated: "Updated",
+      },
+      headers: {
+        model: "Model",
+        effort: "Effort",
+        cost: "Cost",
+        time: "Time",
+        outputTokens: "Output tokens",
+      },
     },
     benchmarks: {
       intelligence: "Intelligence",

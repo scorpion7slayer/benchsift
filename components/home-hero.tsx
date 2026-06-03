@@ -5,7 +5,7 @@ import { Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CompareMenu, type CompareMenuModel } from "@/components/compare-menu";
 import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
-import { getProviderKey } from "@/lib/provider-map";
+import { getModelProviderKey } from "@/lib/provider-map";
 import { useI18n } from "@/lib/i18n";
 
 export interface LatestModelSummary {
@@ -145,7 +145,7 @@ export function HomeHero({
           </div>
           <div className="mt-2 flex items-center gap-2">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted">
-              <ModelProviderIcon provider={getProviderKey(latestModel.providerSlug)} size={20} />
+              <ModelProviderIcon provider={getModelProviderKey(latestModel.slug, latestModel.providerSlug)} size={20} />
             </span>
             <span className="min-w-0">
               <span className="block truncate text-sm font-medium group-hover:text-primary">

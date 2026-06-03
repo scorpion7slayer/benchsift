@@ -10,7 +10,7 @@ import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
-import { getProviderKey } from "@/lib/provider-map";
+import { getModelProviderKey } from "@/lib/provider-map";
 import { usePageTransition } from "@/components/page-transition-provider";
 import {
   AA_MEDIA_BENCHMARK_DEFS,
@@ -380,7 +380,7 @@ function MobileCompareView({
             }`}
           >
             <div className="size-7 flex items-center justify-center">
-              <ModelProviderIcon provider={getProviderKey(model.model_creator.slug)} size={20} />
+              <ModelProviderIcon provider={getModelProviderKey(model.slug, model.model_creator.slug)} size={20} />
             </div>
             <span className="text-xs font-medium leading-tight line-clamp-2 text-center w-full px-1">{model.name}</span>
             {winnerCounts[i] > 0 && (
@@ -399,7 +399,7 @@ function MobileCompareView({
       {/* Active model header */}
       <div className="flex items-start gap-3">
         <div className="size-12 rounded-xl bg-muted border flex items-center justify-center shrink-0">
-          <ModelProviderIcon provider={getProviderKey(m.model_creator.slug)} size={28} />
+          <ModelProviderIcon provider={getModelProviderKey(m.slug, m.model_creator.slug)} size={28} />
         </div>
         <div className="flex-1 min-w-0">
           <Link href={`/models/${m.slug}`} className="font-semibold leading-tight hover:underline line-clamp-2">
@@ -450,7 +450,7 @@ function MobileCompareView({
                   style={{ animationDelay: `${Math.min(index, 5) * 32}ms` }}
                 >
                   <div className="size-7 rounded-md bg-muted flex items-center justify-center shrink-0">
-                    <ModelProviderIcon provider={getProviderKey(res.model_creator.slug)} size={18} />
+                    <ModelProviderIcon provider={getModelProviderKey(res.slug, res.model_creator.slug)} size={18} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{res.name}</p>
@@ -708,7 +708,7 @@ function SearchDropdown({ results, onAdd }: { results: LLMModel[]; onAdd: (m: LL
           style={{ animationDelay: `${Math.min(index, 7) * 32}ms` }}
         >
           <div className="size-7 rounded-md bg-muted flex items-center justify-center shrink-0">
-            <ModelProviderIcon provider={getProviderKey(m.model_creator.slug)} size={18} />
+            <ModelProviderIcon provider={getModelProviderKey(m.slug, m.model_creator.slug)} size={18} />
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-medium truncate">{m.name}</p>
@@ -954,7 +954,7 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
                   >
                     <div className="flex flex-col items-center gap-1.5">
                       <div className="size-9 rounded-lg bg-background flex items-center justify-center border">
-                        <ModelProviderIcon provider={getProviderKey(model.model_creator.slug)} size={22} />
+                        <ModelProviderIcon provider={getModelProviderKey(model.slug, model.model_creator.slug)} size={22} />
                       </div>
                       <Link href={`/models/${model.slug}`} className="font-medium text-sm leading-tight hover:underline text-foreground line-clamp-2">
                         {model.name}

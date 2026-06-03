@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
 import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
-import { getProviderKey } from "@/lib/provider-map";
+import { getModelProviderKey } from "@/lib/provider-map";
 import { usePageTransition } from "@/components/page-transition-provider";
 import {
   applicableExtraBenchmarkEntries,
@@ -441,12 +441,12 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
   const { toggle, isSelected, selected } = useCompare();
   const { push } = usePageTransition();
   const {
-    name, model_creator, evaluations: ev, pricing,
+    name, slug, model_creator, evaluations: ev, pricing,
     median_output_tokens_per_second, median_time_to_first_token_seconds,
     median_time_to_first_answer_token, release_date,
   } = model;
 
-  const providerKey = getProviderKey(model_creator.slug);
+  const providerKey = getModelProviderKey(slug, model_creator.slug);
   const intelligence = textMetricValue(model, "artificial_analysis_intelligence_index");
   const isComp = isSelected(model.slug);
   const openRouterDisplayPrices = pricing.openrouter_display_prices ?? [];

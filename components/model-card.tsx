@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
 import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
-import { getProviderKey } from "@/lib/provider-map";
+import { getModelProviderKey } from "@/lib/provider-map";
 import {
   hasAAIndexBenchmarks,
   isOpenWeightsModel,
@@ -228,7 +228,7 @@ export function ModelCard({ model }: { model: LLMModel }) {
     is_open_weights, huggingface_url, huggingface_official,
   } = model;
 
-  const providerKey = getProviderKey(model_creator.slug);
+  const providerKey = getModelProviderKey(slug, model_creator.slug);
   const intelligence = textMetricValue(model, "artificial_analysis_intelligence_index");
   const selected = isSelected(slug);
   const ctxLabel = fmtCtx(context_window_tokens ?? null);

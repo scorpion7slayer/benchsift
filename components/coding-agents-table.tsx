@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Separator } from "@/components/ui/separator";
 import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
 import { HarnessIcon } from "@/components/harness-icon-lazy";
-import { getProviderKey } from "@/lib/provider-map";
+import { getModelProviderKey } from "@/lib/provider-map";
 import { useI18n } from "@/lib/i18n";
 import { CODING_AGENT_HARNESSES, type CodingAgent } from "@/lib/coding-agents";
 
@@ -156,7 +156,7 @@ export function CodingAgentsTable({ agents }: { agents: CodingAgent[] }) {
                     {harnessName(a.agent_slug, a.agent_name)}
                   </p>
                   <div className="text-xs text-muted-foreground flex items-center gap-1 min-w-0">
-                    <ModelProviderIcon provider={getProviderKey(a.model_creator_slug)} size={12} />
+                    <ModelProviderIcon provider={getModelProviderKey(a.model_slug, a.model_creator_slug)} size={12} />
                     <span className="truncate">{a.model_short || a.model_name}</span>
                   </div>
                 </div>
@@ -241,7 +241,7 @@ export function CodingAgentsTable({ agents }: { agents: CodingAgent[] }) {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
-                        <ModelProviderIcon provider={getProviderKey(a.model_creator_slug)} size={14} />
+                        <ModelProviderIcon provider={getModelProviderKey(a.model_slug, a.model_creator_slug)} size={14} />
                         <span className="text-muted-foreground">{a.model_short || a.model_name}</span>
                       </div>
                     </td>

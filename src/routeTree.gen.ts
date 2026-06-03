@@ -15,6 +15,7 @@ import { Route as HealthRouteImport } from './routes/health'
 import { Route as CompareRouteImport } from './routes/compare'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ModelsSlugRouteImport } from './routes/models/$slug'
+import { Route as BenchmarksDeepsweRouteImport } from './routes/benchmarks/deepswe'
 import { Route as AgentsCodingRouteImport } from './routes/agents/coding'
 import { Route as ApiCronStatusRouteImport } from './routes/api/cron/status'
 import { Route as ApiCronRefreshRouteImport } from './routes/api/cron/refresh'
@@ -49,6 +50,11 @@ const ModelsSlugRoute = ModelsSlugRouteImport.update({
   path: '/models/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BenchmarksDeepsweRoute = BenchmarksDeepsweRouteImport.update({
+  id: '/benchmarks/deepswe',
+  path: '/benchmarks/deepswe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AgentsCodingRoute = AgentsCodingRouteImport.update({
   id: '/agents/coding',
   path: '/agents/coding',
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/agents/coding': typeof AgentsCodingRoute
+  '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
   '/models/$slug': typeof ModelsSlugRoute
   '/api/cron/refresh': typeof ApiCronRefreshRoute
   '/api/cron/status': typeof ApiCronStatusRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/agents/coding': typeof AgentsCodingRoute
+  '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
   '/models/$slug': typeof ModelsSlugRoute
   '/api/cron/refresh': typeof ApiCronRefreshRoute
   '/api/cron/status': typeof ApiCronStatusRoute
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/agents/coding': typeof AgentsCodingRoute
+  '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
   '/models/$slug': typeof ModelsSlugRoute
   '/api/cron/refresh': typeof ApiCronRefreshRoute
   '/api/cron/status': typeof ApiCronStatusRoute
@@ -108,6 +117,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/agents/coding'
+    | '/benchmarks/deepswe'
     | '/models/$slug'
     | '/api/cron/refresh'
     | '/api/cron/status'
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/agents/coding'
+    | '/benchmarks/deepswe'
     | '/models/$slug'
     | '/api/cron/refresh'
     | '/api/cron/status'
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/agents/coding'
+    | '/benchmarks/deepswe'
     | '/models/$slug'
     | '/api/cron/refresh'
     | '/api/cron/status'
@@ -142,6 +154,7 @@ export interface RootRouteChildren {
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AgentsCodingRoute: typeof AgentsCodingRoute
+  BenchmarksDeepsweRoute: typeof BenchmarksDeepsweRoute
   ModelsSlugRoute: typeof ModelsSlugRoute
   ApiCronRefreshRoute: typeof ApiCronRefreshRoute
   ApiCronStatusRoute: typeof ApiCronStatusRoute
@@ -191,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ModelsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/benchmarks/deepswe': {
+      id: '/benchmarks/deepswe'
+      path: '/benchmarks/deepswe'
+      fullPath: '/benchmarks/deepswe'
+      preLoaderRoute: typeof BenchmarksDeepsweRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/agents/coding': {
       id: '/agents/coding'
       path: '/agents/coding'
@@ -222,6 +242,7 @@ const rootRouteChildren: RootRouteChildren = {
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   AgentsCodingRoute: AgentsCodingRoute,
+  BenchmarksDeepsweRoute: BenchmarksDeepsweRoute,
   ModelsSlugRoute: ModelsSlugRoute,
   ApiCronRefreshRoute: ApiCronRefreshRoute,
   ApiCronStatusRoute: ApiCronStatusRoute,

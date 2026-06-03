@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@/components/link";
-import { Brain, ExternalLink, ChevronLeft, MessageSquarePlus, Menu, X, Terminal } from "lucide-react";
+import { Activity, Brain, ExternalLink, ChevronLeft, MessageSquarePlus, Menu, X, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useI18n, type Lang } from "@/lib/i18n";
@@ -71,6 +71,13 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
               <Terminal className="size-3" />
               {t.nav.codingAgents}
             </Link>
+            <Link
+              href="/benchmarks/deepswe"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Activity className="size-3" />
+              {t.nav.deepSwe}
+            </Link>
             <div className="w-px h-4 bg-border mx-1" />
             <a
               href="https://artificialanalysis.ai"
@@ -137,6 +144,14 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
           >
             <Terminal className="size-4 shrink-0" />
             {t.nav.codingAgents}
+          </Link>
+          <Link
+            href="/benchmarks/deepswe"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => setMenuOpen(false)}
+          >
+            <Activity className="size-4 shrink-0" />
+            {t.nav.deepSwe}
           </Link>
           <a
             href="https://artificialanalysis.ai"

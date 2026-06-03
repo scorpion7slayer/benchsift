@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
 import { Link } from "@/components/link";
-import { getProviderKey } from "@/lib/provider-map";
+import { getModelProviderKey } from "@/lib/provider-map";
 import { useCompare } from "@/lib/compare-store";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -208,7 +208,7 @@ export function CompareMenu({
                   style={{ animationDelay: `${Math.min(index, 7) * 32}ms` }}
                 >
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted">
-                    <ModelProviderIcon provider={getProviderKey(model.providerSlug)} size={18} />
+                    <ModelProviderIcon provider={getModelProviderKey(model.slug, model.providerSlug)} size={18} />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium">{model.name}</span>

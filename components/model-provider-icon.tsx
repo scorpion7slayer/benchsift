@@ -1,5 +1,5 @@
 import { useTheme } from "next-themes";
-import { ProviderIcon, ZAI, KwaiKAT, Inception, Ai2, Liquid, DeepCogito, OpenChat, Aws, Cursor } from "@lobehub/icons";
+import { ProviderIcon, ZAI, Qwen, Kimi, KwaiKAT, Inception, Ai2, Liquid, DeepCogito, OpenChat, Aws, Cursor } from "@lobehub/icons";
 import { Bot } from "lucide-react";
 
 interface Props {
@@ -56,8 +56,10 @@ export function ModelProviderIcon({ provider, size = 20 }: Props) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
-  // Cas spécial : ZAI (pas dans ProviderIcon mais disponible en import direct)
+  // Cas spéciaux : rendu direct quand ProviderIcon ne correspond pas au logo voulu.
   if (provider === "zai") return <ZAI.Avatar size={size} />;
+  if (provider === "qwen") return <Qwen.Avatar size={size} />;
+  if (provider === "kimi") return <Kimi.Avatar size={size} />;
   if (provider === "aws") return <Aws.Avatar size={size} />;
   if (provider === "kwaikat") return <KwaiKAT.Avatar size={size} />;
   if (provider === "inception") return <Inception.Avatar size={size} />;

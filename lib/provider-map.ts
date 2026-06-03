@@ -89,6 +89,22 @@ export function getProviderKey(creatorSlug: string): string {
 }
 
 /**
+ * Returns the provider icon key for a specific model. Some AA rows expose the
+ * parent company as creator while the recognisable model family has its own
+ * logo, e.g. Qwen models under Alibaba or Kimi models under Moonshot AI.
+ */
+export function getModelProviderKey(modelSlug: string, creatorSlug: string): string {
+  const slug = modelSlug.toLowerCase();
+  if (slug.startsWith("qwen") || slug.startsWith("qwq") || slug.startsWith("qvq")) {
+    return "qwen";
+  }
+  if (slug.startsWith("kimi")) {
+    return "kimi";
+  }
+  return getProviderKey(resolveCreatorFromModelSlug(modelSlug, creatorSlug));
+}
+
+/**
  * Display name overrides for model creators when AA's API returns a brand
  * name that doesn't match the actual company (e.g. "Kimi" is the product,
  * Moonshot AI is the company that builds it).
@@ -133,7 +149,7 @@ export function resolveCreatorFromModelSlug(modelSlug: string, hostFallback: str
   if (slug.startsWith("gemini")) return "google";
   if (slug.startsWith("kimi")) return "moonshot";
   if (slug.startsWith("deepseek")) return "deepseek";
-  if (slug.startsWith("qwen") || slug.startsWith("qwq")) return "alibaba";
+  if (slug.startsWith("qwen") || slug.startsWith("qwq") || slug.startsWith("qvq")) return "qwen";
   if (slug.startsWith("llama")) return "meta";
   if (slug.startsWith("mistral") || slug.startsWith("mixtral") || slug.startsWith("codestral")) return "mistral";
   if (slug.startsWith("grok")) return "xai";
