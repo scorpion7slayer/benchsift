@@ -10,6 +10,7 @@ import { Providers } from "@/components/providers";
 import { PageTransitionProvider } from "@/components/page-transition-provider";
 import { CookieBanner } from "@/components/cookie-banner";
 import { DefaultCatchBoundary } from "@/components/default-catch-boundary";
+import { WebMcpProvider } from "@/components/webmcp-provider";
 import { fetchPreferences } from "@/lib/server-fns";
 import { SITE_NAME, seo, websiteJsonLd } from "@/lib/seo";
 import appCss from "../styles/globals.css?url";
@@ -62,6 +63,7 @@ function RootComponent() {
           <Outlet />
         </PageTransitionProvider>
         <CookieBanner />
+        <WebMcpProvider />
       </Providers>
     </RootDocument>
   );

@@ -8,6 +8,11 @@ import { SiteFooter } from "@/components/site-footer";
 import { Separator } from "@/components/ui/separator";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import { SITE_NAME, absoluteUrl, seo, websiteJsonLd } from "@/lib/seo";
+import {
+  agentDiscoveryLinkHeader,
+  homepageMarkdown,
+  markdownTokenEstimate,
+} from "@/lib/agent-discovery";
 
 function getLatestModelSummary(models: LLMModel[]): LatestModelSummary | null {
   const latest = models.reduce<LLMModel | null>((current, model) => {
@@ -28,6 +33,32 @@ function getLatestModelSummary(models: LLMModel[]): LatestModelSummary | null {
 }
 
 export const Route = createFileRoute("/")({
+  server: {
+    handlers: {
+      GET: ({ request, next }) => {
+        const accept = request.headers.get("accept") ?? "";
+        if (accept.toLowerCase().includes("text/markdown")) {
+          return new Response(homepageMarkdown, {
+            headers: {
+              "content-type": "text/markdown; charset=utf-8",
+              "cache-control":
+                "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
+              "content-signal": "search=yes, ai-input=yes, ai-train=no",
+              "x-markdown-tokens": markdownTokenEstimate(homepageMarkdown),
+              Link: agentDiscoveryLinkHeader(),
+              Vary: "Accept",
+            },
+          });
+        }
+
+        return next();
+      },
+    },
+  },
+  headers: () => ({
+    Link: agentDiscoveryLinkHeader(),
+    Vary: "Accept",
+  }),
   head: ({ loaderData }) =>
     seo({
       title: "BenchSift - AI Model Benchmarks, Pricing and Speed",
