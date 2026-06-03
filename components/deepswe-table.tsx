@@ -57,8 +57,6 @@ function displayModelName(slug: string): string {
     .map((part) => part.length <= 3 && /^[a-z]+$/.test(part) ? part.toUpperCase() : part)
     .join(" ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
-    .replace(/\bGPT\b/g, "GPT")
-    .replace(/\bGLM\b/g, "GLM")
     .replace(/\bV(\d)\b/g, "V$1");
 }
 
