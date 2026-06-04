@@ -5,7 +5,13 @@ export type Lang = "fr" | "en";
 export interface Translations {
   brand: string;
   nav: { back: string; source: string; feedback: string; codingAgents: string; deepSwe: string; models: string };
-  hero: { title: string; description: string; latestModels: string };
+  hero: {
+    title: string;
+    description: string;
+    latestModels: string;
+    previousModel: string;
+    nextModel: string;
+  };
   grid: {
     search: string;
     sortBy: string;
@@ -261,7 +267,9 @@ const T: Record<Lang, Translations> = {
     hero: {
       title: "Modèles d'IA",
       description: "Benchmarks texte et média, performances, prix, liens Hugging Face officiels et popularité OpenRouter — données via Artificial Analysis, OpenRouter et Hugging Face.",
-      latestModels: "Latest models",
+      latestModels: "Derniers modèles",
+      previousModel: "Modèle précédent",
+      nextModel: "Modèle suivant",
     },
     grid: {
       search: "Rechercher un modèle ou un fournisseur…",
@@ -527,6 +535,8 @@ const T: Record<Lang, Translations> = {
       title: "AI Models",
       description: "Text and media benchmarks, performance, pricing, official Hugging Face links and OpenRouter popularity — data via Artificial Analysis, OpenRouter and Hugging Face.",
       latestModels: "Latest models",
+      previousModel: "Previous model",
+      nextModel: "Next model",
     },
     grid: {
       search: "Search a model or provider…",

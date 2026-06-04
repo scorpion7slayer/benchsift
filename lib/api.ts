@@ -6,6 +6,7 @@ import {
 } from "@/lib/provider-map";
 import { readModelsCache, writeModelsCache, scheduleWriteModelsCache } from "@/lib/cron-cache";
 import {
+  dedupeOpenRouterVariantModels,
   enrichModelsWithOpenRouter,
   findOpenRouterModel,
   getOpenRouterModels as fetchOpenRouterModels,
@@ -119,6 +120,7 @@ export interface LLMModel {
   name: string;
   slug: string;
   release_date: string | null;
+  release_timestamp?: string | null;
   model_creator: ModelCreator;
   evaluations: Evaluations;
   pricing: Pricing;
@@ -792,7 +794,9 @@ function removeOpenRouterMovingAliases(models: LLMModel[]): LLMModel[] {
 }
 
 function normaliseCatalogModels(models: LLMModel[]): LLMModel[] {
-  return normaliseCreatorNames(removeOpenRouterMovingAliases(models));
+  return dedupeOpenRouterVariantModels(
+    normaliseCreatorNames(removeOpenRouterMovingAliases(models)),
+  );
 }
 
 /**

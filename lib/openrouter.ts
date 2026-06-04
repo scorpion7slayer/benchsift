@@ -1,5 +1,9 @@
 import type { LLMModel } from "@/lib/api";
 import { createEmptyEvaluations } from "@/lib/model-metrics";
+import {
+  getCanonicalCreatorSlug,
+  resolveCreatorFromModelSlug,
+} from "@/lib/provider-map";
 
 const OR_BASE = "https://openrouter.ai/api/v1";
 const OPENROUTER_RANKINGS_PAGE = "https://openrouter.ai/rankings";
@@ -253,6 +257,26 @@ export function findOpenRouterModel(
   return orModels.find((or) => openRouterModelMatchesSlug(aaSlug, or));
 }
 
+function findOpenRouterModelForCatalogModel(
+  model: LLMModel,
+  orModels: OpenRouterModel[],
+): OpenRouterModel | undefined {
+  const bySlug = findOpenRouterModel(model.slug, orModels);
+  if (bySlug) return bySlug;
+
+  const modelKey = catalogDedupeKey(model);
+  if (!modelKey) return undefined;
+
+  return [...orModels]
+    .sort(sortOpenRouterVariants)
+    .find((or) => {
+      const orKey = openRouterDedupeKey(or);
+      return orKey
+        ? dedupeKeyMatches(modelKey, orKey, isFreeOpenRouterVariant(or))
+        : false;
+    });
+}
+
 /** Converts an OR model to our capabilities format. */
 export function openRouterCapabilities(or: OpenRouterModel): Partial<LLMModel> {
   const inp = or.architecture?.input_modalities ?? [];
@@ -261,6 +285,7 @@ export function openRouterCapabilities(or: OpenRouterModel): Partial<LLMModel> {
   const has = (arr: string[], ...keys: string[]) =>
     keys.some((k) => arr.includes(k)) ? true : undefined;
   return {
+    release_timestamp: releaseTimestamp(or),
     context_window_tokens: or.context_length || or.top_provider?.context_length || null,
     reasoning_model: params.includes("reasoning") || params.includes("include_reasoning")
       ? true
@@ -336,6 +361,22 @@ function normaliseId(id: string | null | undefined): string | null {
     .replace(/[\s_]/g, "-");
 }
 
+function normaliseNameKey(name: string | null | undefined): string | null {
+  if (!name) return null;
+  const key = name
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\([^)]*\bfree\b[^)]*\)/g, " ")
+    .replace(/\[[^\]]*\bfree\b[^\]]*\]/g, " ")
+    .replace(/:free\b/g, " ")
+    .replace(/\bfree\b/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, "-");
+  return key || null;
+}
+
 function stripDateSuffix(id: string): string {
   return id.replace(/-\d{8}$/, "");
 }
@@ -387,10 +428,96 @@ function providerSlug(or: OpenRouterModel): string {
   const slug = (normaliseId(or.id.split("/")[0]) ?? "openrouter").replace(/[^a-z0-9-]+/g, "-");
   const aliases: Record<string, string> = {
     "mistralai": "mistral",
+    "moonshotai": "moonshot",
     "x-ai": "xai",
     "z-ai": "zai",
   };
   return aliases[slug] ?? slug;
+}
+
+function catalogProviderSlug(model: Pick<LLMModel, "slug" | "model_creator">): string {
+  return getCanonicalCreatorSlug(
+    resolveCreatorFromModelSlug(model.slug, model.model_creator.slug),
+  );
+}
+
+function openRouterNameKey(or: OpenRouterModel): string | null {
+  return normaliseNameKey(displayName(or, titleFromSlug(providerSlug(or))));
+}
+
+function catalogNameKey(model: Pick<LLMModel, "name">): string | null {
+  return normaliseNameKey(model.name);
+}
+
+function dedupeKey(provider: string, nameKey: string | null): string | null {
+  return nameKey ? `${getCanonicalCreatorSlug(provider)}:${nameKey}` : null;
+}
+
+function catalogDedupeKey(model: Pick<LLMModel, "slug" | "name" | "model_creator">): string | null {
+  return dedupeKey(catalogProviderSlug(model), catalogNameKey(model));
+}
+
+function openRouterDedupeKey(or: OpenRouterModel): string | null {
+  return dedupeKey(providerSlug(or), openRouterNameKey(or));
+}
+
+function isFreeOpenRouterVariant(or: OpenRouterModel): boolean {
+  return [or.id, or.canonical_slug].some((id) => id?.toLowerCase().endsWith(":free")) ||
+    /\bfree\b/i.test(or.name);
+}
+
+function isFreeCatalogVariant(model: Pick<LLMModel, "id" | "name">): boolean {
+  return model.id.toLowerCase().endsWith(":free") || /\bfree\b/i.test(model.name);
+}
+
+function sortOpenRouterVariants(a: OpenRouterModel, b: OpenRouterModel): number {
+  return Number(isFreeOpenRouterVariant(a)) - Number(isFreeOpenRouterVariant(b));
+}
+
+function splitDedupeKey(key: string): { provider: string; nameKey: string } | null {
+  const separator = key.indexOf(":");
+  if (separator <= 0 || separator === key.length - 1) return null;
+  return {
+    provider: key.slice(0, separator),
+    nameKey: key.slice(separator + 1),
+  };
+}
+
+function nameKeyContainsVariant(existingNameKey: string, variantNameKey: string): boolean {
+  if (variantNameKey.length < 8) return false;
+  const tokenCount = variantNameKey.split("-").filter(Boolean).length;
+  if (tokenCount < 2) return false;
+  return (
+    existingNameKey.startsWith(`${variantNameKey}-`) ||
+    existingNameKey.includes(`-${variantNameKey}-`)
+  );
+}
+
+function dedupeKeyMatches(
+  existingKey: string,
+  candidateKey: string,
+  allowCandidateAsVariant: boolean,
+): boolean {
+  const existing = splitDedupeKey(existingKey);
+  const candidate = splitDedupeKey(candidateKey);
+  if (!existing || !candidate || existing.provider !== candidate.provider) return false;
+  if (existing.nameKey === candidate.nameKey) return true;
+  return allowCandidateAsVariant
+    ? nameKeyContainsVariant(existing.nameKey, candidate.nameKey)
+    : false;
+}
+
+function dedupeKeyMatchesAny(
+  candidateKey: string,
+  existingKeys: Iterable<string>,
+  allowCandidateAsVariant: boolean,
+): boolean {
+  for (const existingKey of existingKeys) {
+    if (dedupeKeyMatches(existingKey, candidateKey, allowCandidateAsVariant)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function openRouterModelMatchesSlug(slug: string, or: OpenRouterModel): boolean {
@@ -700,6 +827,12 @@ function releaseDate(or: OpenRouterModel): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
 }
 
+function releaseTimestamp(or: OpenRouterModel): string | null {
+  if (!or.created) return null;
+  const date = new Date(or.created * 1000);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
 function isSafeSlug(slug: string): boolean {
   return /^[a-z0-9][a-z0-9._-]{1,119}$/.test(slug);
 }
@@ -732,6 +865,7 @@ function openRouterOnlyModel(or: OpenRouterModel, usedSlugs: Set<string>): LLMMo
     name: displayName(or, creatorName),
     slug,
     release_date: releaseDate(or),
+    release_timestamp: releaseTimestamp(or),
     model_creator: {
       id: creatorSlug,
       name: creatorName,
@@ -753,10 +887,24 @@ function addOpenRouterOnlyModels(
   daBenchmarks: Record<string, OpenRouterDABenchmarkRow[]>,
 ): LLMModel[] {
   const usedSlugs = new Set(models.map((model) => model.slug));
+  const existingDedupeKeys = models
+    .map((model) => catalogDedupeKey(model))
+    .filter((key): key is string => key != null);
+  const addedDedupeKeys: string[] = [];
   const next = [...models];
 
-  for (const orModel of orModels) {
+  for (const orModel of [...orModels].sort(sortOpenRouterVariants)) {
     if (isOpenRouterMovingAlias(orModel)) {
+      continue;
+    }
+    const dedupeKey = openRouterDedupeKey(orModel);
+    if (
+      dedupeKey &&
+      (
+        dedupeKeyMatchesAny(dedupeKey, existingDedupeKeys, isFreeOpenRouterVariant(orModel)) ||
+        dedupeKeyMatchesAny(dedupeKey, addedDedupeKeys, isFreeOpenRouterVariant(orModel))
+      )
+    ) {
       continue;
     }
     if (models.some((model) => openRouterModelMatchesSlug(model.slug, orModel))) {
@@ -764,6 +912,8 @@ function addOpenRouterOnlyModels(
     }
     const model = openRouterOnlyModel(orModel, usedSlugs);
     usedSlugs.add(model.slug);
+    const modelDedupeKey = catalogDedupeKey(model);
+    if (modelDedupeKey) addedDedupeKeys.push(modelDedupeKey);
     next.push(
       mergeOpenRouterData(
         model,
@@ -775,6 +925,29 @@ function addOpenRouterOnlyModels(
   }
 
   return next;
+}
+
+export function dedupeOpenRouterVariantModels(models: LLMModel[]): LLMModel[] {
+  const firstPartyKeys = models
+    .filter((model) => !model.id.startsWith("openrouter:"))
+    .map((model) => catalogDedupeKey(model))
+    .filter((key): key is string => key != null);
+  const seenOpenRouterKeys: string[] = [];
+
+  return models.filter((model) => {
+    if (!model.id.startsWith("openrouter:")) return true;
+    const key = catalogDedupeKey(model);
+    if (!key) return true;
+    const allowVariantMatch = isFreeCatalogVariant(model);
+    if (
+      dedupeKeyMatchesAny(key, firstPartyKeys, allowVariantMatch) ||
+      dedupeKeyMatchesAny(key, seenOpenRouterKeys, allowVariantMatch)
+    ) {
+      return false;
+    }
+    seenOpenRouterKeys.push(key);
+    return true;
+  });
 }
 
 export async function enrichModelsWithOpenRouter(
@@ -796,7 +969,7 @@ export async function enrichModelsWithOpenRouter(
   }
 
   const enrichedModels = models.map((model) => {
-    const orModel = findOpenRouterModel(model.slug, orModels);
+    const orModel = findOpenRouterModelForCatalogModel(model, orModels);
     const caps = orModel ? openRouterCapabilities(orModel) : {};
     const enriched = mergeDefined(model, caps);
     return mergeOpenRouterData(

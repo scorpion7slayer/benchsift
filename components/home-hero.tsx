@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "@/components/link";
-import { Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CompareMenu, type CompareMenuModel } from "@/components/compare-menu";
 import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
@@ -14,6 +14,7 @@ export interface LatestModelSummary {
   providerName: string;
   providerSlug: string;
   releaseDate: string | null;
+  releaseTimestamp?: string | null;
 }
 
 function subscribeHydration(onStoreChange: () => void) {
@@ -43,15 +44,15 @@ function formatReleaseDate(value: string | null, lang: "fr" | "en"): string | nu
 
 export function HomeHero({
   count,
-  latestModel,
+  latestModels,
   compareModels,
 }: {
   count: number;
-  latestModel: LatestModelSummary | null;
+  latestModels: LatestModelSummary[];
   compareModels: CompareMenuModel[];
 }) {
   const { lang, t } = useI18n();
-  const latestDate = formatReleaseDate(latestModel?.releaseDate ?? null, lang);
+  const [activeLatestIndex, setActiveLatestIndex] = useState(0);
   const inlineCompareRef = useRef<HTMLDivElement>(null);
   const [bubbleState, setBubbleState] = useState({ visible: false, x: 0, y: 0 });
   const hydrated = useSyncExternalStore(
@@ -60,6 +61,25 @@ export function HomeHero({
     getServerHydrationSnapshot
   );
   const portalTarget = hydrated ? document.body : null;
+  const latestModel = latestModels[activeLatestIndex] ?? latestModels[0] ?? null;
+  const latestDate = formatReleaseDate(latestModel?.releaseDate ?? null, lang);
+  const hasLatestSlider = latestModels.length > 1;
+
+  useEffect(() => {
+    setActiveLatestIndex((index) =>
+      Math.min(index, Math.max(0, latestModels.length - 1)),
+    );
+  }, [latestModels.length]);
+
+  function showPreviousLatestModel() {
+    setActiveLatestIndex((index) =>
+      (index - 1 + latestModels.length) % latestModels.length,
+    );
+  }
+
+  function showNextLatestModel() {
+    setActiveLatestIndex((index) => (index + 1) % latestModels.length);
+  }
 
   useEffect(() => {
     const HEADER_BOTTOM = 56;
@@ -128,35 +148,86 @@ export function HomeHero({
       {portalTarget ? createPortal(compareBubble, portalTarget) : null}
 
       {latestModel && (
-        <Link
-          href={`/models/${latestModel.slug}`}
-          className="group w-full shrink-0 rounded-lg border bg-card p-3 shadow-sm transition-colors hover:bg-muted/70 sm:max-w-72"
-        >
-          <div className="flex items-center justify-between gap-2">
+        <div className="w-full shrink-0 rounded-lg border bg-card p-3 shadow-sm sm:max-w-80">
+          <div className="flex items-center justify-between gap-3">
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <Sparkles className="size-3.5 text-primary" />
               {t.hero.latestModels}
             </span>
-            {latestDate && (
+            {hasLatestSlider ? (
+              <span className="inline-flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={showPreviousLatestModel}
+                  aria-label={t.hero.previousModel}
+                  className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <ChevronLeft className="size-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={showNextLatestModel}
+                  aria-label={t.hero.nextModel}
+                  className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <ChevronRight className="size-3.5" />
+                </button>
+              </span>
+            ) : latestDate ? (
               <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                 {latestDate}
               </span>
-            )}
+            ) : null}
           </div>
-          <div className="mt-2 flex items-center gap-2">
+
+          <Link
+            href={`/models/${latestModel.slug}`}
+            className="group mt-2 flex items-center gap-2 rounded-md transition-colors hover:text-primary"
+          >
             <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted">
               <ModelProviderIcon provider={getModelProviderKey(latestModel.slug, latestModel.providerSlug)} size={20} />
             </span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-medium group-hover:text-primary">
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium">
                 {latestModel.name}
               </span>
               <span className="block truncate text-xs text-muted-foreground">
                 {latestModel.providerName}
               </span>
             </span>
-          </div>
-        </Link>
+            {latestDate && hasLatestSlider && (
+              <span className="ml-2 hidden shrink-0 text-xs tabular-nums text-muted-foreground sm:inline">
+                {latestDate}
+              </span>
+            )}
+          </Link>
+
+          {hasLatestSlider && (
+            <div className="mt-2 flex items-center justify-between gap-2">
+              {latestDate && (
+                <span className="text-xs tabular-nums text-muted-foreground sm:hidden">
+                  {latestDate}
+                </span>
+              )}
+              <span className="ml-auto inline-flex items-center gap-1">
+                {latestModels.map((model, index) => (
+                  <button
+                    type="button"
+                    key={model.slug}
+                    onClick={() => setActiveLatestIndex(index)}
+                    aria-label={`${t.hero.latestModels} ${index + 1}`}
+                    aria-current={index === activeLatestIndex ? "true" : undefined}
+                    className={`size-1.5 rounded-full transition-colors ${
+                      index === activeLatestIndex
+                        ? "bg-foreground"
+                        : "bg-muted-foreground/35 hover:bg-muted-foreground/60"
+                    }`}
+                  />
+                ))}
+              </span>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

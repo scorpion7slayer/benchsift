@@ -14,22 +14,28 @@ import {
   markdownTokenEstimate,
 } from "@/lib/agent-discovery";
 
-function getLatestModelSummary(models: LLMModel[]): LatestModelSummary | null {
-  const latest = models.reduce<LLMModel | null>((current, model) => {
-    if (!model.release_date) return current;
-    if (!current?.release_date) return model;
-    return model.release_date > current.release_date ? model : current;
-  }, null);
+function releaseTime(model: LLMModel): number {
+  const timestamp = model.release_timestamp ? Date.parse(model.release_timestamp) : NaN;
+  if (Number.isFinite(timestamp)) return timestamp;
+  if (!model.release_date) return Number.NEGATIVE_INFINITY;
+  const date = Date.parse(`${model.release_date}T00:00:00.000Z`);
+  return Number.isFinite(date) ? date : Number.NEGATIVE_INFINITY;
+}
 
-  if (!latest) return null;
-
-  return {
-    slug: latest.slug,
-    name: latest.name,
-    providerName: latest.model_creator.name,
-    providerSlug: latest.model_creator.slug,
-    releaseDate: latest.release_date,
-  };
+function getLatestModelSummaries(models: LLMModel[], limit = 3): LatestModelSummary[] {
+  return models
+    .map((model, index) => ({ model, index, time: releaseTime(model) }))
+    .filter((entry) => Number.isFinite(entry.time))
+    .sort((a, b) => b.time - a.time || a.index - b.index)
+    .slice(0, limit)
+    .map(({ model }) => ({
+      slug: model.slug,
+      name: model.name,
+      providerName: model.model_creator.name,
+      providerSlug: model.model_creator.slug,
+      releaseDate: model.release_date,
+      releaseTimestamp: model.release_timestamp ?? null,
+    }));
 }
 
 export const Route = createFileRoute("/")({
@@ -84,7 +90,7 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   const models = Route.useLoaderData();
-  const latestModel = getLatestModelSummary(models);
+  const latestModels = getLatestModelSummaries(models);
   const compareModels = models.map((model) => ({
     slug: model.slug,
     name: model.name,
@@ -99,7 +105,7 @@ function HomePage() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
         <HomeHero
           count={models.length}
-          latestModel={latestModel}
+          latestModels={latestModels}
           compareModels={compareModels}
         />
         <Separator className="mb-6" />
