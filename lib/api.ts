@@ -179,6 +179,18 @@ interface ApiResponse<T> {
   data: T;
 }
 
+async function responseErrorSnippet(response: Response): Promise<string> {
+  try {
+    return (await response.text()).replace(/\s+/g, " ").trim().slice(0, 500);
+  } catch {
+    return "";
+  }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 /** Tries every key in order, continues on any error (429 or other). */
 async function apiFetch<T>(endpoint: string): Promise<T> {
   const keys = getApiKeys();
@@ -187,7 +199,8 @@ async function apiFetch<T>(endpoint: string): Promise<T> {
 
   let lastError: Error | null = null;
 
-  for (const key of keys) {
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i];
     try {
       const res = await fetchWithTimeout(
         `${BASE_URL}${endpoint}`,
@@ -196,19 +209,30 @@ async function apiFetch<T>(endpoint: string): Promise<T> {
       );
 
       if (!res.ok) {
-        lastError = new Error(`API error ${res.status}`);
+        const snippet = await responseErrorSnippet(res);
+        lastError = new Error(
+          `Artificial Analysis ${endpoint} failed with HTTP ${res.status}`
+          + (snippet ? `: ${snippet}` : ""),
+        );
         continue;
       }
 
       const json: ApiResponse<T> = await res.json();
       return json.data;
     } catch (e) {
-      lastError = e instanceof Error ? e : new Error(String(e));
+      lastError = new Error(
+        `Artificial Analysis ${endpoint} failed with key ${i + 1}/${keys.length}: ${errorMessage(e)}`,
+        { cause: e },
+      );
       continue;
     }
   }
 
-  throw lastError ?? new Error("All API keys failed (429 rate limit on all keys)");
+  throw new Error(
+    `Artificial Analysis ${endpoint} failed for all configured API keys`
+    + (lastError ? `. Last error: ${lastError.message}` : ""),
+    { cause: lastError },
+  );
 }
 
 // ─── HTML extraction helpers ────────────────────────────────────────────────
