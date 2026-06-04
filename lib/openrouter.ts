@@ -470,6 +470,31 @@ function isFreeCatalogVariant(model: Pick<LLMModel, "id" | "name">): boolean {
   return model.id.toLowerCase().endsWith(":free") || /\bfree\b/i.test(model.name);
 }
 
+function hasNumericEvaluations(model: Pick<LLMModel, "evaluations">): boolean {
+  return Object.values(model.evaluations).some(
+    (value) => typeof value === "number" && Number.isFinite(value),
+  );
+}
+
+function hasPerformanceMetrics(model: Pick<
+  LLMModel,
+  | "median_output_tokens_per_second"
+  | "median_time_to_first_token_seconds"
+  | "median_time_to_first_answer_token"
+  | "end_to_end_response_time_seconds"
+>): boolean {
+  return [
+    model.median_output_tokens_per_second,
+    model.median_time_to_first_token_seconds,
+    model.median_time_to_first_answer_token,
+    model.end_to_end_response_time_seconds,
+  ].some((value) => typeof value === "number" && Number.isFinite(value));
+}
+
+function isLowInformationCatalogVariant(model: LLMModel): boolean {
+  return !hasNumericEvaluations(model) && !hasPerformanceMetrics(model);
+}
+
 function sortOpenRouterVariants(a: OpenRouterModel, b: OpenRouterModel): number {
   return Number(isFreeOpenRouterVariant(a)) - Number(isFreeOpenRouterVariant(b));
 }
@@ -901,8 +926,8 @@ function addOpenRouterOnlyModels(
     if (
       dedupeKey &&
       (
-        dedupeKeyMatchesAny(dedupeKey, existingDedupeKeys, isFreeOpenRouterVariant(orModel)) ||
-        dedupeKeyMatchesAny(dedupeKey, addedDedupeKeys, isFreeOpenRouterVariant(orModel))
+        dedupeKeyMatchesAny(dedupeKey, existingDedupeKeys, true) ||
+        dedupeKeyMatchesAny(dedupeKey, addedDedupeKeys, true)
       )
     ) {
       continue;
@@ -938,7 +963,8 @@ export function dedupeOpenRouterVariantModels(models: LLMModel[]): LLMModel[] {
     if (!model.id.startsWith("openrouter:")) return true;
     const key = catalogDedupeKey(model);
     if (!key) return true;
-    const allowVariantMatch = isFreeCatalogVariant(model);
+    const allowVariantMatch =
+      isFreeCatalogVariant(model) || isLowInformationCatalogVariant(model);
     if (
       dedupeKeyMatchesAny(key, firstPartyKeys, allowVariantMatch) ||
       dedupeKeyMatchesAny(key, seenOpenRouterKeys, allowVariantMatch)
