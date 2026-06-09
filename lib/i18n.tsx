@@ -54,6 +54,14 @@ export interface Translations {
       transcription: string;
     };
   };
+  catalog: {
+    title: string;
+    description: string;
+    page: (page: number, totalPages: number) => string;
+    pagination: string;
+    previous: string;
+    next: string;
+  };
   card: {
     intelligence: string;
     coding: string;
@@ -313,6 +321,14 @@ const T: Record<Lang, Translations> = {
         speech: "Speech",
         transcription: "Transcription",
       },
+    },
+    catalog: {
+      title: "Catalogue des modèles",
+      description: "Parcourez toutes les fiches de modèles indexables, page par page, sans modifier les filtres et tris de l'accueil.",
+      page: (page, totalPages) => `Page ${page} sur ${totalPages}`,
+      pagination: "Pagination du catalogue de modèles",
+      previous: "Précédent",
+      next: "Suivant",
     },
     card: {
       intelligence: "Intelligence",
@@ -580,6 +596,14 @@ const T: Record<Lang, Translations> = {
         speech: "Speech",
         transcription: "Transcription",
       },
+    },
+    catalog: {
+      title: "Model catalog",
+      description: "Browse every indexable model page by page, without changing the filters and sorting on the homepage.",
+      page: (page, totalPages) => `Page ${page} of ${totalPages}`,
+      pagination: "Model catalog pagination",
+      previous: "Previous",
+      next: "Next",
     },
     card: {
       intelligence: "Intelligence",

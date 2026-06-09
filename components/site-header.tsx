@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@/components/link";
-import { Activity, Brain, ExternalLink, ChevronLeft, MessageSquarePlus, Menu, X, Terminal } from "lucide-react";
+import { Activity, Brain, ExternalLink, ChevronLeft, List, MessageSquarePlus, Menu, X, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useI18n, type Lang } from "@/lib/i18n";
@@ -64,6 +64,13 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
 
           {/* Liens internes + externes — desktop uniquement */}
           <div className="hidden sm:flex items-center gap-2">
+            <Link
+              href="/models"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <List className="size-3" />
+              {t.nav.models}
+            </Link>
             <Link
               href="/agents/coding"
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -137,6 +144,14 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
       {/* Menu déroulant mobile */}
       {menuOpen && (
         <div className="sm:hidden border-t bg-card/95 backdrop-blur px-4 py-3 flex flex-col gap-4 animate-in fade-in-0 slide-in-from-top-1 duration-150">
+          <Link
+            href="/models"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => setMenuOpen(false)}
+          >
+            <List className="size-4 shrink-0" />
+            {t.nav.models}
+          </Link>
           <Link
             href="/agents/coding"
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
