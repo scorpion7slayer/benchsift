@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getLLMModels } from "@/lib/api";
 import { absoluteUrl } from "@/lib/seo";
 import { shouldIndexModelPage } from "@/lib/model-metrics";
+import { MODEL_CATALOG_PAGE_SIZE } from "@/lib/model-catalog";
 
 interface SitemapEntry {
   url: string;
@@ -51,6 +52,11 @@ export const Route = createFileRoute("/sitemap.xml")({
     handlers: {
       GET: async () => {
         const models = await getLLMModels();
+        const indexableModels = models.filter(shouldIndexModelPage);
+        const catalogPages = Math.max(
+          1,
+          Math.ceil(indexableModels.length / MODEL_CATALOG_PAGE_SIZE),
+        );
         const today = new Date().toISOString().slice(0, 10);
 
         const entries: SitemapEntry[] = [
@@ -60,6 +66,18 @@ export const Route = createFileRoute("/sitemap.xml")({
             changeFrequency: "daily",
             priority: 1,
           },
+          {
+            url: absoluteUrl("/models"),
+            lastModified: today,
+            changeFrequency: "daily",
+            priority: 0.9,
+          },
+          ...Array.from({ length: catalogPages - 1 }, (_, index) => ({
+            url: absoluteUrl(`/models/page/${index + 2}`),
+            lastModified: today,
+            changeFrequency: "daily",
+            priority: 0.8,
+          })),
           {
             url: absoluteUrl("/agents/coding"),
             lastModified: today,
@@ -72,7 +90,7 @@ export const Route = createFileRoute("/sitemap.xml")({
             changeFrequency: "daily",
             priority: 0.8,
           },
-          ...models.filter(shouldIndexModelPage).map((model) => ({
+          ...indexableModels.map((model) => ({
             url: absoluteUrl(`/models/${encodeURIComponent(model.slug)}`),
             lastModified: model.release_date ? toIsoDate(model.release_date, today) : undefined,
             changeFrequency: "weekly",

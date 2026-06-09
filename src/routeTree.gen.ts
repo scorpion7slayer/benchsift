@@ -15,12 +15,14 @@ import { Route as HealthRouteImport } from './routes/health'
 import { Route as CompareRouteImport } from './routes/compare'
 import { Route as AuthDotmdRouteImport } from './routes/auth[.]md'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ModelsIndexRouteImport } from './routes/models/index'
 import { Route as ModelsSlugRouteImport } from './routes/models/$slug'
 import { Route as DocsApiRouteImport } from './routes/docs/api'
 import { Route as BenchmarksDeepsweRouteImport } from './routes/benchmarks/deepswe'
 import { Route as AgentsCodingRouteImport } from './routes/agents/coding'
 import { Route as DotwellKnownOpenapiDotjsonRouteImport } from './routes/[.]well-known/openapi[.]json'
 import { Route as DotwellKnownApiCatalogRouteImport } from './routes/[.]well-known/api-catalog'
+import { Route as ModelsPagePageRouteImport } from './routes/models/page/$page'
 import { Route as ApiCronStatusRouteImport } from './routes/api/cron/status'
 import { Route as ApiCronRefreshRouteImport } from './routes/api/cron/refresh'
 import { Route as DotwellKnownMcpServerCardDotjsonRouteImport } from './routes/[.]well-known/mcp/server-card[.]json'
@@ -59,6 +61,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ModelsIndexRoute = ModelsIndexRouteImport.update({
+  id: '/models/',
+  path: '/models/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ModelsSlugRoute = ModelsSlugRouteImport.update({
   id: '/models/$slug',
   path: '/models/$slug',
@@ -88,6 +95,11 @@ const DotwellKnownOpenapiDotjsonRoute =
 const DotwellKnownApiCatalogRoute = DotwellKnownApiCatalogRouteImport.update({
   id: '/.well-known/api-catalog',
   path: '/.well-known/api-catalog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ModelsPagePageRoute = ModelsPagePageRouteImport.update({
+  id: '/models/page/$page',
+  path: '/models/page/$page',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCronStatusRoute = ApiCronStatusRouteImport.update({
@@ -144,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
   '/docs/api': typeof DocsApiRoute
   '/models/$slug': typeof ModelsSlugRoute
+  '/models/': typeof ModelsIndexRoute
   '/.well-known/agent-skills/coding-benchmarks.md': typeof DotwellKnownAgentSkillsCodingBenchmarksDotmdRoute
   '/.well-known/agent-skills/compare-models.md': typeof DotwellKnownAgentSkillsCompareModelsDotmdRoute
   '/.well-known/agent-skills/index.json': typeof DotwellKnownAgentSkillsIndexDotjsonRoute
@@ -151,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/.well-known/mcp/server-card.json': typeof DotwellKnownMcpServerCardDotjsonRoute
   '/api/cron/refresh': typeof ApiCronRefreshRoute
   '/api/cron/status': typeof ApiCronStatusRoute
+  '/models/page/$page': typeof ModelsPagePageRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -165,6 +179,7 @@ export interface FileRoutesByTo {
   '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
   '/docs/api': typeof DocsApiRoute
   '/models/$slug': typeof ModelsSlugRoute
+  '/models': typeof ModelsIndexRoute
   '/.well-known/agent-skills/coding-benchmarks.md': typeof DotwellKnownAgentSkillsCodingBenchmarksDotmdRoute
   '/.well-known/agent-skills/compare-models.md': typeof DotwellKnownAgentSkillsCompareModelsDotmdRoute
   '/.well-known/agent-skills/index.json': typeof DotwellKnownAgentSkillsIndexDotjsonRoute
@@ -172,6 +187,7 @@ export interface FileRoutesByTo {
   '/.well-known/mcp/server-card.json': typeof DotwellKnownMcpServerCardDotjsonRoute
   '/api/cron/refresh': typeof ApiCronRefreshRoute
   '/api/cron/status': typeof ApiCronStatusRoute
+  '/models/page/$page': typeof ModelsPagePageRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -187,6 +203,7 @@ export interface FileRoutesById {
   '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
   '/docs/api': typeof DocsApiRoute
   '/models/$slug': typeof ModelsSlugRoute
+  '/models/': typeof ModelsIndexRoute
   '/.well-known/agent-skills/coding-benchmarks.md': typeof DotwellKnownAgentSkillsCodingBenchmarksDotmdRoute
   '/.well-known/agent-skills/compare-models.md': typeof DotwellKnownAgentSkillsCompareModelsDotmdRoute
   '/.well-known/agent-skills/index.json': typeof DotwellKnownAgentSkillsIndexDotjsonRoute
@@ -194,6 +211,7 @@ export interface FileRoutesById {
   '/.well-known/mcp/server-card.json': typeof DotwellKnownMcpServerCardDotjsonRoute
   '/api/cron/refresh': typeof ApiCronRefreshRoute
   '/api/cron/status': typeof ApiCronStatusRoute
+  '/models/page/$page': typeof ModelsPagePageRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -210,6 +228,7 @@ export interface FileRouteTypes {
     | '/benchmarks/deepswe'
     | '/docs/api'
     | '/models/$slug'
+    | '/models/'
     | '/.well-known/agent-skills/coding-benchmarks.md'
     | '/.well-known/agent-skills/compare-models.md'
     | '/.well-known/agent-skills/index.json'
@@ -217,6 +236,7 @@ export interface FileRouteTypes {
     | '/.well-known/mcp/server-card.json'
     | '/api/cron/refresh'
     | '/api/cron/status'
+    | '/models/page/$page'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -231,6 +251,7 @@ export interface FileRouteTypes {
     | '/benchmarks/deepswe'
     | '/docs/api'
     | '/models/$slug'
+    | '/models'
     | '/.well-known/agent-skills/coding-benchmarks.md'
     | '/.well-known/agent-skills/compare-models.md'
     | '/.well-known/agent-skills/index.json'
@@ -238,6 +259,7 @@ export interface FileRouteTypes {
     | '/.well-known/mcp/server-card.json'
     | '/api/cron/refresh'
     | '/api/cron/status'
+    | '/models/page/$page'
   id:
     | '__root__'
     | '/'
@@ -252,6 +274,7 @@ export interface FileRouteTypes {
     | '/benchmarks/deepswe'
     | '/docs/api'
     | '/models/$slug'
+    | '/models/'
     | '/.well-known/agent-skills/coding-benchmarks.md'
     | '/.well-known/agent-skills/compare-models.md'
     | '/.well-known/agent-skills/index.json'
@@ -259,6 +282,7 @@ export interface FileRouteTypes {
     | '/.well-known/mcp/server-card.json'
     | '/api/cron/refresh'
     | '/api/cron/status'
+    | '/models/page/$page'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -274,6 +298,7 @@ export interface RootRouteChildren {
   BenchmarksDeepsweRoute: typeof BenchmarksDeepsweRoute
   DocsApiRoute: typeof DocsApiRoute
   ModelsSlugRoute: typeof ModelsSlugRoute
+  ModelsIndexRoute: typeof ModelsIndexRoute
   DotwellKnownAgentSkillsCodingBenchmarksDotmdRoute: typeof DotwellKnownAgentSkillsCodingBenchmarksDotmdRoute
   DotwellKnownAgentSkillsCompareModelsDotmdRoute: typeof DotwellKnownAgentSkillsCompareModelsDotmdRoute
   DotwellKnownAgentSkillsIndexDotjsonRoute: typeof DotwellKnownAgentSkillsIndexDotjsonRoute
@@ -281,6 +306,7 @@ export interface RootRouteChildren {
   DotwellKnownMcpServerCardDotjsonRoute: typeof DotwellKnownMcpServerCardDotjsonRoute
   ApiCronRefreshRoute: typeof ApiCronRefreshRoute
   ApiCronStatusRoute: typeof ApiCronStatusRoute
+  ModelsPagePageRoute: typeof ModelsPagePageRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -327,6 +353,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/models/': {
+      id: '/models/'
+      path: '/models'
+      fullPath: '/models/'
+      preLoaderRoute: typeof ModelsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/models/$slug': {
       id: '/models/$slug'
       path: '/models/$slug'
@@ -367,6 +400,13 @@ declare module '@tanstack/react-router' {
       path: '/.well-known/api-catalog'
       fullPath: '/.well-known/api-catalog'
       preLoaderRoute: typeof DotwellKnownApiCatalogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/models/page/$page': {
+      id: '/models/page/$page'
+      path: '/models/page/$page'
+      fullPath: '/models/page/$page'
+      preLoaderRoute: typeof ModelsPagePageRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/cron/status': {
@@ -434,6 +474,7 @@ const rootRouteChildren: RootRouteChildren = {
   BenchmarksDeepsweRoute: BenchmarksDeepsweRoute,
   DocsApiRoute: DocsApiRoute,
   ModelsSlugRoute: ModelsSlugRoute,
+  ModelsIndexRoute: ModelsIndexRoute,
   DotwellKnownAgentSkillsCodingBenchmarksDotmdRoute:
     DotwellKnownAgentSkillsCodingBenchmarksDotmdRoute,
   DotwellKnownAgentSkillsCompareModelsDotmdRoute:
@@ -445,16 +486,18 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownMcpServerCardDotjsonRoute: DotwellKnownMcpServerCardDotjsonRoute,
   ApiCronRefreshRoute: ApiCronRefreshRoute,
   ApiCronStatusRoute: ApiCronStatusRoute,
+  ModelsPagePageRoute: ModelsPagePageRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }
