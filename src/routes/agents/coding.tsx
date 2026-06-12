@@ -12,7 +12,7 @@ export const Route = createFileRoute("/agents/coding")({
     seo({
       title: "Coding Agents - BenchSift",
       description:
-        "Artificial Analysis Coding Agent Index: compare Claude Code, Cursor CLI, OpenCode and other harnesses on SWE-Bench-Pro-Hard-AA, Terminal-Bench v2 and SWE-Atlas-QnA.",
+        "Artificial Analysis Coding Agent Index: compare Claude Code, Cursor CLI, OpenCode and other harnesses on DeepSWE, Terminal-Bench v2 and SWE-Atlas-QnA.",
       path: "/agents/coding",
       jsonLd: {
         "@context": "https://schema.org",

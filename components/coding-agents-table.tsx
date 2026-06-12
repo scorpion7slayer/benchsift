@@ -62,7 +62,7 @@ export function CodingAgentsTable({ agents }: { agents: CodingAgent[] }) {
           <CardContent className="text-sm text-muted-foreground space-y-2">
             <p>{t.agents.indexTooltip}</p>
             <div className="flex flex-wrap gap-1.5 pt-1">
-              <Badge variant="secondary" className="font-mono text-xs">{t.agents.benchmarks.swe_bench_pro_hard_aa}</Badge>
+              <Badge variant="secondary" className="font-mono text-xs">{t.agents.benchmarks.deep_swe}</Badge>
               <Badge variant="secondary" className="font-mono text-xs">{t.agents.benchmarks.terminal_bench_v2}</Badge>
               <Badge variant="secondary" className="font-mono text-xs">{t.agents.benchmarks.swe_atlas_qna}</Badge>
             </div>
@@ -134,7 +134,7 @@ export function CodingAgentsTable({ agents }: { agents: CodingAgent[] }) {
         <CardContent className="text-sm text-muted-foreground space-y-2">
           <p>{t.agents.indexTooltip}</p>
           <div className="flex flex-wrap gap-1.5 pt-1">
-            <Badge variant="secondary" className="font-mono text-xs">{t.agents.benchmarks.swe_bench_pro_hard_aa}</Badge>
+            <Badge variant="secondary" className="font-mono text-xs">{t.agents.benchmarks.deep_swe}</Badge>
             <Badge variant="secondary" className="font-mono text-xs">{t.agents.benchmarks.terminal_bench_v2}</Badge>
             <Badge variant="secondary" className="font-mono text-xs">{t.agents.benchmarks.swe_atlas_qna}</Badge>
           </div>
@@ -170,8 +170,8 @@ export function CodingAgentsTable({ agents }: { agents: CodingAgent[] }) {
               <Separator />
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <div className="text-center">
-                  <p className="text-muted-foreground mb-0.5 truncate">SWE-Pro</p>
-                  <p className="font-mono">{fmtPct(a.swe_bench_pro_hard_aa)}</p>
+                  <p className="text-muted-foreground mb-0.5 truncate">DeepSWE</p>
+                  <p className="font-mono">{fmtPct(a.deep_swe)}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-muted-foreground mb-0.5">Terminal v2</p>
@@ -216,7 +216,7 @@ export function CodingAgentsTable({ agents }: { agents: CodingAgent[] }) {
                     <TooltipContent className="max-w-64 text-xs">{t.agents.indexTooltip}</TooltipContent>
                   </Tooltip>
                 </th>
-                <th className="py-3 px-4 text-right hidden lg:table-cell">SWE-Pro</th>
+                <th className="py-3 px-4 text-right hidden lg:table-cell">DeepSWE</th>
                 <th className="py-3 px-4 text-right hidden lg:table-cell">Terminal v2</th>
                 <th className="py-3 px-4 text-right hidden lg:table-cell">SWE-Atlas</th>
                 <th className="py-3 px-4 text-right">{t.agents.headers.cost}</th>
@@ -254,7 +254,7 @@ export function CodingAgentsTable({ agents }: { agents: CodingAgent[] }) {
                         {fmt(a.coding_agent_index)}
                       </Badge>
                     </td>
-                    <td className="py-3 px-4 text-right font-mono text-xs hidden lg:table-cell">{fmtPct(a.swe_bench_pro_hard_aa)}</td>
+                    <td className="py-3 px-4 text-right font-mono text-xs hidden lg:table-cell">{fmtPct(a.deep_swe)}</td>
                     <td className="py-3 px-4 text-right font-mono text-xs hidden lg:table-cell">{fmtPct(a.terminal_bench_v2)}</td>
                     <td className="py-3 px-4 text-right font-mono text-xs hidden lg:table-cell">{fmtPct(a.swe_atlas_qna)}</td>
                     <td className="py-3 px-4 text-right font-mono text-xs">{fmtCost(a.cost_per_task_usd)}</td>

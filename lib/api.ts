@@ -1091,6 +1091,10 @@ interface AAAgentRow {
     cacheHitRate?: number;
     totalTokens?: number;
   };
+  evals?: Array<{
+    datasetIndexName?: string;
+    mean?: { reward?: number };
+  }>;
   componentScores?: Array<{
     datasetIndexName?: string;
     mean?: { reward?: number };
@@ -1167,7 +1171,8 @@ const getCodingAgentsCached = cached(
       if (!rows) return [];
 
       const componentScore = (row: AAAgentRow, name: string): number | null => {
-        const c = row.componentScores?.find((x) => x.datasetIndexName === name);
+        const components = row.evals ?? row.componentScores;
+        const c = components?.find((x) => x.datasetIndexName === name);
         return c?.mean?.reward ?? null;
       };
 
@@ -1198,7 +1203,7 @@ const getCodingAgentsCached = cached(
             release_date: row.releaseDate ?? null,
             // Convert 0-1 index to 0-100 for display consistency with LLM indices
             coding_agent_index: typeof row.indexScore === "number" ? row.indexScore * 100 : null,
-            swe_bench_pro_hard_aa: componentScore(row, "swe-bench-pro-hard"),
+            deep_swe:              componentScore(row, "deep-swe"),
             terminal_bench_v2:    componentScore(row, "terminal-bench-v2"),
             swe_atlas_qna:        componentScore(row, "swe-atlas-qna"),
             cost_per_task_usd:    mean.costUsd ?? null,

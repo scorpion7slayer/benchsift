@@ -15,7 +15,7 @@ export interface CodingAgent {
   model_creator_slug: string; // for provider icon
   release_date: string | null; // ISO date
   coding_agent_index: number | null; // composite 0-100 (× 100 from raw 0-1)
-  swe_bench_pro_hard_aa: number | null; // pass@1 (0-1)
+  deep_swe: number | null; // pass@1 (0-1)
   terminal_bench_v2: number | null; // pass@1 (0-1)
   swe_atlas_qna: number | null; // pass@1 (0-1)
   cost_per_task_usd: number | null; // USD per task

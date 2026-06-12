@@ -198,7 +198,7 @@ export interface Translations {
     indexLabel: string;
     indexTooltip: string;
     benchmarks: {
-      swe_bench_pro_hard_aa: string;
+      deep_swe: string;
       terminal_bench_v2: string;
       swe_atlas_qna: string;
     };
@@ -480,11 +480,11 @@ const T: Record<Lang, Translations> = {
     },
     agents: {
       title: "Agents de programmation",
-      description: "Performance des harnais (Claude Code, Cursor CLI, OpenCode…) sur l'Artificial Analysis Coding Agent Index, composé de 3 benchmarks : SWE-Bench-Pro-Hard-AA, Terminal-Bench v2 et SWE-Atlas-QnA.",
+      description: "Performance des harnais (Claude Code, Cursor CLI, OpenCode…) sur l'Artificial Analysis Coding Agent Index, composé de 3 benchmarks : DeepSWE, Terminal-Bench v2 et SWE-Atlas-QnA.",
       indexLabel: "Coding Agent Index",
-      indexTooltip: "Moyenne pass@1 sur les 3 benchmarks (SWE-Bench-Pro-Hard-AA, Terminal-Bench v2, SWE-Atlas-QnA).",
+      indexTooltip: "Moyenne pass@1 sur les 3 benchmarks (DeepSWE, Terminal-Bench v2, SWE-Atlas-QnA).",
       benchmarks: {
-        swe_bench_pro_hard_aa: "SWE-Bench-Pro-Hard-AA",
+        deep_swe: "DeepSWE",
         terminal_bench_v2: "Terminal-Bench v2",
         swe_atlas_qna: "SWE-Atlas-QnA",
       },
@@ -764,11 +764,11 @@ const T: Record<Lang, Translations> = {
     },
     agents: {
       title: "Coding Agents",
-      description: "Harness performance (Claude Code, Cursor CLI, OpenCode…) on the Artificial Analysis Coding Agent Index, a composite of 3 benchmarks: SWE-Bench-Pro-Hard-AA, Terminal-Bench v2 and SWE-Atlas-QnA.",
+      description: "Harness performance (Claude Code, Cursor CLI, OpenCode…) on the Artificial Analysis Coding Agent Index, a composite of 3 benchmarks: DeepSWE, Terminal-Bench v2 and SWE-Atlas-QnA.",
       indexLabel: "Coding Agent Index",
-      indexTooltip: "Average pass@1 across the 3 benchmarks (SWE-Bench-Pro-Hard-AA, Terminal-Bench v2, SWE-Atlas-QnA).",
+      indexTooltip: "Average pass@1 across the 3 benchmarks (DeepSWE, Terminal-Bench v2, SWE-Atlas-QnA).",
       benchmarks: {
-        swe_bench_pro_hard_aa: "SWE-Bench-Pro-Hard-AA",
+        deep_swe: "DeepSWE",
         terminal_bench_v2: "Terminal-Bench v2",
         swe_atlas_qna: "SWE-Atlas-QnA",
       },
