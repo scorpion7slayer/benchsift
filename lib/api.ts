@@ -104,6 +104,9 @@ export interface Pricing {
   price_1m_blended_3_to_1: number | null;
   price_1m_input_tokens: number | null;
   price_1m_output_tokens: number | null;
+  price_1m_cache_write_tokens?: number | null;
+  price_1m_reasoning_tokens?: number | null;
+  price_web_search?: number | null;
   openrouter_display_prices?: {
     label: string;
     price: number;
@@ -146,6 +149,9 @@ export interface LLMModel {
   openrouter_input_modalities?: string[];
   openrouter_output_modalities?: string[];
   openrouter_supported_voices?: string[];
+  openrouter_supported_parameters?: string[];
+  openrouter_max_completion_tokens?: number | null;
+  openrouter_expiration_date?: string | null;
   reasoning_model?: boolean;
   reasoning_properties?: { style: string } | null;
   // New scraped fields from AA model detail page / Nouveaux champs scrapés
@@ -172,6 +178,9 @@ export interface LLMModel {
   huggingface_tags?: string[];
   huggingface_gated?: string | null;
   huggingface_private?: boolean | null;
+  huggingface_inference_providers?: string[];
+  huggingface_created_at?: string | null;
+  huggingface_last_modified?: string | null;
 }
 
 let lastSuccessfulModels: LLMModel[] | null = null;
@@ -411,7 +420,15 @@ async function buildPartialModel(slug: string, includeCapabilities = true): Prom
       lcr:               extractJsonNum(html, "lcr"),
       terminalbench_hard: extractJsonNum(html, "terminalbench_hard"),
       tau2:              extractJsonNum(html, "tau2"),
+      agentic_index:     extractJsonNum(html, "agentic_index"),
+      gdpval:            extractJsonNum(html, "gdpval"),
+      gdpval_normalized: extractJsonNum(html, "gdpval_normalized"),
+      omniscience:       extractJsonNum(html, "omniscience"),
+      multilingual_aa:   extractJsonNum(html, "multilingual_aa"),
+      mmmu_pro:          extractJsonNum(html, "mmmu_pro"),
+      critpt:            extractJsonNum(html, "critpt"),
       apex_agents:       extractJsonNum(html, "apex_agents"),
+      itbench_aa:        extractJsonNum(html, "itbench_aa"),
       // AA exposes non_hallucination_rate inside omniscience_breakdown totals.
       // The aggregated value also appears as a top-level "non_hallucination_rate" when
       // the breakdown is summarized. / Sinon dans omniscience_breakdown.
@@ -636,7 +653,10 @@ const scrapeModelCapabilities = cached(
       output_modality_image:  or.output_modality_image  ?? aa.output_modality_image,
       output_modality_speech: or.output_modality_speech ?? aa.output_modality_speech,
       output_modality_video:  or.output_modality_video  ?? aa.output_modality_video,
-      knowledge_cutoff:           aa.knowledge_cutoff ?? null,
+      knowledge_cutoff:           aa.knowledge_cutoff ?? or.knowledge_cutoff ?? null,
+      openrouter_supported_parameters: or.openrouter_supported_parameters,
+      openrouter_max_completion_tokens: or.openrouter_max_completion_tokens ?? null,
+      openrouter_expiration_date: or.openrouter_expiration_date ?? null,
       openness_index:             aa.openness_index ?? null,
       intelligence_index_tokens:  aa.intelligence_index_tokens ?? null,
       intelligence_index_cost_usd: aa.intelligence_index_cost_usd ?? null,
@@ -894,6 +914,9 @@ function hasOnlyZeroPricing(pricing: Pricing): boolean {
     pricing.price_1m_blended_3_to_1,
     pricing.price_1m_input_tokens,
     pricing.price_1m_output_tokens,
+    pricing.price_1m_cache_write_tokens,
+    pricing.price_1m_reasoning_tokens,
+    pricing.price_web_search,
     pricing.price_1m_cache_hit_tokens,
     pricing.price_1m_blended_7_2_1,
   ];
@@ -911,6 +934,9 @@ function normaliseUnavailableModel(model: LLMModel): LLMModel {
             price_1m_blended_3_to_1: null,
             price_1m_input_tokens: null,
             price_1m_output_tokens: null,
+            price_1m_cache_write_tokens: null,
+            price_1m_reasoning_tokens: null,
+            price_web_search: null,
             price_1m_cache_hit_tokens: null,
             price_1m_blended_7_2_1: null,
           }
@@ -946,6 +972,9 @@ const HUGGINGFACE_PATCH_KEYS: Array<keyof LLMModel> = [
   "huggingface_tags",
   "huggingface_gated",
   "huggingface_private",
+  "huggingface_inference_providers",
+  "huggingface_created_at",
+  "huggingface_last_modified",
   "is_open_weights",
 ];
 

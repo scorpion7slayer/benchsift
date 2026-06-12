@@ -6,26 +6,11 @@ import {
 } from "@/lib/provider-map";
 
 const OR_BASE = "https://openrouter.ai/api/v1";
-const OPENROUTER_RANKINGS_PAGE = "https://openrouter.ai/rankings";
 const OPENROUTER_APP_REFERER = "https://benchsift.nxtaigen.com";
 const OPENROUTER_APP_TITLE = "BenchSift";
 
-const MODEL_RANKINGS_ACTION_ID = "40824635c5eb77626bdf6795ffbf382c0862b321e1";
-const DA_BENCHMARK_RANKINGS_ACTION_ID = "00f63ea3aac04d141ad7cda1cbafdc6bb12dc75b45";
-
-const OPENROUTER_ACTION_TIMEOUT_MS = 8_000;
 const OPENROUTER_API_TIMEOUT_MS = 8_000;
 const OPENROUTER_PAGE_TIMEOUT_MS = 5_000;
-const OPENROUTER_MODEL_OUTPUT_CATEGORIES = [
-  "text",
-  "image",
-  "embeddings",
-  "audio",
-  "video",
-  "rerank",
-  "speech",
-  "transcription",
-];
 const OPENROUTER_DISPLAY_PRICING_CATEGORIES = new Set([
   "image",
   "audio",
@@ -50,6 +35,8 @@ export interface OpenRouterModel {
   hugging_face_id: string | null;
   name: string;
   created: number;
+  knowledge_cutoff?: string | null;
+  expiration_date?: string | null;
   context_length: number;
   architecture: {
     modality: string;
@@ -64,6 +51,9 @@ export interface OpenRouterModel {
     image?: string;
     audio?: string;
     input_cache_read?: string;
+    input_cache_write?: string;
+    internal_reasoning?: string;
+    web_search?: string;
   };
   top_provider: {
     context_length: number | null;
@@ -72,6 +62,20 @@ export interface OpenRouterModel {
   } | null;
   supported_parameters: string[] | null;
   supported_voices?: string[] | null;
+  benchmarks?: {
+    design_arena?: Array<{
+      arena?: string;
+      category?: string;
+      elo?: number;
+      win_rate?: number;
+      rank?: number;
+    }>;
+    artificial_analysis?: {
+      intelligence_index?: number;
+      coding_index?: number;
+      agentic_index?: number;
+    };
+  };
   display_pricing?: OpenRouterDisplayPricingRow[];
 }
 
@@ -91,19 +95,9 @@ interface OpenRouterRankingRow {
   change?: number | null;
 }
 
-interface OpenRouterDABenchmarkRow {
-  permaslug?: string;
-  openrouter_id?: string | null;
-  display_name?: string;
-  score?: number | null;
-  win_rate?: number | null;
-  avg_generation_time_ms?: number | null;
-}
-
 interface OpenRouterEnrichmentOptions {
   apiKey?: string;
   includeUsageRankings?: boolean;
-  includeBenchmarks?: boolean;
   includeOpenRouterOnly?: boolean;
 }
 
@@ -131,25 +125,13 @@ export async function getOpenRouterModels(
 ): Promise<OpenRouterModel[]> {
   try {
     const headers = openRouterHeaders(options.apiKey);
-    const responses = await Promise.allSettled(
-      OPENROUTER_MODEL_OUTPUT_CATEGORIES.map(async (category) => {
-        const res = await fetchWithTimeout(
-          `${OR_BASE}/models?output_modalities=${encodeURIComponent(category)}`,
-          { headers },
-        );
-        if (!res.ok) return [];
-        const json = (await res.json()) as { data?: OpenRouterModel[] };
-        return json.data ?? [];
-      }),
+    const res = await fetchWithTimeout(
+      `${OR_BASE}/models?output_modalities=all`,
+      { headers },
     );
-    const byId = new Map<string, OpenRouterModel>();
-    for (const response of responses) {
-      if (response.status !== "fulfilled") continue;
-      for (const model of response.value) {
-        byId.set(model.id, model);
-      }
-    }
-    const models = [...byId.values()];
+    if (!res.ok) return [];
+    const json = (await res.json()) as { data?: OpenRouterModel[] };
+    const models = json.data ?? [];
     await enrichOpenRouterDisplayPricing(models);
     return models;
   } catch {
@@ -301,56 +283,31 @@ export function openRouterCapabilities(or: OpenRouterModel): Partial<LLMModel> {
     openrouter_input_modalities: inp,
     openrouter_output_modalities: out,
     openrouter_supported_voices: or.supported_voices ?? undefined,
+    openrouter_supported_parameters: params,
+    openrouter_max_completion_tokens: or.top_provider?.max_completion_tokens ?? null,
+    openrouter_expiration_date: or.expiration_date ?? null,
+    knowledge_cutoff: or.knowledge_cutoff ?? undefined,
     huggingface_id: or.hugging_face_id ?? undefined,
     huggingface_url: or.hugging_face_id ? `https://huggingface.co/${or.hugging_face_id}` : undefined,
     huggingface_source: or.hugging_face_id ? "openrouter" : undefined,
   };
 }
 
-async function callOpenRouterRankingsAction<T>(
-  actionId: string,
-  body: string,
-): Promise<T | null> {
+async function getOpenRouterUsageRankings(apiKey?: string): Promise<OpenRouterRankingRow[]> {
   try {
     const res = await fetchWithTimeout(
-      OPENROUTER_RANKINGS_PAGE,
-      {
-        method: "POST",
-        headers: {
-          "Accept": "text/x-component",
-          "Content-Type": "text/plain;charset=UTF-8",
-          "Next-Action": actionId,
-        },
-        body,
-      },
-      OPENROUTER_ACTION_TIMEOUT_MS,
+      `${OR_BASE}/models?output_modalities=all&sort=most-popular`,
+      { headers: openRouterHeaders(apiKey) },
     );
-    if (!res.ok) return null;
-    const text = await res.text();
-    const payload = text.match(/^1:(.*)$/m)?.[1];
-    if (!payload) return null;
-    return JSON.parse(payload) as T;
+    if (!res.ok) return [];
+    const json = (await res.json()) as { data?: OpenRouterModel[] };
+    return (json.data ?? []).map((model) => ({
+      model_permaslug: model.id,
+      variant_permaslug: model.canonical_slug,
+    }));
   } catch {
-    return null;
+    return [];
   }
-}
-
-async function getOpenRouterUsageRankings(): Promise<OpenRouterRankingRow[]> {
-  return (
-    (await callOpenRouterRankingsAction<OpenRouterRankingRow[]>(
-      MODEL_RANKINGS_ACTION_ID,
-      JSON.stringify(["week"]),
-    )) ?? []
-  );
-}
-
-async function getOpenRouterDABenchmarkRankings(): Promise<Record<string, OpenRouterDABenchmarkRow[]>> {
-  return (
-    (await callOpenRouterRankingsAction<Record<string, OpenRouterDABenchmarkRow[]>>(
-      DA_BENCHMARK_RANKINGS_ACTION_ID,
-      "[]",
-    )) ?? {}
-  );
 }
 
 function normaliseId(id: string | null | undefined): string | null {
@@ -587,18 +544,16 @@ function modelCandidates(model: LLMModel, orModel?: OpenRouterModel): Set<string
   ]);
 }
 
-function rowCandidates(row: OpenRouterDABenchmarkRow | OpenRouterRankingRow): Set<string> {
+function rowCandidates(row: OpenRouterRankingRow): Set<string> {
   return new Set([
-    ...idCandidates("permaslug" in row ? row.permaslug : undefined),
-    ...idCandidates("openrouter_id" in row ? row.openrouter_id : undefined),
-    ...idCandidates("model_permaslug" in row ? row.model_permaslug : undefined),
-    ...idCandidates("variant_permaslug" in row ? row.variant_permaslug : undefined),
+    ...idCandidates(row.model_permaslug),
+    ...idCandidates(row.variant_permaslug),
   ]);
 }
 
 function matchesModel(
   modelIds: Set<string>,
-  row: OpenRouterDABenchmarkRow | OpenRouterRankingRow,
+  row: OpenRouterRankingRow,
 ): boolean {
   for (const candidate of rowCandidates(row)) {
     if (modelIds.has(candidate)) return true;
@@ -613,32 +568,54 @@ function metricKey(category: string): string {
 function mergeOpenRouterData(
   model: LLMModel,
   modelIds: Set<string>,
+  orModel: OpenRouterModel | undefined,
   usageRows: OpenRouterRankingRow[],
-  daBenchmarks: Record<string, OpenRouterDABenchmarkRow[]>,
 ): LLMModel {
   const evaluations = { ...model.evaluations };
 
-  for (const [category, rows] of Object.entries(daBenchmarks)) {
-    if (!category.startsWith("models-")) continue;
-    const row = rows.find((r) => typeof r.win_rate === "number" && matchesModel(modelIds, r));
-    if (row?.win_rate != null) {
-      const key = metricKey(category.replace(/^models-/, ""));
+  for (const row of orModel?.benchmarks?.design_arena ?? []) {
+    if (!row.category) continue;
+    const key = metricKey(row.category);
+    if (typeof row.win_rate === "number") {
       evaluations[`openrouter_da_${key}_win_rate`] = row.win_rate;
-      if (typeof row.score === "number") evaluations[`openrouter_da_${key}_score`] = row.score;
-      if (typeof row.avg_generation_time_ms === "number") {
-        evaluations[`openrouter_da_${key}_generation_seconds`] = row.avg_generation_time_ms / 1000;
-      }
     }
   }
 
-  const usageRankings = usageRows.map((row, index) => ({
-    row,
-    rank: index + 1,
-    tokens:
-      (row.total_prompt_tokens ?? 0) +
-      (row.total_completion_tokens ?? 0) +
-      (row.total_native_tokens_reasoning ?? 0),
-  }));
+  const aa = orModel?.benchmarks?.artificial_analysis;
+  if (aa) {
+    if (
+      evaluations.artificial_analysis_intelligence_index == null &&
+      typeof aa.intelligence_index === "number"
+    ) {
+      evaluations.artificial_analysis_intelligence_index = aa.intelligence_index;
+    }
+    if (
+      evaluations.artificial_analysis_coding_index == null &&
+      typeof aa.coding_index === "number"
+    ) {
+      evaluations.artificial_analysis_coding_index = aa.coding_index;
+    }
+    if (evaluations.agentic_index == null && typeof aa.agentic_index === "number") {
+      evaluations.agentic_index = aa.agentic_index;
+    }
+  }
+
+  const usageRankings = usageRows.map((row, index) => {
+    const tokenParts = [
+      row.total_prompt_tokens,
+      row.total_completion_tokens,
+      row.total_native_tokens_reasoning,
+    ];
+    return {
+      row,
+      rank: index + 1,
+      tokens: tokenParts.some((value) => typeof value === "number")
+        ? tokenParts
+            .filter((value): value is number => typeof value === "number")
+            .reduce((sum, value) => sum + value, 0)
+        : null,
+    };
+  });
   const usage = usageRankings.find(({ row }) => matchesModel(modelIds, row));
   if (!usage) return { ...model, evaluations };
 
@@ -816,6 +793,9 @@ function openRouterPricing(or: OpenRouterModel): LLMModel["pricing"] {
     price_1m_input_tokens: input,
     price_1m_output_tokens: output,
     price_1m_cache_hit_tokens: unitPriced ? null : pricePerMillion(or.pricing?.input_cache_read),
+    price_1m_cache_write_tokens: unitPriced ? null : pricePerMillion(or.pricing?.input_cache_write),
+    price_1m_reasoning_tokens: unitPriced ? null : pricePerMillion(or.pricing?.internal_reasoning),
+    price_web_search: rawPrice(or.pricing?.web_search),
     openrouter_display_prices: displayPrices,
   };
 }
@@ -909,7 +889,6 @@ function addOpenRouterOnlyModels(
   models: LLMModel[],
   orModels: OpenRouterModel[],
   usageRows: OpenRouterRankingRow[],
-  daBenchmarks: Record<string, OpenRouterDABenchmarkRow[]>,
 ): LLMModel[] {
   const usedSlugs = new Set(models.map((model) => model.slug));
   const existingDedupeKeys = models
@@ -943,8 +922,8 @@ function addOpenRouterOnlyModels(
       mergeOpenRouterData(
         model,
         modelCandidates(model, orModel),
+        orModel,
         usageRows,
-        daBenchmarks,
       ),
     );
   }
@@ -980,17 +959,14 @@ export async function enrichModelsWithOpenRouter(
   models: LLMModel[],
   options: OpenRouterEnrichmentOptions = {},
 ): Promise<LLMModel[]> {
-  const [orModels, usageRows, daBenchmarks] = await Promise.all([
+  const [orModels, usageRows] = await Promise.all([
     getOpenRouterModels({ apiKey: options.apiKey }),
-    options.includeUsageRankings ? getOpenRouterUsageRankings() : Promise.resolve([]),
-    options.includeBenchmarks !== false ? getOpenRouterDABenchmarkRankings() : Promise.resolve({}),
+    options.includeUsageRankings
+      ? getOpenRouterUsageRankings(options.apiKey)
+      : Promise.resolve([]),
   ]);
 
-  if (
-    orModels.length === 0 &&
-    usageRows.length === 0 &&
-    Object.keys(daBenchmarks).length === 0
-  ) {
+  if (orModels.length === 0 && usageRows.length === 0) {
     return models;
   }
 
@@ -1001,8 +977,8 @@ export async function enrichModelsWithOpenRouter(
     return mergeOpenRouterData(
       enriched,
       modelCandidates(model, orModel),
+      orModel,
       usageRows,
-      daBenchmarks,
     );
   });
 
@@ -1010,5 +986,5 @@ export async function enrichModelsWithOpenRouter(
     return enrichedModels;
   }
 
-  return addOpenRouterOnlyModels(enrichedModels, orModels, usageRows, daBenchmarks);
+  return addOpenRouterOnlyModels(enrichedModels, orModels, usageRows);
 }

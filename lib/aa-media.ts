@@ -5,6 +5,7 @@ type AAMediaKind =
   | "text_to_image"
   | "image_editing"
   | "text_to_video"
+  | "image_to_video"
   | "text_to_speech";
 
 type AAFetcher = <T>(endpoint: string) => Promise<T>;
@@ -42,6 +43,10 @@ const MEDIA_ENDPOINTS: Array<{
   {
     endpoint: "/data/media/text-to-video?include_categories=true",
     kind: "text_to_video",
+  },
+  {
+    endpoint: "/data/media/image-to-video?include_categories=true",
+    kind: "image_to_video",
   },
   {
     endpoint: "/data/media/text-to-speech",
@@ -124,6 +129,14 @@ function mediaCapabilities(kind: AAMediaKind): Partial<LLMModel> {
       input_modality_text: true,
       output_modality_video: true,
       openrouter_input_modalities: ["text"],
+      openrouter_output_modalities: ["video"],
+    };
+  }
+  if (kind === "image_to_video") {
+    return {
+      input_modality_image: true,
+      output_modality_video: true,
+      openrouter_input_modalities: ["image"],
       openrouter_output_modalities: ["video"],
     };
   }

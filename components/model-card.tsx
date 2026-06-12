@@ -131,7 +131,8 @@ function HuggingFaceStats({ model }: { model: LLMModel }) {
   const { t } = useI18n();
   const downloads = model.huggingface_downloads;
   const likes = model.huggingface_likes;
-  if (downloads == null && likes == null) return null;
+  const inferenceProviders = model.huggingface_inference_providers?.length ?? 0;
+  if (downloads == null && likes == null && inferenceProviders === 0) return null;
 
   return (
     <div className="rounded-md border bg-muted/30 px-2 py-1.5 space-y-1">
@@ -142,6 +143,7 @@ function HuggingFaceStats({ model }: { model: LLMModel }) {
       <div className="flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
         {downloads != null && <span>{fmtCompact(downloads)} dl</span>}
         {likes != null && <span>{fmtCompact(likes)} ♥</span>}
+        {inferenceProviders > 0 && <span>{inferenceProviders} API</span>}
       </div>
     </div>
   );

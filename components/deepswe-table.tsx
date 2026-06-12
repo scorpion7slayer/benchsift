@@ -14,6 +14,11 @@ function fmtPct(value: number | null): string {
   return `${(value * 100).toFixed(1)}%`;
 }
 
+function fmtConfidence(row: DeepSweRow): string {
+  if (row.ci_lo == null || row.ci_hi == null) return "-";
+  return `${(row.ci_lo * 100).toFixed(1)}-${(row.ci_hi * 100).toFixed(1)}%`;
+}
+
 function fmtCost(value: number | null): string {
   if (value == null) return "-";
   return `$${value.toFixed(2)}`;
@@ -158,7 +163,9 @@ export function DeepSweTable({ leaderboard }: { leaderboard: DeepSweLeaderboard 
             <Badge variant="secondary" className="font-mono text-xs">pass@1</Badge>
             <Badge variant="secondary" className="font-mono text-xs">pass@4</Badge>
             <Badge variant="secondary" className="font-mono text-xs">mini-swe-agent</Badge>
-            <Badge variant="secondary" className="font-mono text-xs">113 tasks</Badge>
+            <Badge variant="secondary" className="font-mono text-xs">
+              {leaderboard.n_tasks_in_set ?? "-"} tasks
+            </Badge>
           </div>
         </CardContent>
       </Card>
@@ -207,7 +214,8 @@ export function DeepSweTable({ leaderboard }: { leaderboard: DeepSweLeaderboard 
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>{fmtTokens(row.mean_output_tokens)} out</span>
                 <span>{fmtTokens(row.mean_input_tokens)} in</span>
-                <span>{row.n_attempted ?? "-"} attempts</span>
+                <span>{fmtConfidence(row)} CI</span>
+                <span>{row.n_runs ?? row.n_attempted ?? "-"} runs</span>
               </div>
             </CardContent>
           </Card>
@@ -223,6 +231,7 @@ export function DeepSweTable({ leaderboard }: { leaderboard: DeepSweLeaderboard 
                 <th className="px-4 py-3 text-left">{t.deepSwe.headers.model}</th>
                 <th className="px-4 py-3 text-left">{t.deepSwe.headers.effort}</th>
                 <th className="px-4 py-3 text-right">pass@1</th>
+                <th className="px-4 py-3 text-right">{t.deepSwe.headers.confidence}</th>
                 <th className="px-4 py-3 text-right">pass@4</th>
                 <th className="px-4 py-3 text-right">{t.deepSwe.headers.cost}</th>
                 <th className="px-4 py-3 text-right">{t.deepSwe.headers.time}</th>
@@ -261,6 +270,7 @@ export function DeepSweTable({ leaderboard }: { leaderboard: DeepSweLeaderboard 
                       {fmtPct(row.pass_at_1)}
                     </Badge>
                   </td>
+                  <td className="px-4 py-3 text-right font-mono text-xs">{fmtConfidence(row)}</td>
                   <td className="px-4 py-3 text-right font-mono text-xs">{fmtPct(row.pass_at_4)}</td>
                   <td className="px-4 py-3 text-right font-mono text-xs">
                     <span className="inline-flex items-center justify-end gap-1">

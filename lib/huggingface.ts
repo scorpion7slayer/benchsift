@@ -34,6 +34,13 @@ interface HuggingFaceModelInfo {
   pipeline_tag?: string;
   library_name?: string;
   tags?: string[];
+  createdAt?: string;
+  lastModified?: string;
+  inferenceProviderMapping?: Record<string, {
+    status?: string;
+    providerId?: string;
+    task?: string;
+  }>;
   cardData?: {
     license?: string;
     license_name?: string;
@@ -65,7 +72,23 @@ function huggingFaceHeaders(apiKey?: string): HeadersInit {
 }
 
 function huggingFaceModelApiUrl(repoId: string): string {
-  return `${HF_API_BASE}/${repoId.split("/").map(encodeURIComponent).join("/")}`;
+  const fields = [
+    "inferenceProviderMapping",
+    "downloads",
+    "likes",
+    "pipeline_tag",
+    "library_name",
+    "tags",
+    "cardData",
+    "private",
+    "gated",
+    "disabled",
+    "createdAt",
+    "lastModified",
+  ];
+  const params = new URLSearchParams();
+  fields.forEach((field) => params.append("expand[]", field));
+  return `${HF_API_BASE}/${repoId.split("/").map(encodeURIComponent).join("/")}?${params}`;
 }
 
 function normaliseLicense(value: string | null | undefined): string | null {
@@ -113,6 +136,10 @@ async function getHuggingFaceModelInfo(
       tagLicense(info.tags);
     const verifiedId = info.id ?? repoId;
     const verifiedOrg = verifiedId.split("/")[0]?.toLowerCase();
+    const inferenceProviders = Object.entries(info.inferenceProviderMapping ?? {})
+      .filter(([, provider]) => provider?.status === "live")
+      .map(([provider]) => provider)
+      .sort();
     const official = Boolean(
       requestedOfficial &&
       verifiedOrg &&
@@ -131,6 +158,9 @@ async function getHuggingFaceModelInfo(
       huggingface_tags: info.tags?.slice(0, 24) ?? undefined,
       huggingface_gated: typeof info.gated === "string" ? info.gated : info.gated === true ? "gated" : null,
       huggingface_private: info.private ?? null,
+      huggingface_inference_providers: inferenceProviders,
+      huggingface_created_at: info.createdAt ?? null,
+      huggingface_last_modified: info.lastModified ?? null,
       is_open_weights: inferOpenSource(info, license),
     };
   } catch {

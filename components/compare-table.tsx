@@ -479,6 +479,7 @@ function MobileCompareView({
               [t.benchmarks.intelligence, "artificial_analysis_intelligence_index"],
               [t.benchmarks.coding, "artificial_analysis_coding_index"],
               [t.benchmarks.math, "artificial_analysis_math_index"],
+              [t.benchmarks.agentic, "agentic_index"],
             ] as [string, string][]).map(([label, key]) => {
               const val = textMetricValue(m, key);
               return val !== null ? (
@@ -509,6 +510,8 @@ function MobileCompareView({
               [t.benchmarks.lcr,               textMetricValue(m, "lcr"),               (x: LLMModel) => textMetricValue(x, "lcr")],
               [t.benchmarks.terminalbench_hard, textMetricValue(m, "terminalbench_hard"),(x: LLMModel) => textMetricValue(x, "terminalbench_hard")],
               [t.benchmarks.tau2,              textMetricValue(m, "tau2"),              (x: LLMModel) => textMetricValue(x, "tau2")],
+              [t.benchmarks.gdpval_normalized, textMetricValue(m, "gdpval_normalized"), (x: LLMModel) => textMetricValue(x, "gdpval_normalized")],
+              [t.benchmarks.itbench_aa,        textMetricValue(m, "itbench_aa"),        (x: LLMModel) => textMetricValue(x, "itbench_aa")],
             ] as [string, number | null, (x: LLMModel) => number | null][]).map(([label, val, getter]) =>
               val !== null ? (
                 <MobileRow key={String(label)} label={label}
@@ -1025,6 +1028,7 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
                   <MetricRow label={t.benchmarks.intelligence} values={models.map(m => textMetricValue(m, "artificial_analysis_intelligence_index"))} dir="higher" format={fmt} colorize />
                   <MetricRow label={t.benchmarks.coding}       values={models.map(m => textMetricValue(m, "artificial_analysis_coding_index"))} dir="higher" format={fmt} colorize />
                   <MetricRow label={t.benchmarks.math}         values={models.map(m => textMetricValue(m, "artificial_analysis_math_index"))} dir="higher" format={fmt} colorize />
+                  <MetricRow label={t.benchmarks.agentic}      values={models.map(m => textMetricValue(m, "agentic_index"))} dir="higher" format={fmt} colorize />
                 </>
               )}
 
@@ -1043,6 +1047,8 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
                   <MetricRow label={t.benchmarks.lcr}               values={models.map(m => textMetricValue(m, "lcr"))}                dir="higher" format={fmtPct} />
                   <MetricRow label={t.benchmarks.terminalbench_hard} values={models.map(m => textMetricValue(m, "terminalbench_hard"))} dir="higher" format={fmtPct} />
                   <MetricRow label={t.benchmarks.tau2}              values={models.map(m => textMetricValue(m, "tau2"))}               dir="higher" format={fmtPct} />
+                  <MetricRow label={t.benchmarks.gdpval_normalized} values={models.map(m => textMetricValue(m, "gdpval_normalized"))} dir="higher" format={fmtPct} />
+                  <MetricRow label={t.benchmarks.itbench_aa}        values={models.map(m => textMetricValue(m, "itbench_aa"))}        dir="higher" format={fmtPct} />
                 </>
               )}
 

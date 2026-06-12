@@ -40,7 +40,9 @@ export const TEXT_BENCHMARK_KEYS = new Set([
   "mmmu_pro",
   "critpt",
   "gdpval",
+  "gdpval_normalized",
   "apex_agents",
+  "itbench_aa",
   "omniscience_non_hallucination",
 ]);
 
@@ -65,6 +67,13 @@ export const AA_MEDIA_BENCHMARK_DEFS = [
     rankKey: "artificial_analysis_media_text_to_video_rank",
     appearancesKey: "artificial_analysis_media_text_to_video_appearances",
     label: { fr: "Texte vers video ELO", en: "Text-to-video ELO" },
+  },
+  {
+    kind: "image_to_video",
+    eloKey: "artificial_analysis_media_image_to_video_elo",
+    rankKey: "artificial_analysis_media_image_to_video_rank",
+    appearancesKey: "artificial_analysis_media_image_to_video_appearances",
+    label: { fr: "Image vers video ELO", en: "Image-to-video ELO" },
   },
   {
     kind: "text_to_speech",
@@ -242,6 +251,9 @@ export function hasPricingData(model: LLMModel): boolean {
     pricing.price_1m_blended_3_to_1 != null ||
     pricing.price_1m_input_tokens != null ||
     pricing.price_1m_output_tokens != null ||
+    pricing.price_1m_cache_write_tokens != null ||
+    pricing.price_1m_reasoning_tokens != null ||
+    pricing.price_web_search != null ||
     pricing.price_1m_cache_hit_tokens != null ||
     pricing.price_1m_blended_7_2_1 != null ||
     (pricing.openrouter_display_prices?.length ?? 0) > 0,
@@ -284,7 +296,8 @@ export function hasHuggingFaceSignal(model: LLMModel): boolean {
     (model.huggingface_likes ?? 0) > 0 ||
     model.huggingface_license ||
     model.huggingface_pipeline_tag ||
-    model.huggingface_library_name,
+    model.huggingface_library_name ||
+    (model.huggingface_inference_providers?.length ?? 0) > 0,
   );
 }
 

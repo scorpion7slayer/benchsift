@@ -22,6 +22,11 @@ export interface DeepSweRow {
   n_tasks_passed_any: number | null;
   ci_passed: number | null;
   ci_attempted: number | null;
+  ci_half: number | null;
+  ci_lo: number | null;
+  ci_hi: number | null;
+  ci_method: string | null;
+  n_runs: number | null;
   mean_cost_usd: number | null;
   median_cost_usd: number | null;
   mean_output_tokens: number | null;
@@ -76,6 +81,11 @@ function normalizeRow(row: Partial<DeepSweRow>): DeepSweRow | null {
     n_tasks_passed_any: num(row.n_tasks_passed_any),
     ci_passed: num(row.ci_passed),
     ci_attempted: num(row.ci_attempted),
+    ci_half: num(row.ci_half),
+    ci_lo: num(row.ci_lo),
+    ci_hi: num(row.ci_hi),
+    ci_method: str(row.ci_method),
+    n_runs: num(row.n_runs),
     mean_cost_usd: num(row.mean_cost_usd),
     median_cost_usd: num(row.median_cost_usd),
     mean_output_tokens: num(row.mean_output_tokens),

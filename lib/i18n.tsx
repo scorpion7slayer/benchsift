@@ -107,6 +107,9 @@ export interface Translations {
     outputTokens: string;
     cacheHit: string;
     cacheHitTooltip: string;
+    cacheWrite: string;
+    reasoningTokens: string;
+    webSearch: string;
     blended: string;
     blendedTooltip: string;
     blended721: string;
@@ -118,6 +121,9 @@ export interface Translations {
     extraBenchmarks: string;
     capabilities: string;
     contextWindow: string;
+    maxOutputTokens: string;
+    supportedParameters: string;
+    deprecationDate: string;
     modalities: string;
     inputModality: string;
     outputModality: string;
@@ -238,6 +244,7 @@ export interface Translations {
       cost: string;
       time: string;
       outputTokens: string;
+      confidence: string;
     };
   };
   benchmarks: {
@@ -263,7 +270,9 @@ export interface Translations {
     mmmu_pro: string;
     critpt: string;
     gdpval: string;
+    gdpval_normalized: string;
     apex_agents: string;
+    itbench_aa: string;
     omniscience_non_hallucination: string;
   };
 }
@@ -375,6 +384,9 @@ const T: Record<Lang, Translations> = {
       outputTokens: "Tokens de sortie",
       cacheHit: "Cache Hit",
       cacheHitTooltip: "Prix par token pour les prompts en cache (déjà traités), généralement très réduit par rapport au prix d'entrée standard.",
+      cacheWrite: "Écriture cache",
+      reasoningTokens: "Tokens de raisonnement",
+      webSearch: "Recherche web",
       blended: "Blended (3:1)",
       blendedTooltip: "Prix moyen pondéré basé sur un ratio typique d'utilisation : (3× prix entrée + 1× prix sortie) ÷ 4.",
       blended721: "Blended (7:2:1)",
@@ -386,6 +398,9 @@ const T: Record<Lang, Translations> = {
       extraBenchmarks: "Benchmarks supplémentaires",
       capabilities: "Capacités",
       contextWindow: "Fenêtre de contexte",
+      maxOutputTokens: "Sortie maximale",
+      supportedParameters: "Paramètres OpenRouter",
+      deprecationDate: "Fin OpenRouter",
       modalities: "Modalités",
       inputModality: "Entrée",
       outputModality: "Sortie",
@@ -515,6 +530,7 @@ const T: Record<Lang, Translations> = {
         cost: "Coût",
         time: "Temps",
         outputTokens: "Tokens sortie",
+        confidence: "IC 95 %",
       },
     },
     benchmarks: {
@@ -540,7 +556,9 @@ const T: Record<Lang, Translations> = {
       mmmu_pro: "MMMU Pro",
       critpt: "CritPt",
       gdpval: "GDPval-AA",
+      gdpval_normalized: "GDPval-AA normalisé",
       apex_agents: "APEX-Agents-AA",
+      itbench_aa: "ITBench-AA",
       omniscience_non_hallucination: "AA-Omniscience Non-Hallucination",
     },
   },
@@ -650,6 +668,9 @@ const T: Record<Lang, Translations> = {
       outputTokens: "Output tokens",
       cacheHit: "Cache Hit",
       cacheHitTooltip: "Price per token for cached prompts (previously processed), typically offering a significant discount compared to regular input price.",
+      cacheWrite: "Cache write",
+      reasoningTokens: "Reasoning tokens",
+      webSearch: "Web search",
       blended: "Blended (3:1)",
       blendedTooltip: "Weighted average price based on a typical usage ratio: (3× input price + 1× output price) ÷ 4.",
       blended721: "Blended (7:2:1)",
@@ -661,6 +682,9 @@ const T: Record<Lang, Translations> = {
       extraBenchmarks: "Additional benchmarks",
       capabilities: "Capabilities",
       contextWindow: "Context window",
+      maxOutputTokens: "Maximum output",
+      supportedParameters: "OpenRouter parameters",
+      deprecationDate: "OpenRouter sunset",
       modalities: "Modalities",
       inputModality: "Input",
       outputModality: "Output",
@@ -790,6 +814,7 @@ const T: Record<Lang, Translations> = {
         cost: "Cost",
         time: "Time",
         outputTokens: "Output tokens",
+        confidence: "95% CI",
       },
     },
     benchmarks: {
@@ -815,7 +840,9 @@ const T: Record<Lang, Translations> = {
       mmmu_pro: "MMMU Pro",
       critpt: "CritPt",
       gdpval: "GDPval-AA",
+      gdpval_normalized: "Normalized GDPval-AA",
       apex_agents: "APEX-Agents-AA",
+      itbench_aa: "ITBench-AA",
       omniscience_non_hallucination: "AA-Omniscience Non-Hallucination",
     },
   },

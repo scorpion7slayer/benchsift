@@ -80,6 +80,9 @@ function fmtParams(b: number): string {
 interface CapsTranslations {
   capabilities: string;
   contextWindow: string;
+  maxOutputTokens: string;
+  supportedParameters: string;
+  deprecationDate: string;
   modalities: string;
   inputModality: string;
   outputModality: string;
@@ -111,6 +114,9 @@ function CapabilitiesSection({ promise, t }: { promise: Promise<Caps>; t: CapsTr
 
   const hasContent =
     caps.context_window_tokens ||
+    caps.openrouter_max_completion_tokens ||
+    caps.openrouter_expiration_date ||
+    (caps.openrouter_supported_parameters?.length ?? 0) > 0 ||
     caps.total_parameters_b ||
     caps.knowledge_cutoff ||
     caps.openness_index != null ||
@@ -135,6 +141,20 @@ function CapabilitiesSection({ promise, t }: { promise: Promise<Caps>; t: CapsTr
                 ? `${(caps.context_window_tokens / 1_000_000).toFixed(1)}M tokens`
                 : `${Math.round(caps.context_window_tokens / 1_000)}K tokens`}
             </span>
+          </div>
+        )}
+        {caps.openrouter_max_completion_tokens && (
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">{t.maxOutputTokens}</span>
+            <span className="font-mono tabular-nums">
+              {fmtCtx(caps.openrouter_max_completion_tokens)}
+            </span>
+          </div>
+        )}
+        {caps.openrouter_expiration_date && (
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">{t.deprecationDate}</span>
+            <span className="font-mono tabular-nums">{caps.openrouter_expiration_date}</span>
           </div>
         )}
         {caps.knowledge_cutoff && (
@@ -175,6 +195,18 @@ function CapabilitiesSection({ promise, t }: { promise: Promise<Caps>; t: CapsTr
               </Tooltip>
             </span>
             <span className="font-mono tabular-nums">{caps.openness_index.toFixed(0)} / 100</span>
+          </div>
+        )}
+        {(caps.openrouter_supported_parameters?.length ?? 0) > 0 && (
+          <div className="space-y-2">
+            <span className="text-muted-foreground">{t.supportedParameters}</span>
+            <div className="flex flex-wrap gap-1">
+              {caps.openrouter_supported_parameters?.map((parameter) => (
+                <Badge key={parameter} variant="secondary" className="font-mono text-[10px]">
+                  {parameter}
+                </Badge>
+              ))}
+            </div>
           </div>
         )}
         {(inputMods.length > 0 || outputMods.length > 0) && (
@@ -474,7 +506,9 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
     multilingual_aa: pct(textMetricValue(model, "multilingual_aa")),
     mmmu_pro: pct(textMetricValue(model, "mmmu_pro")),
     critpt: pct(textMetricValue(model, "critpt")),
+    gdpval_normalized: pct(textMetricValue(model, "gdpval_normalized")),
     apex_agents: pct(textMetricValue(model, "apex_agents")),
+    itbench_aa: pct(textMetricValue(model, "itbench_aa")),
     omniscience_non_hallucination: pct(textMetricValue(model, "omniscience_non_hallucination")),
   };
 
@@ -565,6 +599,9 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
             t={{
               capabilities: t.detail.capabilities,
               contextWindow: t.detail.contextWindow,
+              maxOutputTokens: t.detail.maxOutputTokens,
+              supportedParameters: t.detail.supportedParameters,
+              deprecationDate: t.detail.deprecationDate,
               modalities: t.detail.modalities,
               inputModality: t.detail.inputModality,
               outputModality: t.detail.outputModality,
@@ -649,8 +686,14 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
               {ev.gdpval !== null && ev.gdpval !== undefined && (
                 <BenchmarkRow label={t.benchmarks.gdpval} displayValue={ev.gdpval.toFixed(0)} barPct={Math.min((ev.gdpval / 2000) * 100, 100)} />
               )}
+              {benchmarksPct.gdpval_normalized !== null && (
+                <BenchmarkRow label={t.benchmarks.gdpval_normalized} displayValue={`${fmt(benchmarksPct.gdpval_normalized)}%`} barPct={benchmarksPct.gdpval_normalized ?? 0} />
+              )}
               {benchmarksPct.apex_agents !== null && (
                 <BenchmarkRow label={t.benchmarks.apex_agents} displayValue={`${fmt(benchmarksPct.apex_agents)}%`} barPct={benchmarksPct.apex_agents ?? 0} />
+              )}
+              {benchmarksPct.itbench_aa !== null && (
+                <BenchmarkRow label={t.benchmarks.itbench_aa} displayValue={`${fmt(benchmarksPct.itbench_aa)}%`} barPct={benchmarksPct.itbench_aa ?? 0} />
               )}
               {benchmarksPct.omniscience_non_hallucination !== null && (
                 <BenchmarkRow label={t.benchmarks.omniscience_non_hallucination} displayValue={`${fmt(benchmarksPct.omniscience_non_hallucination)}%`} barPct={benchmarksPct.omniscience_non_hallucination ?? 0} />
@@ -762,6 +805,24 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
                       label={t.detail.cacheHit}
                       tooltip={t.detail.cacheHitTooltip}
                       value={`$${fmt(pricing.price_1m_cache_hit_tokens, 3)}`}
+                    />
+                  )}
+                  {pricing.price_1m_cache_write_tokens != null && (
+                    <StatRow
+                      label={t.detail.cacheWrite}
+                      value={`$${fmt(pricing.price_1m_cache_write_tokens, 3)}`}
+                    />
+                  )}
+                  {pricing.price_1m_reasoning_tokens != null && (
+                    <StatRow
+                      label={t.detail.reasoningTokens}
+                      value={`$${fmt(pricing.price_1m_reasoning_tokens, 3)}`}
+                    />
+                  )}
+                  {pricing.price_web_search != null && (
+                    <StatRow
+                      label={t.detail.webSearch}
+                      value={`$${fmtPrice(pricing.price_web_search)} / op`}
                     />
                   )}
                   <StatRow label={t.detail.outputTokens} value={pricing.price_1m_output_tokens !== null ? `$${fmt(pricing.price_1m_output_tokens, 2)}` : "—"} />
