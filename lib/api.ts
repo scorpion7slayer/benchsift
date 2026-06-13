@@ -15,6 +15,7 @@ import {
 } from "@/lib/openrouter";
 import { attachOfficialHuggingFaceHints, enrichModelsWithHuggingFace } from "@/lib/huggingface";
 import { fetchAAMediaModels, mergeAAMediaModels } from "@/lib/aa-media";
+import { extractAAAvailabilityStatus, type ModelAvailabilityStatus } from "@/lib/model-availability";
 import type { CodingAgent } from "@/lib/coding-agents";
 
 const BASE_URL = "https://artificialanalysis.ai/api/v2";
@@ -181,6 +182,7 @@ export interface LLMModel {
   huggingface_inference_providers?: string[];
   huggingface_created_at?: string | null;
   huggingface_last_modified?: string | null;
+  availability_status?: ModelAvailabilityStatus | null;
 }
 
 let lastSuccessfulModels: LLMModel[] | null = null;
@@ -613,6 +615,7 @@ export async function scrapeAACapabilities(slug: string): Promise<Partial<LLMMod
       intelligence_index_tokens: extractIIITokens(),
       intelligence_index_cost_usd: extractIICost(),
       end_to_end_response_time_seconds: extractEndToEnd(),
+      availability_status: extractAAAvailabilityStatus(html, slug),
     };
   } catch {
     return {};
@@ -898,7 +901,7 @@ async function chunkedScrapeAA(
 function mergeDefinedModel(model: LLMModel, patch: Partial<LLMModel>): LLMModel {
   const next = { ...model };
   for (const [key, value] of Object.entries(patch)) {
-    if (value !== undefined && value !== null) {
+    if (value !== undefined && (value !== null || key === "availability_status")) {
       (next as Record<string, unknown>)[key] = value;
     }
   }

@@ -10,10 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
+import { ModelAvailabilityBadge, ModelAvailabilityNotice } from "@/components/model-availability";
 import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
 import { getModelProviderKey } from "@/lib/provider-map";
 import { usePageTransition } from "@/components/page-transition-provider";
+import { isModelCurrentlyUnavailable } from "@/lib/model-availability";
 import {
   applicableExtraBenchmarkEntries,
   hasAAIndexBenchmarks,
@@ -28,10 +30,21 @@ type Caps = Partial<LLMModel>;
 
 // Streamed sections (scraped data) / Sections streamées (données scrapées)
 
-function ScrapedBadges({ promise, t }: { promise: Promise<Caps>; t: { reasoning: string; openWeights: string; closedWeights: string } }) {
+function ScrapedBadges({
+  promise,
+  availabilityStatus,
+  t,
+}: {
+  promise: Promise<Caps>;
+  availabilityStatus: LLMModel["availability_status"];
+  t: { reasoning: string; openWeights: string; closedWeights: string };
+}) {
   const caps = use(promise);
   return (
     <>
+      {availabilityStatus == null && (
+        <ModelAvailabilityBadge model={{ availability_status: caps.availability_status }} />
+      )}
       {caps.reasoning_model && (
         <Badge variant="secondary" className="gap-1">
           <Brain className="size-3" />
@@ -48,6 +61,21 @@ function ScrapedBadges({ promise, t }: { promise: Promise<Caps>; t: { reasoning:
         </Badge>
       ) : null}
     </>
+  );
+}
+
+function StreamedAvailabilityNotice({
+  promise,
+  slug,
+}: {
+  promise: Promise<Caps>;
+  slug: string;
+}) {
+  const caps = use(promise);
+  return (
+    <ModelAvailabilityNotice
+      model={{ slug, availability_status: caps.availability_status }}
+    />
   );
 }
 
@@ -553,10 +581,12 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
                 {release_date}
               </Badge>
             )}
+            <ModelAvailabilityBadge model={model} />
             {capabilitiesPromise && (
               <Suspense>
                 <ScrapedBadges
                   promise={capabilitiesPromise}
+                  availabilityStatus={model.availability_status}
                   t={{ reasoning: t.detail.reasoning, openWeights: t.detail.openWeights, closedWeights: t.detail.closedWeights }}
                 />
               </Suspense>
@@ -591,6 +621,13 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
       </div>
 
       <Separator />
+
+      <ModelAvailabilityNotice model={model} />
+      {capabilitiesPromise && !isModelCurrentlyUnavailable(model) && (
+        <Suspense>
+          <StreamedAvailabilityNotice promise={capabilitiesPromise} slug={model.slug} />
+        </Suspense>
+      )}
 
       {capabilitiesPromise && (
         <Suspense>
