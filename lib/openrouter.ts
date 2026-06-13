@@ -1,9 +1,6 @@
 import type { LLMModel } from "@/lib/api";
 import { createEmptyEvaluations } from "@/lib/model-metrics";
-import {
-  getCanonicalCreatorSlug,
-  resolveCreatorFromModelSlug,
-} from "@/lib/provider-map";
+import { getCanonicalCreatorSlug } from "@/lib/provider-map";
 
 const OR_BASE = "https://openrouter.ai/api/v1";
 const OPENROUTER_APP_REFERER = "https://benchsift.nxtaigen.com";
@@ -392,10 +389,8 @@ function providerSlug(or: OpenRouterModel): string {
   return aliases[slug] ?? slug;
 }
 
-function catalogProviderSlug(model: Pick<LLMModel, "slug" | "model_creator">): string {
-  return getCanonicalCreatorSlug(
-    resolveCreatorFromModelSlug(model.slug, model.model_creator.slug),
-  );
+function catalogProviderSlug(model: Pick<LLMModel, "model_creator">): string {
+  return getCanonicalCreatorSlug(model.model_creator.slug);
 }
 
 function openRouterNameKey(or: OpenRouterModel): string | null {

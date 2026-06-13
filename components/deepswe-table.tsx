@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
-import { getModelProviderKey } from "@/lib/provider-map";
+import { getModelProviderKey, resolveCreatorFromModelSlug } from "@/lib/provider-map";
 import { useI18n } from "@/lib/i18n";
 import type { DeepSweLeaderboard, DeepSweRow } from "@/lib/deepswe";
 
@@ -66,7 +66,8 @@ function displayModelName(slug: string): string {
 }
 
 function providerFor(row: DeepSweRow): string {
-  return getModelProviderKey(row.model, row.model.split("-")[0] ?? "");
+  const creator = resolveCreatorFromModelSlug(row.model, row.model.split("-")[0] ?? "");
+  return getModelProviderKey(row.model, creator);
 }
 
 function effortLabel(row: DeepSweRow): string {

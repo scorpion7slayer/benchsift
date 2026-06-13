@@ -89,19 +89,28 @@ export function getProviderKey(creatorSlug: string): string {
 }
 
 /**
- * Returns the provider icon key for a specific model. Some AA rows expose the
- * parent company as creator while the recognisable model family has its own
- * logo, e.g. Qwen models under Alibaba or Kimi models under Moonshot AI.
+ * Returns the icon key for a model whose creator is already known.
+ *
+ * The creator remains the source of truth: a Llama model published by Nvidia
+ * must use Nvidia's logo, not Meta's. Product-brand logos only take precedence
+ * when the model belongs to the company that owns that brand.
  */
 export function getModelProviderKey(modelSlug: string, creatorSlug: string): string {
   const slug = modelSlug.toLowerCase();
-  if (slug.startsWith("qwen") || slug.startsWith("qwq") || slug.startsWith("qvq")) {
+  const creator = getCanonicalCreatorSlug(creatorSlug);
+  if (
+    (creator === "alibaba" || creator === "qwen") &&
+    (slug.startsWith("qwen") || slug.startsWith("qwq") || slug.startsWith("qvq"))
+  ) {
     return "qwen";
   }
-  if (slug.startsWith("kimi")) {
+  if (
+    (creator === "kimi" || creator === "moonshot" || creator === "moonshotai") &&
+    slug.startsWith("kimi")
+  ) {
     return "kimi";
   }
-  return getProviderKey(resolveCreatorFromModelSlug(modelSlug, creatorSlug));
+  return getProviderKey(creator);
 }
 
 /**
