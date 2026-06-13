@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
 import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
+import { ModelAvailabilityBadge } from "@/components/model-availability";
 import { getModelProviderKey } from "@/lib/provider-map";
 import {
   hasAAIndexBenchmarks,
@@ -272,6 +273,7 @@ export function ModelCard({ model }: { model: LLMModel }) {
                     {t.card.openWeightsBadge}
                   </Badge>
                 )}
+                <ModelAvailabilityBadge model={model} />
                 {intelligence !== null && (
                   <Badge
                     variant="outline"

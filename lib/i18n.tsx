@@ -82,6 +82,7 @@ export interface Translations {
     huggingface: string;
     openWeightsBadge: string;
     viewOnHuggingFace: string;
+    unavailableBadge: string;
   };
   detail: {
     aaIndices: string;
@@ -140,6 +141,10 @@ export interface Translations {
     intelligenceCost: string;
     intelligenceCostTooltip: string;
     metaInfo: string;
+    unavailableTitle: string;
+    unavailableDescription: string;
+    fableUnavailableDescription: string;
+    unavailableSource: string;
     modalityLabels: { text: string; image: string; speech: string; video: string };
   };
   compare: {
@@ -359,6 +364,7 @@ const T: Record<Lang, Translations> = {
       huggingface: "Hugging Face",
       openWeightsBadge: "Poids ouverts",
       viewOnHuggingFace: "Voir sur Hugging Face",
+      unavailableBadge: "Indisponible actuellement",
     },
     detail: {
       aaIndices: "Indices Artificial Analysis",
@@ -417,6 +423,10 @@ const T: Record<Lang, Translations> = {
       intelligenceCost: "Coût d'évaluation",
       intelligenceCostTooltip: "Coût total (USD) pour évaluer le modèle sur l'Artificial Analysis Intelligence Index, basé sur le prix par token et le nombre de tokens utilisés.",
       metaInfo: "Méta-informations",
+      unavailableTitle: "Indisponible actuellement",
+      unavailableDescription: "Artificial Analysis marque actuellement ce modèle comme indisponible.",
+      fableUnavailableDescription: "Une directive du gouvernement américain oblige Anthropic à suspendre l'accès à Fable 5 et Mythos 5 pour tous les utilisateurs. Anthropic travaille à rétablir l'accès dès que possible, sans annoncer de date.",
+      unavailableSource: "Lire l'annonce Anthropic",
       modalityLabels: { text: "texte", image: "image", speech: "audio", video: "vidéo" },
     },
     compare: {
@@ -643,6 +653,7 @@ const T: Record<Lang, Translations> = {
       huggingface: "Hugging Face",
       openWeightsBadge: "Open weights",
       viewOnHuggingFace: "View on Hugging Face",
+      unavailableBadge: "Not currently available",
     },
     detail: {
       aaIndices: "Artificial Analysis Indices",
@@ -701,6 +712,10 @@ const T: Record<Lang, Translations> = {
       intelligenceCost: "Evaluation cost",
       intelligenceCostTooltip: "Total cost (USD) to evaluate the model on the Artificial Analysis Intelligence Index, based on the price per token and the number of tokens used.",
       metaInfo: "Meta-information",
+      unavailableTitle: "Not currently available",
+      unavailableDescription: "Artificial Analysis currently marks this model as unavailable.",
+      fableUnavailableDescription: "A US government directive requires Anthropic to suspend access to Fable 5 and Mythos 5 for all users. Anthropic is working to restore access as soon as possible, with no return date announced.",
+      unavailableSource: "Read Anthropic's announcement",
       modalityLabels: { text: "text", image: "image", speech: "speech", video: "video" },
     },
     compare: {
