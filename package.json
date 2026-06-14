@@ -38,7 +38,7 @@
     "tailwindcss": "^4.2.4",
     "typescript": "^6",
     "vite": "^8.0.14",
-    "vite-tsconfig-paths": "^5.1.4"
+    "vite-tsconfig-paths": "^6.1.1"
   },
   "overrides": {
     "@aws-sdk/xml-builder": "^3.972.22",
