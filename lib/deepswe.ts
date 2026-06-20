@@ -2,10 +2,20 @@ import "@tanstack/react-start/server-only";
 
 import { cached } from "@/lib/revalidate-cache";
 
-const DEEPSWE_LEADERBOARD_URL =
-  "https://deepswe.datacurve.ai/artifacts/leaderboard-live.json";
+const DEEPSWE_ARTIFACT_BASE = "https://deepswe.datacurve.ai/artifacts";
 const FETCH_TIMEOUT_MS = 8_000;
 const CACHE_SECONDS = 21_600; // 6h
+
+export type DeepSweVersion = "v1.1" | "v1";
+
+const DEEPSWE_VERSIONS: Array<{
+  id: DeepSweVersion;
+  label: string;
+  scoring: string;
+}> = [
+  { id: "v1.1", label: "DeepSWE v1.1", scoring: "node-id" },
+  { id: "v1", label: "DeepSWE v1", scoring: "exit-code" },
+];
 
 export interface DeepSweRow {
   model: string;
@@ -42,6 +52,9 @@ export interface DeepSweRow {
 }
 
 export interface DeepSweLeaderboard {
+  version: DeepSweVersion;
+  label: string;
+  scoring: string;
   generated_at: string | null;
   latest_job: { name?: string; finished_at?: string } | null;
   n_tasks_in_set: number | null;
@@ -50,8 +63,38 @@ export interface DeepSweLeaderboard {
   rows: DeepSweRow[];
 }
 
+export interface DeepSweDeltaConfig {
+  config: string;
+  model: string;
+  reasoning_effort: string | null;
+  v1: number | null;
+  current: number | null;
+  delta: number | null;
+  n_v1: number | null;
+  n_current: number | null;
+}
+
+export interface DeepSweComparison {
+  scope: string | null;
+  compared_to: string | null;
+  n_shared_configs: number | null;
+  n_tasks: number | null;
+  pooled: { v1: number | null; current: number | null };
+  configs: DeepSweDeltaConfig[];
+}
+
+export interface DeepSweData {
+  leaderboards: DeepSweLeaderboard[];
+  comparison: DeepSweComparison | null;
+}
+
 type RawDeepSweLeaderboard = Partial<Omit<DeepSweLeaderboard, "rows">> & {
   rows?: Array<Partial<DeepSweRow>>;
+};
+
+type RawDeepSweComparison = Partial<Omit<DeepSweComparison, "configs" | "pooled">> & {
+  pooled?: { v1?: unknown; current?: unknown };
+  configs?: Array<Partial<DeepSweDeltaConfig>>;
 };
 
 function num(value: unknown): number | null {
@@ -101,8 +144,13 @@ function normalizeRow(row: Partial<DeepSweRow>): DeepSweRow | null {
   };
 }
 
-function emptyLeaderboard(): DeepSweLeaderboard {
+function emptyLeaderboard(
+  version: (typeof DEEPSWE_VERSIONS)[number],
+): DeepSweLeaderboard {
   return {
+    version: version.id,
+    label: version.label,
+    scoring: version.scoring,
     generated_at: null,
     latest_job: null,
     n_tasks_in_set: null,
@@ -112,43 +160,100 @@ function emptyLeaderboard(): DeepSweLeaderboard {
   };
 }
 
-const getDeepSweLeaderboardCached = cached(
-  async (): Promise<DeepSweLeaderboard> => {
-    try {
-      const res = await fetch(DEEPSWE_LEADERBOARD_URL, {
-        headers: {
-          "Accept": "application/json",
-          "User-Agent": "BenchSift/1.0 (+https://benchsift.nxtaigen.com)",
-        },
-        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      });
-      if (!res.ok) return emptyLeaderboard();
+async function fetchArtifact<T>(path: string): Promise<T | null> {
+  try {
+    const res = await fetch(`${DEEPSWE_ARTIFACT_BASE}/${path}.json`, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "BenchSift/1.0 (+https://benchsift.nxtaigen.com)",
+      },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+    return res.ok ? (await res.json()) as T : null;
+  } catch {
+    return null;
+  }
+}
 
-      const raw = (await res.json()) as RawDeepSweLeaderboard;
-      const rows = (raw.rows ?? [])
-        .map(normalizeRow)
-        .filter((row): row is DeepSweRow => row !== null)
-        .sort((a, b) => (b.pass_at_1 ?? -1) - (a.pass_at_1 ?? -1));
+function normalizeLeaderboard(
+  version: (typeof DEEPSWE_VERSIONS)[number],
+  raw: RawDeepSweLeaderboard | null,
+): DeepSweLeaderboard {
+  if (!raw) return emptyLeaderboard(version);
+  const rows = (raw.rows ?? [])
+    .map(normalizeRow)
+    .filter((row): row is DeepSweRow => row !== null)
+    .sort((a, b) => (b.pass_at_1 ?? -1) - (a.pass_at_1 ?? -1));
 
+  return {
+    version: version.id,
+    label: version.label,
+    scoring: version.scoring,
+    generated_at: str(raw.generated_at),
+    latest_job:
+      raw.latest_job && typeof raw.latest_job === "object"
+        ? raw.latest_job
+        : null,
+    n_tasks_in_set: num(raw.n_tasks_in_set),
+    scope: str(raw.scope),
+    unit: str(raw.unit),
+    rows,
+  };
+}
+
+function normalizeComparison(raw: RawDeepSweComparison | null): DeepSweComparison | null {
+  if (!raw) return null;
+  const configs = (raw.configs ?? [])
+    .map((row): DeepSweDeltaConfig | null => {
+      const config = str(row.config);
+      const model = str(row.model);
+      if (!config || !model) return null;
       return {
-        generated_at: str(raw.generated_at),
-        latest_job:
-          raw.latest_job && typeof raw.latest_job === "object"
-            ? raw.latest_job
-            : null,
-        n_tasks_in_set: num(raw.n_tasks_in_set),
-        scope: str(raw.scope),
-        unit: str(raw.unit),
-        rows,
+        config,
+        model,
+        reasoning_effort: str(row.reasoning_effort),
+        v1: num(row.v1),
+        current: num(row.current),
+        delta: num(row.delta),
+        n_v1: num(row.n_v1),
+        n_current: num(row.n_current),
       };
-    } catch {
-      return emptyLeaderboard();
-    }
+    })
+    .filter((row): row is DeepSweDeltaConfig => row !== null)
+    .sort((a, b) => Math.abs(b.delta ?? 0) - Math.abs(a.delta ?? 0));
+
+  return {
+    scope: str(raw.scope),
+    compared_to: str(raw.compared_to),
+    n_shared_configs: num(raw.n_shared_configs),
+    n_tasks: num(raw.n_tasks),
+    pooled: {
+      v1: num(raw.pooled?.v1),
+      current: num(raw.pooled?.current),
+    },
+    configs,
+  };
+}
+
+const getDeepSweDataCached = cached(
+  async (): Promise<DeepSweData> => {
+    const [v11, v1, delta] = await Promise.all([
+      fetchArtifact<RawDeepSweLeaderboard>("v1.1/leaderboard-live"),
+      fetchArtifact<RawDeepSweLeaderboard>("v1/leaderboard-live"),
+      fetchArtifact<RawDeepSweComparison>("v1.1/v1-delta"),
+    ]);
+    return {
+      leaderboards: [
+        normalizeLeaderboard(DEEPSWE_VERSIONS[0], v11),
+        normalizeLeaderboard(DEEPSWE_VERSIONS[1], v1),
+      ],
+      comparison: normalizeComparison(delta),
+    };
   },
-  ["deepswe-leaderboard"],
+  ["deepswe-versioned-data"],
   { revalidate: CACHE_SECONDS },
 );
 
-export async function getDeepSweLeaderboard(): Promise<DeepSweLeaderboard> {
-  return getDeepSweLeaderboardCached();
+export async function getDeepSweData(): Promise<DeepSweData> {
+  return getDeepSweDataCached();
 }

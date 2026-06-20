@@ -13,6 +13,7 @@ export interface LatestModelSummary {
   name: string;
   providerName: string;
   providerSlug: string;
+  providerIconUrl?: string | null;
   releaseDate: string | null;
   releaseTimestamp?: string | null;
 }
@@ -185,7 +186,11 @@ export function HomeHero({
             className="group mt-2 flex items-center gap-2 rounded-md transition-colors hover:text-primary"
           >
             <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted">
-              <ModelProviderIcon provider={getModelProviderKey(latestModel.slug, latestModel.providerSlug)} size={20} />
+              <ModelProviderIcon
+                provider={getModelProviderKey(latestModel.slug, latestModel.providerSlug)}
+                size={20}
+                iconUrl={latestModel.providerIconUrl}
+              />
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium">

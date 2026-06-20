@@ -11,7 +11,7 @@ import {
   getCodingAgents,
   type LLMModel,
 } from "@/lib/api";
-import { getDeepSweLeaderboard, type DeepSweLeaderboard } from "@/lib/deepswe";
+import { getDeepSweData, type DeepSweData } from "@/lib/deepswe";
 import type { Lang } from "@/lib/i18n";
 
 function setPublicResponseCache(): void {
@@ -78,10 +78,10 @@ export const fetchCodingAgents = createServerFn({ method: "GET" }).handler(
 );
 
 /** Datacurve DeepSWE leaderboard. */
-export const fetchDeepSweLeaderboard = createServerFn({ method: "GET" }).handler(
-  async (): Promise<DeepSweLeaderboard> => {
+export const fetchDeepSweData = createServerFn({ method: "GET" }).handler(
+  async (): Promise<DeepSweData> => {
     setPublicResponseCache();
-    return getDeepSweLeaderboard();
+    return getDeepSweData();
   },
 );
 

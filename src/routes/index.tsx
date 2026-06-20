@@ -13,18 +13,11 @@ import {
   homepageMarkdown,
   markdownTokenEstimate,
 } from "@/lib/agent-discovery";
-
-function releaseTime(model: LLMModel): number {
-  const timestamp = model.release_timestamp ? Date.parse(model.release_timestamp) : NaN;
-  if (Number.isFinite(timestamp)) return timestamp;
-  if (!model.release_date) return Number.NEGATIVE_INFINITY;
-  const date = Date.parse(`${model.release_date}T00:00:00.000Z`);
-  return Number.isFinite(date) ? date : Number.NEGATIVE_INFINITY;
-}
+import { modelReleaseTime } from "@/lib/model-release";
 
 function getLatestModelSummaries(models: LLMModel[], limit = 3): LatestModelSummary[] {
   return models
-    .map((model, index) => ({ model, index, time: releaseTime(model) }))
+    .map((model, index) => ({ model, index, time: modelReleaseTime(model) }))
     .filter((entry) => Number.isFinite(entry.time))
     .sort((a, b) => b.time - a.time || a.index - b.index)
     .slice(0, limit)
@@ -33,6 +26,7 @@ function getLatestModelSummaries(models: LLMModel[], limit = 3): LatestModelSumm
       name: model.name,
       providerName: model.model_creator.name,
       providerSlug: model.model_creator.slug,
+      providerIconUrl: model.provider_icon_url,
       releaseDate: model.release_date,
       releaseTimestamp: model.release_timestamp ?? null,
     }));
@@ -96,6 +90,7 @@ function HomePage() {
     name: model.name,
     providerName: model.model_creator.name,
     providerSlug: model.model_creator.slug,
+    providerIconUrl: model.provider_icon_url,
   }));
 
   return (

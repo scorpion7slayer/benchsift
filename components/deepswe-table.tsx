@@ -1,5 +1,5 @@
-import { Activity, DollarSign, ExternalLink, Info, Timer, Trophy } from "lucide-react";
-import type { ReactNode } from "react";
+import { Activity, DollarSign, ExternalLink, GitCompareArrows, Info, Timer, Trophy } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,11 +7,17 @@ import { Separator } from "@/components/ui/separator";
 import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
 import { getModelProviderKey, resolveCreatorFromModelSlug } from "@/lib/provider-map";
 import { useI18n } from "@/lib/i18n";
-import type { DeepSweLeaderboard, DeepSweRow } from "@/lib/deepswe";
+import type { DeepSweData, DeepSweRow, DeepSweVersion } from "@/lib/deepswe";
 
 function fmtPct(value: number | null): string {
   if (value == null) return "-";
   return `${(value * 100).toFixed(1)}%`;
+}
+
+function fmtDelta(value: number | null): string {
+  if (value == null) return "-";
+  const points = value * 100;
+  return `${points > 0 ? "+" : ""}${points.toFixed(1)} pts`;
 }
 
 function fmtConfidence(row: DeepSweRow): string {
@@ -98,12 +104,19 @@ function StatCard({
   );
 }
 
-export function DeepSweTable({ leaderboard }: { leaderboard: DeepSweLeaderboard }) {
+export function DeepSweTable({ data }: { data: DeepSweData }) {
   const { t } = useI18n();
+  const [version, setVersion] = useState<DeepSweVersion>(
+    data.leaderboards.find((entry) => entry.rows.length > 0)?.version ?? "v1.1",
+  );
+  const leaderboard =
+    data.leaderboards.find((entry) => entry.version === version) ??
+    data.leaderboards[0];
+  const comparison = data.comparison;
   const rows = leaderboard.rows;
   const top = rows[0] ?? null;
 
-  if (rows.length === 0) {
+  if (data.leaderboards.every((entry) => entry.rows.length === 0)) {
     return (
       <div className="space-y-6">
         <Card>
@@ -128,6 +141,36 @@ export function DeepSweTable({ leaderboard }: { leaderboard: DeepSweLeaderboard 
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium">{t.deepSwe.versions}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {leaderboard.scoring === "node-id"
+                ? t.deepSwe.scoringNodeId
+                : t.deepSwe.scoringExitCode}
+            </p>
+          </div>
+          <div className="inline-flex w-full rounded-lg border bg-muted/30 p-1 sm:w-auto">
+            {data.leaderboards.map((entry) => (
+              <button
+                key={entry.version}
+                type="button"
+                onClick={() => setVersion(entry.version)}
+                aria-pressed={entry.version === version}
+                className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors sm:flex-none ${
+                  entry.version === version
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {entry.version}
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title={t.deepSwe.stats.configs}
@@ -150,6 +193,79 @@ export function DeepSweTable({ leaderboard }: { leaderboard: DeepSweLeaderboard 
           icon={<Timer className="size-4" />}
         />
       </div>
+
+      {version === "v1.1" && comparison && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <GitCompareArrows className="size-4 text-muted-foreground" />
+              {t.deepSwe.comparison}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-4">
+              <div className="rounded-lg border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">v1</p>
+                <p className="mt-1 font-mono text-lg font-semibold">{fmtPct(comparison.pooled.v1)}</p>
+              </div>
+              <div className="rounded-lg border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">v1.1</p>
+                <p className="mt-1 font-mono text-lg font-semibold">{fmtPct(comparison.pooled.current)}</p>
+              </div>
+              <div className="rounded-lg border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">{t.deepSwe.delta}</p>
+                <p className="mt-1 font-mono text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+                  {fmtDelta(
+                    comparison.pooled.current != null && comparison.pooled.v1 != null
+                      ? comparison.pooled.current - comparison.pooled.v1
+                      : null,
+                  )}
+                </p>
+              </div>
+              <div className="rounded-lg border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">{t.deepSwe.sharedConfigs}</p>
+                <p className="mt-1 font-mono text-lg font-semibold">{comparison.n_shared_configs ?? "-"}</p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">{comparison.scope}</p>
+            <div className="overflow-x-auto rounded-lg border">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/40 text-xs text-muted-foreground">
+                    <th className="px-3 py-2 text-left">{t.deepSwe.headers.model}</th>
+                    <th className="px-3 py-2 text-right">v1</th>
+                    <th className="px-3 py-2 text-right">v1.1</th>
+                    <th className="px-3 py-2 text-right">{t.deepSwe.delta}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {comparison.configs.map((row) => (
+                    <tr key={row.config} className="border-b last:border-0">
+                      <td className="px-3 py-2">
+                        <span className="font-medium">{displayModelName(row.model)}</span>
+                        <span className="ml-2 font-mono text-xs text-muted-foreground">
+                          {row.reasoning_effort ?? "default"}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono text-xs">{fmtPct(row.v1)}</td>
+                      <td className="px-3 py-2 text-right font-mono text-xs">{fmtPct(row.current)}</td>
+                      <td className={`px-3 py-2 text-right font-mono text-xs ${
+                        (row.delta ?? 0) > 0
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : (row.delta ?? 0) < 0
+                            ? "text-red-600 dark:text-red-400"
+                            : "text-muted-foreground"
+                      }`}>
+                        {fmtDelta(row.delta)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

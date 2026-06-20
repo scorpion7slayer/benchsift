@@ -250,7 +250,7 @@ export function ModelCard({ model }: { model: LLMModel }) {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between gap-2 mb-1.5">
               <div className="shrink-0 size-8 rounded-md flex items-center justify-center bg-muted">
-                <ModelProviderIcon provider={providerKey} size={20} />
+                <ModelProviderIcon provider={providerKey} size={20} iconUrl={model.provider_icon_url} />
               </div>
               <div className="flex items-center gap-1.5 flex-wrap justify-end">
                 {isNew && (

@@ -33,6 +33,7 @@ const CREATOR_TO_PROVIDER: Record<string, string> = {
   zhipu: "zhipu",
   baidu: "baidu",
   bytedance_seed: "bytedance", // ByteDance Seed team
+  "bytedance-seed": "bytedance",
   bytedance: "bytedance",
   minimax: "minimax",
   kimi: "moonshot",            // Kimi = Moonshot AI
@@ -53,7 +54,44 @@ const CREATOR_TO_PROVIDER: Record<string, string> = {
   lg: "lg",
   groq: "groq",
 
-  // No direct icon → fallback to slug (ProviderIcon shows nothing gracefully)
+  // Media and specialist labs covered by direct @lobehub/icons exports.
+  adobe: "adobe",
+  "aion-labs": "aionlabs",
+  aion: "aionlabs",
+  arcee: "arcee",
+  "arcee-ai": "arcee",
+  baai: "baai",
+  "black-forest-labs": "bfl",
+  bria: "briaai",
+  coqui: "coqui",
+  elevenlabs: "elevenlabs",
+  essentialai: "essentialai",
+  "fish-audio": "fishaudio",
+  haiper: "haiper",
+  ideogram: "ideogram",
+  inflection: "inflection",
+  klingai: "kling",
+  krea: "krea",
+  lightricks: "lightricks",
+  liquid: "liquidai",
+  "luma-labs": "luma",
+  "meta-llama": "meta",
+  midjourney: "midjourney",
+  morph: "morph",
+  "pika-art": "pika",
+  pixverse: "pixverse",
+  "pruna-ai": "prunaai",
+  recraft: "recraft",
+  relace: "relace",
+  reve: "reve",
+  runway: "runway",
+  "sentence-transformers": "huggingface",
+  "skywork-ai": "skywork",
+  "stability-ai": "stability",
+  vidu: "vidu",
+  "ibm-granite": "ibm",
+
+  // ProviderIcon where possible; the component falls back to a monogram.
   ai2: "ai2",                  // Allen Institute for AI
   databricks: "databricks",
   deepcogito: "deepcogito",

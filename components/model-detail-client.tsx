@@ -565,7 +565,7 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
       {/* Hero */}
       <div className="flex items-start gap-4">
         <div className="size-14 rounded-xl bg-muted flex items-center justify-center shrink-0">
-          <ModelProviderIcon provider={providerKey} size={32} />
+          <ModelProviderIcon provider={providerKey} size={32} iconUrl={model.provider_icon_url} />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm text-muted-foreground truncate">{model_creator.name}</p>

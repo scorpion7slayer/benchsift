@@ -9,6 +9,7 @@ import {
 interface IconProps {
   provider: string;
   size?: number;
+  iconUrl?: string | null;
 }
 
 // `import.meta.env.SSR` is a compile-time constant, so on the server build the
@@ -24,7 +25,7 @@ const LazyModelProviderIcon: ComponentType<IconProps> | null = import.meta.env
       })),
     );
 
-export function ModelProviderIcon({ provider, size = 20 }: IconProps) {
+export function ModelProviderIcon({ provider, size = 20, iconUrl }: IconProps) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -41,7 +42,7 @@ export function ModelProviderIcon({ provider, size = 20 }: IconProps) {
 
   return (
     <Suspense fallback={placeholder}>
-      <LazyModelProviderIcon provider={provider} size={size} />
+      <LazyModelProviderIcon provider={provider} size={size} iconUrl={iconUrl} />
     </Suspense>
   );
 }

@@ -237,6 +237,12 @@ export interface Translations {
     empty: string;
     sourceNote: string;
     viewOnDeepSwe: string;
+    versions: string;
+    comparison: string;
+    scoringNodeId: string;
+    scoringExitCode: string;
+    sharedConfigs: string;
+    delta: string;
     stats: {
       configs: string;
       tasks: string;
@@ -528,6 +534,12 @@ const T: Record<Lang, Translations> = {
       empty: "Données DeepSWE indisponibles pour l'instant.",
       sourceNote: "Données via Datacurve DeepSWE.",
       viewOnDeepSwe: "Voir sur DeepSWE",
+      versions: "Version du benchmark",
+      comparison: "Différences v1.1 vs v1",
+      scoringNodeId: "v1.1 — notation par identifiant de test (node-id), version stable de juin 2026.",
+      scoringExitCode: "v1 — notation historique par code de sortie, version figée de mai 2026.",
+      sharedConfigs: "Configs communes",
+      delta: "Écart",
       stats: {
         configs: "Configurations",
         tasks: "Tâches",
@@ -817,6 +829,12 @@ const T: Record<Lang, Translations> = {
       empty: "DeepSWE data unavailable for now.",
       sourceNote: "Data via Datacurve DeepSWE.",
       viewOnDeepSwe: "View on DeepSWE",
+      versions: "Benchmark version",
+      comparison: "v1.1 vs v1 differences",
+      scoringNodeId: "v1.1 — node-id test scoring, stable June 2026 release.",
+      scoringExitCode: "v1 — historical exit-code scoring, frozen May 2026 release.",
+      sharedConfigs: "Shared configs",
+      delta: "Delta",
       stats: {
         configs: "Configurations",
         tasks: "Tasks",

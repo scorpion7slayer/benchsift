@@ -14,6 +14,7 @@ export interface CompareMenuModel {
   name: string;
   providerName: string;
   providerSlug: string;
+  providerIconUrl?: string | null;
 }
 
 export function CompareMenu({
@@ -208,7 +209,11 @@ export function CompareMenu({
                   style={{ animationDelay: `${Math.min(index, 7) * 32}ms` }}
                 >
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted">
-                    <ModelProviderIcon provider={getModelProviderKey(model.slug, model.providerSlug)} size={18} />
+                    <ModelProviderIcon
+                      provider={getModelProviderKey(model.slug, model.providerSlug)}
+                      size={18}
+                      iconUrl={model.providerIconUrl}
+                    />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium">{model.name}</span>

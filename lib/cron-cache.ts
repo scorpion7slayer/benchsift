@@ -52,11 +52,18 @@ function isFresh(entry: ModelsCacheEntry): boolean {
   return entry.refreshedAt + MODELS_TTL_SECONDS * 1000 > Date.now();
 }
 
-export async function readModelsCache(): Promise<ModelsCacheEntry | null> {
+export async function readModelsCache(
+  options: { allowStale?: boolean } = {},
+): Promise<ModelsCacheEntry | null> {
   try {
     const raw = await readFile(getCacheFilePath(), "utf8");
     const entry = JSON.parse(raw) as unknown;
-    if (isValidEntry(entry) && isFresh(entry)) return entry;
+    if (
+      isValidEntry(entry) &&
+      (options.allowStale === true || isFresh(entry))
+    ) {
+      return entry;
+    }
   } catch {
     // Missing or invalid cache files are normal on first boot.
   }

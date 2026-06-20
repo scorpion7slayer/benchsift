@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Activity } from "lucide-react";
-import { fetchDeepSweLeaderboard } from "@/lib/server-fns";
+import { fetchDeepSweData } from "@/lib/server-fns";
 import { DeepSweTable } from "@/components/deepswe-table";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -21,12 +21,12 @@ export const Route = createFileRoute("/benchmarks/deepswe")({
         url: absoluteUrl("/benchmarks/deepswe"),
       },
     }),
-  loader: async () => fetchDeepSweLeaderboard(),
+  loader: async () => fetchDeepSweData(),
   component: DeepSwePage,
 });
 
 function DeepSwePage() {
-  const leaderboard = Route.useLoaderData();
+  const data = Route.useLoaderData();
   const { t } = useI18n();
 
   return (
@@ -42,7 +42,7 @@ function DeepSwePage() {
             <p className="text-sm text-muted-foreground max-w-2xl">{t.deepSwe.description}</p>
           </div>
         </div>
-        <DeepSweTable leaderboard={leaderboard} />
+        <DeepSweTable data={data} />
       </main>
       <SiteFooter />
     </div>

@@ -91,6 +91,30 @@ function huggingFaceModelApiUrl(repoId: string): string {
   return `${HF_API_BASE}/${repoId.split("/").map(encodeURIComponent).join("/")}?${params}`;
 }
 
+async function getHuggingFaceProfileAvatar(owner: string): Promise<string | null> {
+  if (!/^[a-z0-9][a-z0-9._-]{0,95}$/i.test(owner)) return null;
+  try {
+    const res = await fetchWithTimeout(`${HF_BASE}/${encodeURIComponent(owner)}`);
+    if (!res.ok) return null;
+    const html = await res.text();
+    const raw =
+      html.match(/class="h-full w-full rounded-lg object-cover" src="([^"]+)"/)?.[1] ??
+      html.match(/&quot;avatarUrl&quot;:&quot;([^&]+)&quot;/)?.[1] ??
+      null;
+    if (!raw) return null;
+    const url = new URL(raw.replaceAll("&amp;", "&"), HF_BASE);
+    if (
+      url.protocol !== "https:" ||
+      !["huggingface.co", "cdn-avatars.huggingface.co"].includes(url.hostname)
+    ) {
+      return null;
+    }
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 function normaliseLicense(value: string | null | undefined): string | null {
   if (!value) return null;
   return value.trim().toLowerCase();
@@ -427,8 +451,41 @@ export async function enrichModelsWithHuggingFace(
     });
   }
 
-  return modelsWithInferred.map((model) => {
+  const enrichedModels = modelsWithInferred.map((model) => {
     const patch = model.huggingface_id ? patches.get(model.huggingface_id) : undefined;
     return patch ? mergeDefinedModel(model, patch) : model;
   });
+
+  // Phase 3 — resolve one Hub avatar per verified official owner. Hugging Face
+  // exposes authors in the model API, while the public profile page contains
+  // the avatar URL. This is intentionally best-effort: bundled provider logos
+  // remain the primary source and the UI has a monogram fallback.
+  const ownerByCreator = new Map<string, string>();
+  for (const model of enrichedModels) {
+    if (model.huggingface_official !== true || !model.huggingface_id) continue;
+    const owner = model.huggingface_id.split("/")[0];
+    if (owner) ownerByCreator.set(model.model_creator.slug.toLowerCase(), owner);
+  }
+
+  const avatarByCreator = new Map<string, string>();
+  const owners = [...ownerByCreator.entries()];
+  for (let i = 0; i < owners.length; i += batchSize) {
+    const batch = owners.slice(i, i + batchSize);
+    const settled = await Promise.allSettled(
+      batch.map(([, owner]) => getHuggingFaceProfileAvatar(owner)),
+    );
+    settled.forEach((result, index) => {
+      if (result.status === "fulfilled" && result.value) {
+        avatarByCreator.set(batch[index][0], result.value);
+      }
+    });
+  }
+
+  return enrichedModels.map((model) => ({
+    ...model,
+    provider_icon_url:
+      avatarByCreator.get(model.model_creator.slug.toLowerCase()) ??
+      model.provider_icon_url ??
+      null,
+  }));
 }

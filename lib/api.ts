@@ -17,6 +17,7 @@ import { attachOfficialHuggingFaceHints, enrichModelsWithHuggingFace } from "@/l
 import { fetchAAMediaModels, mergeAAMediaModels } from "@/lib/aa-media";
 import { extractAAAvailabilityStatus, type ModelAvailabilityStatus } from "@/lib/model-availability";
 import type { CodingAgent } from "@/lib/coding-agents";
+import { mergeModelHistory } from "@/lib/model-history";
 
 const BASE_URL = "https://artificialanalysis.ai/api/v2";
 const API_FETCH_TIMEOUT_MS = 8_000;
@@ -182,6 +183,7 @@ export interface LLMModel {
   huggingface_inference_providers?: string[];
   huggingface_created_at?: string | null;
   huggingface_last_modified?: string | null;
+  provider_icon_url?: string | null;
   availability_status?: ModelAvailabilityStatus | null;
 }
 
@@ -715,7 +717,7 @@ async function enrichCronModelsWithSources(models: LLMModel[]): Promise<LLMModel
  * Full model list, including partial scrapes for slugs missing from the AA API.
  * CPU-heavy (regex on dozens of HTML pages) — only call from the Cron Trigger.
  */
-interface CronFetchStats extends Record<string, number> {
+interface CronSourceStats extends Record<string, number> {
   apiModels: number;
   mediaModels: number;
   sitemapSlugs: number;
@@ -725,9 +727,14 @@ interface CronFetchStats extends Record<string, number> {
   builtPartialModels: number;
 }
 
+interface CronFetchStats extends CronSourceStats {
+  previousModels: number;
+  retainedHistoricalModels: number;
+}
+
 interface CronFetchResult {
   models: LLMModel[];
-  stats: CronFetchStats;
+  stats: CronSourceStats;
 }
 
 export async function fetchModelsForCron(): Promise<CronFetchResult> {
@@ -786,16 +793,21 @@ export async function fetchModelsForCron(): Promise<CronFetchResult> {
  */
 export async function refreshModelsCache(): Promise<{ count: number; stats: CronFetchStats }> {
   const { models: rawModels, stats } = await fetchModelsForCron();
-  const models = normaliseCatalogModels(rawModels);
-  const previous = await readModelsCache();
-  if (previous && previous.models.length > models.length + 20) {
-    throw new Error(
-      `Refusing to replace ${previous.models.length} cached models with ${models.length}`,
-    );
-  }
-  await writeModelsCache(models, stats);
+  const freshModels = normaliseCatalogModels(rawModels);
+  const previous = await readModelsCache({ allowStale: true });
+  const previousModels = previous
+    ? normaliseCatalogModels(previous.models)
+    : [];
+  const mergedCatalog = mergeModelHistory(freshModels, previousModels);
+  const models = normaliseCatalogModels(mergedCatalog.models);
+  const completeStats: CronFetchStats = {
+    ...stats,
+    previousModels: previousModels.length,
+    retainedHistoricalModels: mergedCatalog.retainedCount,
+  };
+  await writeModelsCache(models, completeStats);
   if (models.length > 0) lastSuccessfulModels = models;
-  return { count: models.length, stats };
+  return { count: models.length, stats: completeStats };
 }
 
 /**
@@ -829,7 +841,7 @@ function normaliseCatalogModels(models: LLMModel[]): LLMModel[] {
 export async function getLLMModels(): Promise<LLMModel[]> {
   // 1. Fast path: persisted cache filled by the refresh endpoint.
   try {
-    const cached = await readModelsCache();
+    const cached = await readModelsCache({ allowStale: true });
     if (cached && cached.models.length > 0) {
       lastSuccessfulModels = cached.models;
       return normaliseCatalogModels(cached.models);
