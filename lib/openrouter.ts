@@ -1,6 +1,7 @@
 import type { LLMModel } from "@/lib/api";
 import { createEmptyEvaluations } from "@/lib/model-metrics";
 import { getCanonicalCreatorSlug } from "@/lib/provider-map";
+import { isOpenRouterNonModelId } from "@/lib/openrouter-model-filter";
 
 const OR_BASE = "https://openrouter.ai/api/v1";
 const OPENROUTER_APP_REFERER = "https://benchsift.nxtaigen.com";
@@ -128,7 +129,9 @@ export async function getOpenRouterModels(
     );
     if (!res.ok) return [];
     const json = (await res.json()) as { data?: OpenRouterModel[] };
-    const models = json.data ?? [];
+    const models = (json.data ?? []).filter(
+      (model) => !isOpenRouterNonModelId(model.id),
+    );
     await enrichOpenRouterDisplayPricing(models);
     return models;
   } catch {

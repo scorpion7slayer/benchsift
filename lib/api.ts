@@ -18,6 +18,7 @@ import { fetchAAMediaModels, mergeAAMediaModels } from "@/lib/aa-media";
 import { extractAAAvailabilityStatus, type ModelAvailabilityStatus } from "@/lib/model-availability";
 import type { CodingAgent } from "@/lib/coding-agents";
 import { mergeModelHistory } from "@/lib/model-history";
+import { isOpenRouterNonModelId } from "@/lib/openrouter-model-filter";
 
 const BASE_URL = "https://artificialanalysis.ai/api/v2";
 const API_FETCH_TIMEOUT_MS = 8_000;
@@ -694,7 +695,7 @@ async function fetchLightModels(): Promise<LLMModel[]> {
   // path. Cheap official hints still let known open-weight models expose a
   // safe HF link before the cron cache is warm.
   return normaliseUnavailableMetrics(
-    attachOfficialHuggingFaceHints(removeOpenRouterMovingAliases(enriched)),
+    attachOfficialHuggingFaceHints(removeExcludedOpenRouterModels(enriched)),
   );
 }
 
@@ -705,7 +706,7 @@ async function enrichCronModelsWithSources(models: LLMModel[]): Promise<LLMModel
     includeOpenRouterOnly: true,
   });
   const withCapabilities = await enrichModelsWithScrapedCapabilities(
-    removeOpenRouterMovingAliases(enriched),
+    removeExcludedOpenRouterModels(enriched),
   );
   const hfEnriched = await enrichModelsWithHuggingFace(withCapabilities, {
     apiKey: getHuggingFaceApiKey(),
@@ -824,13 +825,17 @@ function normaliseCreatorNames(models: LLMModel[]): LLMModel[] {
   });
 }
 
-function removeOpenRouterMovingAliases(models: LLMModel[]): LLMModel[] {
-  return models.filter((model) => !isOpenRouterOnlyMovingAliasModel(model));
+function removeExcludedOpenRouterModels(models: LLMModel[]): LLMModel[] {
+  return models.filter(
+    (model) =>
+      !isOpenRouterOnlyMovingAliasModel(model) &&
+      !isOpenRouterNonModelId(model.id),
+  );
 }
 
 function normaliseCatalogModels(models: LLMModel[]): LLMModel[] {
   return dedupeOpenRouterVariantModels(
-    normaliseCreatorNames(removeOpenRouterMovingAliases(models)),
+    normaliseCreatorNames(removeExcludedOpenRouterModels(models)),
   );
 }
 
