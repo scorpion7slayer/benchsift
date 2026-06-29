@@ -28,6 +28,7 @@ const CREATOR_TO_PROVIDER: Record<string, string> = {
 
   // Chinese AI labs
   alibaba: "alibaba",
+  "alibaba-ath": "alibaba", // Alibaba Advanced Technology Hub
   zai: "zai",             // Z.AI (GLM) → ZAI.Avatar via ModelProviderIcon
   "z-ai": "zai",
   zhipu: "zhipu",
@@ -53,6 +54,7 @@ const CREATOR_TO_PROVIDER: Record<string, string> = {
   longcat: "longcat",
   lg: "lg",
   groq: "groq",
+  "microsoft-ai": "microsoft",
 
   // Media and specialist labs covered by direct @lobehub/icons exports.
   adobe: "adobe",
@@ -71,6 +73,7 @@ const CREATOR_TO_PROVIDER: Record<string, string> = {
   ideogram: "ideogram",
   inflection: "inflection",
   klingai: "kling",
+  kwaivgi: "kling", // Artificial Analysis media slug for Kling
   krea: "krea",
   lightricks: "lightricks",
   liquid: "liquidai",
@@ -147,6 +150,9 @@ export function getModelProviderKey(modelSlug: string, creatorSlug: string): str
     slug.startsWith("kimi")
   ) {
     return "kimi";
+  }
+  if (creator === "meituan" && slug.startsWith("longcat")) {
+    return "longcat";
   }
   return getProviderKey(creator);
 }

@@ -107,6 +107,11 @@ const SVGL_ICONS: Record<string, { light: string; dark?: string }> = {
   // "ai2":       { light: "https://svgl.app/library/ai2-light.svg", dark: "https://svgl.app/library/ai2-dark.svg" },
 };
 
+/** Logos published by providers on their official product sites. */
+const OFFICIAL_PROVIDER_ICONS: Record<string, string> = {
+  nex: "https://nex.sii.edu.cn/logo/nex.svg",
+};
+
 /**
  * Ensemble des clés reconnues par @lobehub/icons ProviderIcon.
  * Générées depuis node_modules/@lobehub/icons/es/features/providerEnum.js
@@ -189,6 +194,17 @@ export function ModelProviderIcon({ provider, size = 20, iconUrl }: Props) {
   // @lobehub/icons — couverture principale
   if (LOBEHUB_PROVIDERS.has(provider)) {
     return <ProviderIcon provider={provider} size={size} type="color" />;
+  }
+
+  const officialIconUrl = OFFICIAL_PROVIDER_ICONS[provider];
+  if (officialIconUrl) {
+    return (
+      <RemoteProviderIcon
+        provider={provider}
+        size={size}
+        iconUrl={officialIconUrl}
+      />
+    );
   }
 
   // SVGL — fallback pour providers non couverts par @lobehub/icons
