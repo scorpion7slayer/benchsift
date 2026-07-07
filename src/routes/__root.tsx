@@ -86,6 +86,11 @@ function RootDocument({
           data-site-id="8544cf104129"
           defer
         />
+        <script
+          src="https://rybbit.nxtaigen.com/api/script.js"
+          data-site-id="4e72af66bb61"
+          defer
+        />
       </head>
       <body
         className="min-h-full flex flex-col bg-background antialiased"
