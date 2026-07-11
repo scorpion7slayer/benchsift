@@ -3,7 +3,9 @@ import { fetchCompareData } from "@/lib/server-fns";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { CompareTable } from "@/components/compare-table";
+import { GitCompareArrows } from "lucide-react";
 import { absoluteUrl, seo } from "@/lib/seo";
+import { useI18n } from "@/lib/i18n";
 
 interface CompareSearch {
   models?: string;
@@ -18,6 +20,9 @@ export const Route = createFileRoute("/compare")({
     const slugs = [...new Set((deps.models ?? "").split(",").filter(Boolean))].slice(0, 4);
     return fetchCompareData({ data: slugs });
   },
+  pendingMs: 200,
+  pendingMinMs: 200,
+  pendingComponent: ComparePending,
   head: () =>
     seo({
       title: "AI Model Compare - BenchSift",
@@ -34,6 +39,27 @@ export const Route = createFileRoute("/compare")({
     }),
   component: ComparePage,
 });
+
+function ComparePending() {
+  const { t } = useI18n();
+
+  return (
+    <div className="flex flex-1 flex-col">
+      <SiteHeader />
+      <main className="mx-auto flex w-full max-w-7xl flex-1 items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex flex-col items-center gap-3 text-center text-muted-foreground"
+        >
+          <GitCompareArrows className="size-10 motion-safe:animate-pulse" />
+          <p className="text-sm">{t.compare.loading}</p>
+        </div>
+      </main>
+      <SiteFooter />
+    </div>
+  );
+}
 
 function ComparePage() {
   const { allModels, selected } = Route.useLoaderData();

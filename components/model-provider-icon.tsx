@@ -122,10 +122,6 @@ function getLazyProviderIcon(provider: string) {
   return Icon;
 }
 
-function IconPlaceholder({ size }: { size: number }) {
-  return <span aria-hidden style={{ display: "inline-block", width: size, height: size }} />;
-}
-
 function ProviderMonogram({ provider, size }: { provider: string; size: number }) {
   const initials = provider
     .split(/[-_\s]+/)
@@ -181,7 +177,7 @@ export function ModelProviderIcon({ provider, size = 20, iconUrl }: Props) {
 
   if (LazyProviderIcon) {
     return (
-      <Suspense fallback={<IconPlaceholder size={size} />}>
+      <Suspense fallback={<ProviderMonogram provider={provider} size={size} />}>
         <LazyProviderIcon size={size} />
       </Suspense>
     );

@@ -21,6 +21,7 @@ import {
   textMetricValue,
 } from "@/lib/model-metrics";
 import type { LLMModel } from "@/lib/api";
+import type { CompareModelOption } from "@/lib/compare-model";
 
 // ─── Benchmark constants ──────────────────────────────────────────────────────
 
@@ -328,12 +329,12 @@ function MobileModalityRow({ label, data }: { label: string; data: ModalityData 
 
 interface MobileViewProps {
   models: LLMModel[];
-  allModels: LLMModel[];
+  allModels: CompareModelOption[];
   winnerCounts: number[];
   winnerDetails: string[][];
   maxWins: number;
   onRemove: (slug: string) => void;
-  onAdd: (model: LLMModel) => void;
+  onAdd: (model: CompareModelOption) => void;
   isFull: boolean;
   extraBenchmarkKeys: string[];
   displayPriceRows: DisplayPriceMetric[];
@@ -383,14 +384,14 @@ function MobileCompareView({
             role="tab"
             aria-selected={i === idx}
             onClick={() => setActiveIdx(i)}
-            className={`touch-target flex min-w-36 snap-start shrink-0 flex-col items-center gap-1 rounded-lg px-2 py-2.5 transition-colors ${
+            className={`touch-target flex w-40 max-w-40 snap-start shrink-0 flex-col items-center gap-1 rounded-lg px-2 py-2.5 transition-colors ${
               i === idx ? "border bg-card shadow-sm" : "border border-transparent hover:bg-muted/50"
             }`}
           >
             <div className="size-7 flex items-center justify-center">
               <ModelProviderIcon provider={getModelProviderKey(model.slug, model.model_creator.slug)} size={20} iconUrl={model.provider_icon_url} />
             </div>
-            <span className="text-xs font-medium leading-tight line-clamp-2 text-center w-full px-1">{model.name}</span>
+            <span className="w-full min-w-0 px-1 text-center text-xs font-medium leading-tight line-clamp-2">{model.name}</span>
             {winnerCounts[i] > 0 && (
               <Badge
                 variant={winnerCounts[i] === maxWins && maxWins > 0 ? "default" : "secondary"}
@@ -709,8 +710,8 @@ function SearchDropdown({
   onAdd,
   query,
 }: {
-  results: LLMModel[];
-  onAdd: (m: LLMModel) => void;
+  results: CompareModelOption[];
+  onAdd: (m: CompareModelOption) => void;
   query: string;
 }) {
   const { t } = useI18n();
@@ -748,9 +749,9 @@ function SearchDropdown({
             <p className="font-medium truncate">{m.name}</p>
             <p className="text-xs text-muted-foreground">{m.model_creator.name}</p>
           </div>
-          {textMetricValue(m, "artificial_analysis_intelligence_index") !== null && (
+          {m.intelligence_score !== null && (
             <Badge variant="secondary" className="font-mono text-xs shrink-0">
-              {textMetricValue(m, "artificial_analysis_intelligence_index")?.toFixed(1)}
+              {m.intelligence_score.toFixed(1)}
             </Badge>
           )}
         </button>
@@ -761,7 +762,7 @@ function SearchDropdown({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function CompareTable({ models, allModels }: { models: LLMModel[]; allModels: LLMModel[] }) {
+export function CompareTable({ models, allModels }: { models: LLMModel[]; allModels: CompareModelOption[] }) {
   const { t, lang } = useI18n();
   const { replace, lastChange } = useCompare();
   const navigate = useNavigate({ from: "/compare" });
@@ -806,7 +807,7 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
       .slice(0, 8);
   }, [addSearch, allModels, models]);
 
-  function addModel(model: LLMModel) {
+  function addModel(model: CompareModelOption) {
     if (compareIsFull) return;
     navigateToCompare([...models.map(m => m.slug), model.slug]);
     setAddSearch("");

@@ -28,16 +28,25 @@ const LazyModelProviderIcon: ComponentType<IconProps> | null = import.meta.env
 export function ModelProviderIcon({ provider, size = 20, iconUrl }: IconProps) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  const initials = provider
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "AI";
 
   const placeholder = (
     <span
       aria-hidden
-      style={{ display: "inline-block", width: size, height: size }}
-    />
+      className="inline-flex shrink-0 items-center justify-center rounded-md bg-primary/10 font-semibold text-primary"
+      style={{ width: size, height: size, fontSize: Math.max(8, Math.round(size * 0.42)) }}
+    >
+      {initials}
+    </span>
   );
 
-  // Server render + first client paint: render a sized placeholder so layout
-  // is stable; the real icon swaps in after hydration.
+  // Server render + first client paint: keep a useful monogram visible while
+  // the real split icon loads, without introducing layout shift.
   if (!mounted || !LazyModelProviderIcon) return placeholder;
 
   return (

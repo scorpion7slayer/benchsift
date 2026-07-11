@@ -389,7 +389,7 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
     [models]
   );
 
-  const [categoryIndicator, setCategoryIndicator] = useState({ left: 0, top: 0, width: 0, height: 0, row: 0 });
+  const [categoryIndicator, setCategoryIndicator] = useState({ left: 0, top: 0, width: 0, height: 0 });
 
   useLayoutEffect(() => {
     const bar = categoryBarRef.current;
@@ -400,14 +400,13 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
       const barRect = bar.getBoundingClientRect();
       const activeRect = active.getBoundingClientRect();
       const next = {
-        left: activeRect.left - barRect.left,
-        top: activeRect.top - barRect.top,
+        left: activeRect.left - barRect.left - bar.clientLeft,
+        top: activeRect.top - barRect.top - bar.clientTop,
         width: activeRect.width,
         height: activeRect.height,
-        row: Math.round(activeRect.top - barRect.top),
       };
       setCategoryIndicator((prev) =>
-        prev.left === next.left && prev.top === next.top && prev.width === next.width && prev.height === next.height && prev.row === next.row
+        prev.left === next.left && prev.top === next.top && prev.width === next.width && prev.height === next.height
           ? prev
           : next,
       );
@@ -503,8 +502,7 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
         >
           <span
             aria-hidden
-            key={`row-${categoryIndicator.row}`}
-            className="model-category-indicator pointer-events-none absolute rounded-lg border border-border/60 bg-card shadow-sm ring-1 ring-foreground/[0.03]"
+            className="model-category-indicator pointer-events-none absolute left-0 top-0 rounded-lg border border-border/60 bg-card shadow-sm ring-1 ring-foreground/[0.03]"
             style={{
               width: categoryIndicator.width,
               height: categoryIndicator.height,

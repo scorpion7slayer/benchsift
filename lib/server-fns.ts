@@ -12,6 +12,7 @@ import {
   type LLMModel,
 } from "@/lib/api";
 import { getDeepSweData, type DeepSweData } from "@/lib/deepswe";
+import type { CompareModelOption } from "@/lib/compare-model";
 import type { Lang } from "@/lib/i18n";
 
 function setPublicResponseCache(): void {
@@ -54,17 +55,29 @@ export const fetchModelCapabilities = createServerFn({ method: "GET" })
     return getLLMModelSupplementary(data);
   });
 
-/** Data for the compare page: every model + the selected (enriched) ones. */
+/** Lightweight search options + the selected, enriched comparison models. */
 export const fetchCompareData = createServerFn({ method: "GET" })
   .inputValidator((slugs: string[]) => slugs)
   .handler(
-    async ({ data }): Promise<{ allModels: LLMModel[]; selected: LLMModel[] }> => {
+    async ({ data }): Promise<{ allModels: CompareModelOption[]; selected: LLMModel[] }> => {
       setPublicResponseCache();
       const slugs = [...new Set(data.filter(isSafeSlug))].slice(0, 4);
-      const [allModels, ...selectedModels] = await Promise.all([
+      const [models, ...selectedModels] = await Promise.all([
         getLLMModels(),
         ...slugs.map((slug) => getLLMModel(slug)),
       ]);
+      const allModels = models.map((model) => ({
+        id: model.id,
+        name: model.name,
+        slug: model.slug,
+        model_creator: {
+          name: model.model_creator.name,
+          slug: model.model_creator.slug,
+        },
+        provider_icon_url: model.provider_icon_url,
+        intelligence_score:
+          model.evaluations.artificial_analysis_intelligence_index,
+      }));
       const selected = selectedModels.filter(
         (m): m is NonNullable<typeof m> => m != null,
       );

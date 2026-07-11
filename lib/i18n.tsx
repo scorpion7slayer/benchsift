@@ -167,6 +167,7 @@ export interface Translations {
     compare: string;
     addMore: string;
     addModel: string;
+    loading: string;
     backToList: string;
     noModels: string;
     sections: {
@@ -465,8 +466,9 @@ const T: Record<Lang, Translations> = {
       maxReached: "Maximum 4 modèles",
       clear: "Effacer",
       compare: "Comparer",
-      addMore: "Sélectionnez au moins 2 modèles pour comparer",
+      addMore: "Ajoutez jusqu'à 4 modèles pour commencer la comparaison",
       addModel: "Ajouter un modèle",
+      loading: "Chargement de la comparaison…",
       backToList: "Retour à la liste",
       noModels: "Aucun modèle sélectionné",
       sections: {
@@ -772,8 +774,9 @@ const T: Record<Lang, Translations> = {
       maxReached: "Maximum 4 models",
       clear: "Clear",
       compare: "Compare",
-      addMore: "Select at least 2 models to compare",
+      addMore: "Add up to 4 models to start comparing",
       addModel: "Add a model",
+      loading: "Loading comparison…",
       backToList: "Back to list",
       noModels: "No models selected",
       sections: {

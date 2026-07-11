@@ -29,19 +29,15 @@ export function CookieBanner() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-card/95 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/85">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="flex items-start gap-3 flex-1">
-          <CookieIcon className="size-8 shrink-0 text-foreground mt-0.5" />
-          <div>
-            <p className="mb-0.5 text-sm font-medium">{t.cookies.title}</p>
-            <p className="text-sm text-muted-foreground">{t.cookies.message}</p>
-          </div>
+      <div className="mx-auto grid max-w-7xl grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 px-4 py-3 sm:items-center sm:px-6 lg:px-8">
+        <CookieIcon className="mt-0.5 size-6 shrink-0 text-foreground sm:mt-0" />
+        <div className="min-w-0">
+          <p className="mb-0.5 text-sm font-medium">{t.cookies.title}</p>
+          <p className="text-sm text-muted-foreground">{t.cookies.message}</p>
         </div>
-        <div className="shrink-0 self-end sm:self-auto">
-          <Button size="sm" className="touch-target" onClick={dismiss}>
-            {t.cookies.dismiss}
-          </Button>
-        </div>
+        <Button size="sm" className="touch-target shrink-0" onClick={dismiss}>
+          {t.cookies.dismiss}
+        </Button>
       </div>
     </div>
   );
