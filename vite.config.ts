@@ -3,7 +3,6 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { nitro } from "nitro/vite";
 import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import tsConfigPaths from "vite-tsconfig-paths";
 
 /**
  * In server builds, replace `components/model-provider-icon.tsx` with a no-op
@@ -37,11 +36,13 @@ function stubModelProviderIconForSSR(): Plugin {
 }
 
 export default defineConfig({
+  resolve: {
+    tsconfigPaths: true,
+  },
   server: {
     port: 3000,
   },
   plugins: [
-    tsConfigPaths(),
     tailwindcss(),
     stubModelProviderIconForSSR(),
     tanstackStart(),

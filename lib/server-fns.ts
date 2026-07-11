@@ -60,7 +60,7 @@ export const fetchCompareData = createServerFn({ method: "GET" })
   .handler(
     async ({ data }): Promise<{ allModels: LLMModel[]; selected: LLMModel[] }> => {
       setPublicResponseCache();
-      const slugs = data.filter(isSafeSlug).slice(0, 4);
+      const slugs = [...new Set(data.filter(isSafeSlug))].slice(0, 4);
       const [allModels, ...selectedModels] = await Promise.all([
         getLLMModels(),
         ...slugs.map((slug) => getLLMModel(slug)),

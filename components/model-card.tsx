@@ -9,6 +9,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
 import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
@@ -93,7 +94,7 @@ function ScoreRow({ label, value }: { label: string; value: number | null | unde
       </div>
       <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all ${scoreBg(value ?? null)}`}
+          className={`h-full rounded-full transition-[width] duration-200 ${scoreBg(value ?? null)}`}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -102,14 +103,15 @@ function ScoreRow({ label, value }: { label: string; value: number | null | unde
 }
 
 function ModalityChips({ model }: { model: LLMModel }) {
+  const { t } = useI18n();
   const chips: { icon: React.ReactNode; label: string }[] = [];
 
   if (model.input_modality_image || model.output_modality_image)
-    chips.push({ icon: <ImageIcon className="size-2.5" />, label: "Image" });
+    chips.push({ icon: <ImageIcon className="size-2.5" />, label: t.grid.categories.image });
   if (model.input_modality_video || model.output_modality_video)
-    chips.push({ icon: <Video className="size-2.5" />, label: "Vidéo" });
+    chips.push({ icon: <Video className="size-2.5" />, label: t.grid.categories.video });
   if (model.input_modality_speech || model.output_modality_speech)
-    chips.push({ icon: <Mic className="size-2.5" />, label: "Audio" });
+    chips.push({ icon: <Mic className="size-2.5" />, label: t.grid.categories.audio });
 
   if (chips.length === 0) return null;
 
@@ -245,12 +247,26 @@ export function ModelCard({ model }: { model: LLMModel }) {
 
   return (
     <div className="group relative h-full">
-      <Link href={`/models/${slug}`} className="block h-full">
-        <Card className={`h-full transition-shadow hover:shadow-md cursor-pointer ${selected ? "compare-card-selected ring-2 ring-primary" : ""}`}>
+      <Card className={`relative h-full cursor-pointer transition-shadow hover:shadow-md focus-within:shadow-md ${selected ? "compare-card-selected ring-2 ring-primary" : ""}`}>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between gap-2 mb-1.5">
-              <div className="shrink-0 size-8 rounded-md flex items-center justify-center bg-muted">
-                <ModelProviderIcon provider={providerKey} size={20} iconUrl={model.provider_icon_url} />
+              <div className="flex shrink-0 items-center gap-1">
+                <div className="flex size-8 items-center justify-center rounded-md bg-muted">
+                  <ModelProviderIcon provider={providerKey} size={20} iconUrl={model.provider_icon_url} />
+                </div>
+                <Button
+                  type="button"
+                  variant={selected ? "default" : "outline"}
+                  size="icon"
+                  onClick={() => toggle(slug)}
+                  disabled={!selected && isFull}
+                  aria-pressed={selected}
+                  aria-label={selected ? t.card.removeCompare : t.card.addCompare}
+                  title={!selected && isFull ? t.compare.maxReached : selected ? t.card.removeCompare : t.card.addCompare}
+                  className="touch-target relative z-10 size-8"
+                >
+                  {selected ? <Check /> : <Plus />}
+                </Button>
               </div>
               <div className="flex items-center gap-1.5 flex-wrap justify-end">
                 {isNew && (
@@ -282,9 +298,34 @@ export function ModelCard({ model }: { model: LLMModel }) {
                     {fmt(intelligence)}
                   </Badge>
                 )}
+                {officialHuggingFaceUrl && (
+                  <Button
+                    asChild
+                    variant="ghost"
+                    size="icon"
+                    className="touch-target relative z-10 size-8 text-muted-foreground"
+                  >
+                    <a
+                      href={officialHuggingFaceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={t.card.viewOnHuggingFace}
+                      title={t.card.viewOnHuggingFace}
+                    >
+                      <ExternalLink />
+                    </a>
+                  </Button>
+                )}
               </div>
             </div>
-            <CardTitle className="leading-snug line-clamp-2 text-sm">{name}</CardTitle>
+            <CardTitle className="leading-snug text-sm">
+              <Link
+                href={`/models/${slug}`}
+                className="line-clamp-2 rounded-sm after:absolute after:inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {name}
+              </Link>
+            </CardTitle>
             <CardDescription className="truncate">{model_creator.name}</CardDescription>
           </CardHeader>
 
@@ -331,42 +372,9 @@ export function ModelCard({ model }: { model: LLMModel }) {
               <DollarSign className="size-3" />
               {cardPriceLabel(pricing)}
             </span>
-            <ChevronRight className="size-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <ChevronRight className="size-3 opacity-40 transition-opacity group-hover:opacity-100" />
           </CardFooter>
-        </Card>
-      </Link>
-
-      {officialHuggingFaceUrl && (
-        <a
-          href={officialHuggingFaceUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(event) => event.stopPropagation()}
-          aria-label={t.card.viewOnHuggingFace}
-          title={t.card.viewOnHuggingFace}
-          className="absolute top-2 right-2 inline-flex size-6 items-center justify-center rounded-md border border-border bg-background text-muted-foreground opacity-0 transition-all hover:bg-muted hover:text-foreground group-hover:opacity-100 z-10"
-        >
-          <ExternalLink className="size-3" />
-        </a>
-      )}
-
-      {/* Bouton comparer */}
-      <button
-        onClick={() => toggle(slug)}
-        disabled={!selected && isFull}
-        aria-label={selected ? t.card.removeCompare : t.card.addCompare}
-        className={`
-          absolute top-2 left-2 size-6 rounded-md border flex items-center justify-center
-          transition-all text-xs z-10
-          ${selected
-            ? "bg-primary text-primary-foreground border-primary opacity-100"
-            : "bg-background border-border opacity-0 group-hover:opacity-100 hover:bg-muted"
-          }
-          ${!selected && isFull ? "cursor-not-allowed opacity-30" : ""}
-        `}
-      >
-        {selected ? <Check className="size-3" /> : <Plus className="size-3" />}
-      </button>
+      </Card>
     </div>
   );
 }

@@ -15,7 +15,7 @@ export const Route = createFileRoute("/compare")({
   }),
   loaderDeps: ({ search }) => ({ models: search.models }),
   loader: async ({ deps }) => {
-    const slugs = (deps.models ?? "").split(",").filter(Boolean).slice(0, 4);
+    const slugs = [...new Set((deps.models ?? "").split(",").filter(Boolean))].slice(0, 4);
     return fetchCompareData({ data: slugs });
   },
   head: () =>
@@ -41,7 +41,7 @@ function ComparePage() {
   return (
     <div className="flex flex-col flex-1">
       <SiteHeader />
-      <main className="flex-1 flex flex-col max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 py-6 pb-20 sm:px-6 sm:py-8 lg:px-8">
         <CompareTable models={selected} allModels={allModels} />
       </main>
       <SiteFooter />

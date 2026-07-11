@@ -85,13 +85,6 @@ export const Route = createFileRoute("/")({
 function HomePage() {
   const models = Route.useLoaderData();
   const latestModels = getLatestModelSummaries(models);
-  const compareModels = models.map((model) => ({
-    slug: model.slug,
-    name: model.name,
-    providerName: model.model_creator.name,
-    providerSlug: model.model_creator.slug,
-    providerIconUrl: model.provider_icon_url,
-  }));
 
   return (
     <div className="flex flex-col flex-1">
@@ -101,7 +94,6 @@ function HomePage() {
         <HomeHero
           count={models.length}
           latestModels={latestModels}
-          compareModels={compareModels}
         />
         <Separator className="mb-6" />
         <ModelGrid models={models} />

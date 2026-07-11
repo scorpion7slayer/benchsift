@@ -46,6 +46,7 @@ yarn-error.log*
 # local
 tasks/
 videos/
+.impeccable/
 # Claude Code agent worktrees (harness-created, never commit)
 .claude/worktrees
 .claude/worktrees/

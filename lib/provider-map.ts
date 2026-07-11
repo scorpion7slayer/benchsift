@@ -16,6 +16,7 @@ const CREATOR_TO_PROVIDER: Record<string, string> = {
   nvidia: "nvidia",
   xai: "xai",
   "x-ai": "xai",
+  spacexai: "xai",
   perplexity: "perplexity",
 
   // Cloud / infra

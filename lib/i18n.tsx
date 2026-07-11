@@ -34,8 +34,20 @@ export interface Translations {
       newest: string;
       name: string;
     };
+    sortGroups: {
+      indices: string;
+      benchmarks: string;
+      performance: string;
+      openrouter: string;
+      filters: string;
+      pricing: string;
+      general: string;
+    };
     results: (n: number, total: number) => string;
     noResults: string;
+    noOptions: string;
+    unavailableTitle: string;
+    unavailableDescription: string;
     models: string;
     allProviders: string;
     showAll: string;
@@ -195,7 +207,7 @@ export interface Translations {
     remove: string;
   };
   footer: { via: string; cache: string };
-  cookies: { message: string; accept: string; decline: string };
+  cookies: { title: string; message: string; dismiss: string };
   error: { title: string; description: string; rateLimitDescription: (s: number) => string; retry: string };
   agents: {
     title: string;
@@ -321,9 +333,21 @@ const T: Record<Lang, Translations> = {
         newest: "Date (plus récent)",
         name: "Nom (A–Z)",
       },
+      sortGroups: {
+        indices: "Indices AA",
+        benchmarks: "Benchmarks",
+        performance: "Performance",
+        openrouter: "OpenRouter",
+        filters: "Filtres",
+        pricing: "Prix",
+        general: "Général",
+      },
       results: (n, total) =>
         n === total ? `${n} modèle${n !== 1 ? "s" : ""}` : `${n} résultat${n !== 1 ? "s" : ""} sur ${total}`,
       noResults: "Aucun modèle ne correspond à votre recherche.",
+      noOptions: "Aucune option ne correspond à votre recherche.",
+      unavailableTitle: "Catalogue temporairement indisponible",
+      unavailableDescription: "Les données réelles des modèles n'ont pas pu être chargées. Réessayez dans un instant.",
       models: "modèles",
       allProviders: "Tous les fournisseurs",
       showAll: "Tout afficher",
@@ -484,9 +508,9 @@ const T: Record<Lang, Translations> = {
     },
     footer: { via: "Données via", cache: "Cache · 1h" },
     cookies: {
-      message: "Ce site utilise des cookies pour mémoriser vos préférences de langue et de thème. Aucune donnée personnelle n'est collectée.",
-      accept: "Accepter",
-      decline: "Refuser",
+      title: "Préférences et audience",
+      message: "BenchSift mémorise vos préférences de langue, de thème et de comparaison dans votre navigateur. Des mesures d'audience servent aussi à améliorer le site.",
+      dismiss: "Compris",
     },
     error: {
       title: "Un problème est survenu",
@@ -616,9 +640,21 @@ const T: Record<Lang, Translations> = {
         newest: "Date (newest)",
         name: "Name (A–Z)",
       },
+      sortGroups: {
+        indices: "AA indices",
+        benchmarks: "Benchmarks",
+        performance: "Performance",
+        openrouter: "OpenRouter",
+        filters: "Filters",
+        pricing: "Pricing",
+        general: "General",
+      },
       results: (n, total) =>
         n === total ? `${n} model${n !== 1 ? "s" : ""}` : `${n} result${n !== 1 ? "s" : ""} of ${total}`,
       noResults: "No models match your search.",
+      noOptions: "No options match your search.",
+      unavailableTitle: "Catalog temporarily unavailable",
+      unavailableDescription: "The live model data could not be loaded. Please try again in a moment.",
       models: "models",
       allProviders: "All providers",
       showAll: "Show all",
@@ -779,9 +815,9 @@ const T: Record<Lang, Translations> = {
     },
     footer: { via: "Data via", cache: "Cache · 1h" },
     cookies: {
-      message: "This site uses cookies to remember your language and theme preferences. No personal data is collected.",
-      accept: "Accept",
-      decline: "Decline",
+      title: "Preferences and analytics",
+      message: "BenchSift keeps your language, theme, and comparison preferences in your browser. Audience measurements also help improve the site.",
+      dismiss: "Got it",
     },
     error: {
       title: "Something went wrong",

@@ -15,15 +15,15 @@ export function CookieBanner() {
   const { t } = useI18n();
 
   useEffect(() => {
-    const hasConsent = document.cookie.includes("benchsift_consent=1");
+    const hasAcknowledged = /(?:^|;\s*)benchsift_(?:notice=1|consent=(?:0|1))(?:;|$)/.test(document.cookie);
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!hasConsent) setVisible(true);
+    if (!hasAcknowledged) setVisible(true);
   }, []);
 
   if (!visible) return null;
 
-  function accept() {
-    document.cookie = "benchsift_consent=1;path=/;max-age=31536000;SameSite=Lax";
+  function dismiss() {
+    document.cookie = "benchsift_notice=1;path=/;max-age=31536000;SameSite=Lax";
     setVisible(false);
   }
 
@@ -33,16 +33,13 @@ export function CookieBanner() {
         <div className="flex items-start gap-3 flex-1">
           <CookieIcon className="size-8 shrink-0 text-foreground mt-0.5" />
           <div>
-            <p className="text-sm font-medium mb-0.5">Cookies</p>
+            <p className="mb-0.5 text-sm font-medium">{t.cookies.title}</p>
             <p className="text-sm text-muted-foreground">{t.cookies.message}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-          <Button variant="ghost" size="sm" onClick={() => setVisible(false)}>
-            {t.cookies.decline}
-          </Button>
-          <Button size="sm" onClick={accept}>
-            {t.cookies.accept}
+        <div className="shrink-0 self-end sm:self-auto">
+          <Button size="sm" className="touch-target" onClick={dismiss}>
+            {t.cookies.dismiss}
           </Button>
         </div>
       </div>

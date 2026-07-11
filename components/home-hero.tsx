@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Link } from "@/components/link";
 import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { CompareMenu, type CompareMenuModel } from "@/components/compare-menu";
+import { CompareMenu } from "@/components/compare-menu";
 import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
 import { getModelProviderKey } from "@/lib/provider-map";
 import { useI18n } from "@/lib/i18n";
@@ -46,11 +46,9 @@ function formatReleaseDate(value: string | null, lang: "fr" | "en"): string | nu
 export function HomeHero({
   count,
   latestModels,
-  compareModels,
 }: {
   count: number;
   latestModels: LatestModelSummary[];
-  compareModels: CompareMenuModel[];
 }) {
   const { lang, t } = useI18n();
   const [activeLatestIndex, setActiveLatestIndex] = useState(0);
@@ -90,7 +88,7 @@ export function HomeHero({
     function update() {
       const node = inlineCompareRef.current;
       if (!node) return;
-      const trigger = node.querySelector("button");
+      const trigger = node.querySelector("a");
       const rect = (trigger ?? node).getBoundingClientRect();
       const next = {
         visible: rect.bottom <= HEADER_BOTTOM,
@@ -116,9 +114,10 @@ export function HomeHero({
 
   const compareBubble = (
     <div
-      className="compare-bubble fixed left-4 top-[64px] z-[70]"
+      className="compare-bubble fixed left-4 top-16 z-30"
       data-state={bubbleState.visible ? "visible" : "hidden"}
       aria-hidden={!bubbleState.visible}
+      inert={!bubbleState.visible}
       style={
         {
           "--compare-bubble-x": `${bubbleState.x}px`,
@@ -129,7 +128,7 @@ export function HomeHero({
         } as CSSProperties
       }
     >
-      <CompareMenu models={compareModels} variant="bubble" />
+      <CompareMenu variant="bubble" />
     </div>
   );
 
@@ -140,7 +139,7 @@ export function HomeHero({
           <h1 className="text-2xl font-semibold tracking-tight">{t.hero.title}</h1>
           <Badge variant="secondary">{count}</Badge>
           <div ref={inlineCompareRef} className="compare-anchor inline-flex">
-            <CompareMenu models={compareModels} />
+            <CompareMenu />
           </div>
         </div>
         <p className="text-sm text-muted-foreground">{t.hero.description}</p>
@@ -161,7 +160,7 @@ export function HomeHero({
                   type="button"
                   onClick={showPreviousLatestModel}
                   aria-label={t.hero.previousModel}
-                  className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="touch-target inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
                   <ChevronLeft className="size-3.5" />
                 </button>
@@ -169,7 +168,7 @@ export function HomeHero({
                   type="button"
                   onClick={showNextLatestModel}
                   aria-label={t.hero.nextModel}
-                  className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="touch-target inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
                   <ChevronRight className="size-3.5" />
                 </button>
@@ -183,7 +182,7 @@ export function HomeHero({
 
           <Link
             href={`/models/${latestModel.slug}`}
-            className="group mt-2 flex items-center gap-2 rounded-md transition-colors hover:text-primary"
+            className="group mt-2 flex min-h-11 items-center gap-2 rounded-md transition-colors hover:text-primary"
           >
             <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted">
               <ModelProviderIcon
@@ -222,12 +221,16 @@ export function HomeHero({
                     onClick={() => setActiveLatestIndex(index)}
                     aria-label={`${t.hero.latestModels} ${index + 1}`}
                     aria-current={index === activeLatestIndex ? "true" : undefined}
-                    className={`size-1.5 rounded-full transition-colors ${
-                      index === activeLatestIndex
-                        ? "bg-foreground"
-                        : "bg-muted-foreground/35 hover:bg-muted-foreground/60"
-                    }`}
-                  />
+                    className="group touch-target inline-flex size-8 items-center justify-center rounded-md"
+                  >
+                    <span
+                      className={`size-1.5 rounded-full transition-colors ${
+                        index === activeLatestIndex
+                          ? "bg-foreground"
+                          : "bg-muted-foreground/35 group-hover:bg-muted-foreground/60"
+                      }`}
+                    />
+                  </button>
                 ))}
               </span>
             </div>

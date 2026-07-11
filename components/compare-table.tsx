@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Link } from "@/components/link";
-import { useRouter } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { GitCompareArrows, ChevronLeft, Search, X, Check, Trophy, Type, ImageIcon, Video, Mic, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
 import { getModelProviderKey } from "@/lib/provider-map";
-import { usePageTransition } from "@/components/page-transition-provider";
 import {
   AA_MEDIA_BENCHMARK_DEFS,
   applicableExtraBenchmarkEntries,
@@ -25,7 +24,7 @@ import type { LLMModel } from "@/lib/api";
 
 // ─── Benchmark constants ──────────────────────────────────────────────────────
 
-const COMPARE_COLUMN_EXIT_MS = 520;
+const COMPARE_COLUMN_EXIT_MS = 180;
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
@@ -194,7 +193,7 @@ function MetricRow({ label, values, dir, format, colorize, noBar }: MetricConfig
               </span>
               {!noBar && val !== null && (
                 <div className="h-0.5 w-14 rounded-full bg-muted overflow-hidden">
-                  <div className={`h-full rounded-full transition-all ${winner ? "bg-emerald-500" : "bg-primary/40"}`} style={{ width: `${pct}%` }} />
+                  <div className={`h-full rounded-full transition-[width] duration-200 ${winner ? "bg-emerald-500" : "bg-primary/40"}`} style={{ width: `${pct}%` }} />
                 </div>
               )}
             </div>
@@ -230,6 +229,7 @@ function BoolRow({ label, values }: { label: string; values: (boolean | undefine
 }
 
 function ModalityRow({ label, rows }: { label: string; rows: ModalityData[] }) {
+  const { t } = useI18n();
   const hasData = rows.some(r => r.text != null || r.image != null || r.video != null || r.audio != null);
   if (!hasData) return null;
   return (
@@ -241,10 +241,10 @@ function ModalityRow({ label, rows }: { label: string; rows: ModalityData[] }) {
             <span className="text-muted-foreground font-mono text-xs">—</span>
           ) : (
             <div className="flex items-center gap-1 justify-center">
-              <IconBox icon={<Type className="size-3" />}      title="Text"  active={r.text ?? true} />
-              <IconBox icon={<ImageIcon className="size-3" />} title="Image" active={r.image} />
-              <IconBox icon={<Mic className="size-3" />}       title="Audio" active={r.audio} />
-              <IconBox icon={<Video className="size-3" />}     title="Vidéo" active={r.video} />
+              <IconBox icon={<Type className="size-3" />} title={t.detail.modalityLabels.text} active={r.text ?? true} />
+              <IconBox icon={<ImageIcon className="size-3" />} title={t.detail.modalityLabels.image} active={r.image} />
+              <IconBox icon={<Mic className="size-3" />} title={t.detail.modalityLabels.speech} active={r.audio} />
+              <IconBox icon={<Video className="size-3" />} title={t.detail.modalityLabels.video} active={r.video} />
             </div>
           )}
         </td>
@@ -309,15 +309,16 @@ function MobileBoolRow({ label, value }: { label: string; value: boolean | undef
 }
 
 function MobileModalityRow({ label, data }: { label: string; data: ModalityData }) {
+  const { t } = useI18n();
   if (data.text == null && data.image == null && data.video == null && data.audio == null) return null;
   return (
     <div className="flex items-center justify-between px-4 py-2.5 border-b last:border-b-0">
       <span className="text-sm text-muted-foreground">{label}</span>
       <div className="flex items-center gap-1">
-        <IconBox icon={<Type className="size-3" />}      title="Text"  active={data.text ?? true} />
-        <IconBox icon={<ImageIcon className="size-3" />} title="Image" active={data.image} />
-        <IconBox icon={<Mic className="size-3" />}       title="Audio" active={data.audio} />
-        <IconBox icon={<Video className="size-3" />}     title="Vidéo" active={data.video} />
+        <IconBox icon={<Type className="size-3" />} title={t.detail.modalityLabels.text} active={data.text ?? true} />
+        <IconBox icon={<ImageIcon className="size-3" />} title={t.detail.modalityLabels.image} active={data.image} />
+        <IconBox icon={<Mic className="size-3" />} title={t.detail.modalityLabels.speech} active={data.audio} />
+        <IconBox icon={<Video className="size-3" />} title={t.detail.modalityLabels.video} active={data.video} />
       </div>
     </div>
   );
@@ -370,12 +371,19 @@ function MobileCompareView({
   return (
     <div className="space-y-4">
       {/* Tabs — one per model */}
-      <div className="flex gap-2 overflow-x-auto rounded-xl border bg-muted/20 p-1">
+      <div
+        role="tablist"
+        aria-label={t.compare.title}
+        className="flex snap-x snap-mandatory gap-2 overflow-x-auto rounded-xl border bg-muted/20 p-1"
+      >
         {models.map((model, i) => (
           <button
             key={model.id}
+            type="button"
+            role="tab"
+            aria-selected={i === idx}
             onClick={() => setActiveIdx(i)}
-            className={`flex min-w-32 shrink-0 flex-col items-center gap-1 rounded-lg px-2 py-2.5 transition-colors ${
+            className={`touch-target flex min-w-36 snap-start shrink-0 flex-col items-center gap-1 rounded-lg px-2 py-2.5 transition-colors ${
               i === idx ? "border bg-card shadow-sm" : "border border-transparent hover:bg-muted/50"
             }`}
           >
@@ -410,15 +418,20 @@ function MobileCompareView({
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {winnerDetails[idx].length > 0 && (
-            <Badge variant={winnerCounts[idx] === maxWins ? "default" : "secondary"} className="gap-1 h-6">
+            <Badge
+              variant={winnerCounts[idx] === maxWins ? "default" : "secondary"}
+              className="h-6 gap-1"
+              title={t.compare.wins(winnerCounts[idx])}
+            >
               <Trophy className="size-3" />
-              {winnerCounts[idx]} {t.compare.wins(winnerCounts[idx])}
+              {winnerCounts[idx]}
             </Badge>
           )}
           <button
+            type="button"
             onClick={() => { onRemove(m.slug); setActiveIdx(Math.max(0, idx - 1)); }}
-            className="text-muted-foreground hover:text-destructive transition-colors p-1"
-            aria-label={`Retirer ${m.name}`}
+            className="touch-target inline-flex size-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+            aria-label={`${t.compare.remove} ${m.name}`}
           >
             <X className="size-4" />
           </button>
@@ -430,41 +443,33 @@ function MobileCompareView({
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
           <Input
+            type="search"
             placeholder={`${t.compare.addModel}…`}
+            aria-label={t.compare.addModel}
+            autoComplete="off"
             value={addSearch}
             onChange={(e) => setAddSearch(e.target.value)}
             className="pl-9 pr-9"
           />
           {addSearch && (
-            <button onClick={() => setAddSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+            <button
+              type="button"
+              onClick={() => setAddSearch("")}
+              aria-label={t.compare.clear}
+              className="touch-target absolute right-0 top-1/2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
               <X className="size-4" />
             </button>
           )}
-          {searchResults.length > 0 && (
-            <div className="compare-search-dropdown absolute top-full left-0 right-0 z-50 mt-1 bg-popover border rounded-lg shadow-md overflow-hidden max-h-60 overflow-y-auto">
-              {searchResults.map((res, index) => (
-                <button
-                  key={res.id}
-                  onClick={() => { onAdd(res); setAddSearch(""); setActiveIdx(models.length); }}
-                  className="compare-search-result w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-muted/60 transition-colors text-left"
-                  style={{ animationDelay: `${Math.min(index, 5) * 32}ms` }}
-                >
-                  <div className="size-7 rounded-md bg-muted flex items-center justify-center shrink-0">
-                    <ModelProviderIcon provider={getModelProviderKey(res.slug, res.model_creator.slug)} size={18} iconUrl={res.provider_icon_url} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{res.name}</p>
-                    <p className="text-xs text-muted-foreground">{res.model_creator.name}</p>
-                  </div>
-                  {textMetricValue(res, "artificial_analysis_intelligence_index") !== null && (
-                    <Badge variant="secondary" className="font-mono text-xs shrink-0">
-                      {textMetricValue(res, "artificial_analysis_intelligence_index")?.toFixed(1)}
-                    </Badge>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
+          <SearchDropdown
+            results={searchResults}
+            query={addSearch}
+            onAdd={(result) => {
+              onAdd(result);
+              setAddSearch("");
+              setActiveIdx(models.length);
+            }}
+          />
         </div>
       )}
 
@@ -699,13 +704,39 @@ function MobileCompareView({
 
 // ─── Search results dropdown (shared) ────────────────────────────────────────
 
-function SearchDropdown({ results, onAdd }: { results: LLMModel[]; onAdd: (m: LLMModel) => void }) {
-  if (results.length === 0) return null;
+function SearchDropdown({
+  results,
+  onAdd,
+  query,
+}: {
+  results: LLMModel[];
+  onAdd: (m: LLMModel) => void;
+  query: string;
+}) {
+  const { t } = useI18n();
+  if (results.length === 0) {
+    if (!query.trim()) return null;
+    return (
+      <div
+        role="status"
+        className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg border bg-popover px-3 py-4 text-center text-sm text-muted-foreground shadow-md"
+      >
+        {t.grid.noResults}
+      </div>
+    );
+  }
   return (
-    <div className="compare-search-dropdown absolute top-full left-0 right-0 z-50 mt-1 bg-popover border rounded-lg shadow-md overflow-hidden max-h-72 overflow-y-auto">
+    <div
+      role="listbox"
+      aria-label={t.compare.addModel}
+      className="compare-search-dropdown absolute top-full left-0 right-0 z-50 mt-1 max-h-72 overflow-y-auto rounded-lg border bg-popover shadow-md"
+    >
       {results.map((m, index) => (
         <button
           key={m.id}
+          type="button"
+          role="option"
+          aria-selected={false}
           onClick={() => onAdd(m)}
           className="compare-search-result w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-muted/60 transition-colors text-left"
           style={{ animationDelay: `${Math.min(index, 7) * 32}ms` }}
@@ -732,9 +763,8 @@ function SearchDropdown({ results, onAdd }: { results: LLMModel[]; onAdd: (m: LL
 
 export function CompareTable({ models, allModels }: { models: LLMModel[]; allModels: LLMModel[] }) {
   const { t, lang } = useI18n();
-  const { selected, toggle, clear, lastChange } = useCompare();
-  const router = useRouter();
-  const { push } = usePageTransition();
+  const { replace, lastChange } = useCompare();
+  const navigate = useNavigate({ from: "/compare" });
   const [addSearch, setAddSearch] = useState("");
   const [removingSlug, setRemovingSlug] = useState<string | null>(null);
   const compareUpdateTimerRef = useRef<number | null>(null);
@@ -743,12 +773,18 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
   const removingIndex = removingSlug ? models.findIndex((model) => model.slug === removingSlug) : -1;
 
   function navigateToCompare(slugs: string[]) {
-    router.navigate({
+    const next = [...new Set(slugs)].slice(0, 4);
+    replace(next);
+    void navigate({
       to: "/compare",
-      search: slugs.length > 0 ? { models: slugs.join(",") } : {},
+      search: next.length > 0 ? { models: next.join(",") } : {},
       replace: true,
     });
   }
+
+  useEffect(() => {
+    replace(models.map((model) => model.slug));
+  }, [compareSignature, models, replace]);
 
   useEffect(() => {
     return () => {
@@ -772,7 +808,6 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
 
   function addModel(model: LLMModel) {
     if (compareIsFull) return;
-    if (!selected.includes(model.slug)) toggle(model.slug);
     navigateToCompare([...models.map(m => m.slug), model.slug]);
     setAddSearch("");
   }
@@ -782,7 +817,6 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
     setRemovingSlug(slug);
     if (compareUpdateTimerRef.current) window.clearTimeout(compareUpdateTimerRef.current);
     compareUpdateTimerRef.current = window.setTimeout(() => {
-      toggle(slug);
       const next = models.filter(m => m.slug !== slug).map(m => m.slug);
       navigateToCompare(next);
       compareUpdateTimerRef.current = null;
@@ -840,32 +874,44 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
 
   // Empty state
   if (models.length === 0) {
+    const dataUnavailable = allModels.length === 0;
     return (
       <div className="compare-empty-state flex-1 flex flex-col items-center justify-center gap-6 text-center py-12">
         <GitCompareArrows className="size-12 text-muted-foreground" />
         <div className="space-y-1">
-          <p className="font-medium">{t.compare.noModels}</p>
-          <p className="text-sm text-muted-foreground">{t.compare.addMore}</p>
+          <p className="font-medium">
+            {dataUnavailable ? t.grid.unavailableTitle : t.compare.noModels}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {dataUnavailable ? t.grid.unavailableDescription : t.compare.addMore}
+          </p>
         </div>
-        <div className="relative w-full max-w-md">
+        {!dataUnavailable && <div className="relative w-full max-w-md">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
             <Input
+              type="search"
               placeholder={`${t.compare.addModel}…`}
+              aria-label={t.compare.addModel}
+              autoComplete="off"
               value={addSearch}
               onChange={(e) => setAddSearch(e.target.value)}
               className="pl-9 pr-9"
-              autoFocus
             />
             {addSearch && (
-              <button onClick={() => setAddSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+              <button
+                type="button"
+                onClick={() => setAddSearch("")}
+                aria-label={t.compare.clear}
+                className="touch-target absolute right-0 top-1/2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
                 <X className="size-4" />
               </button>
             )}
           </div>
-          <SearchDropdown results={searchResults} onAdd={addModel} />
-        </div>
-        <Button variant="outline" size="sm" asChild>
+          <SearchDropdown results={searchResults} onAdd={addModel} query={addSearch} />
+        </div>}
+        <Button variant="outline" size="sm" asChild className="touch-target">
           <Link href="/">{t.compare.backToList}</Link>
         </Button>
       </div>
@@ -875,18 +921,20 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{t.compare.title}</h1>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => { clear(); push("/"); }}>
-            <ChevronLeft className="size-4 mr-1" />
-            <span className="hidden sm:inline">{t.compare.backToList}</span>
+          <Button variant="outline" size="sm" asChild className="touch-target">
+            <Link href="/">
+              <ChevronLeft data-icon="inline-start" />
+              <span className="hidden sm:inline">{t.compare.backToList}</span>
+            </Link>
           </Button>
           <Button
             variant="ghost"
             size="sm"
+            className="touch-target"
             onClick={() => {
-              clear();
               navigateToCompare([]);
             }}
           >
@@ -897,7 +945,7 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
 
       {/* ── MOBILE VIEW ─────────────────────────────────────────────────── */}
       <div
-        className="compare-panel-refresh md:hidden"
+        className="compare-panel-refresh lg:hidden"
       >
         <MobileCompareView
           models={models}
@@ -915,24 +963,32 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
 
       {/* ── DESKTOP VIEW ─────────────────────────────────────────────────── */}
       <div
-        className="compare-panel-refresh hidden md:block space-y-4"
+        className="compare-panel-refresh hidden space-y-4 lg:block"
       >
         {/* Add model search */}
         {!compareIsFull && (
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
             <Input
+              type="search"
               placeholder={`${t.compare.addModel}…`}
+              aria-label={t.compare.addModel}
+              autoComplete="off"
               value={addSearch}
               onChange={(e) => setAddSearch(e.target.value)}
               className="pl-9 pr-9"
             />
             {addSearch && (
-              <button onClick={() => setAddSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+              <button
+                type="button"
+                onClick={() => setAddSearch("")}
+                aria-label={t.compare.clear}
+                className="touch-target absolute right-0 top-1/2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
                 <X className="size-4" />
               </button>
             )}
-            <SearchDropdown results={searchResults} onAdd={addModel} />
+            <SearchDropdown results={searchResults} onAdd={addModel} query={addSearch} />
           </div>
         )}
 
@@ -979,7 +1035,11 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
                           </TooltipContent>
                         </Tooltip>
                       )}
-                      <button onClick={() => removeModel(model.slug)} className="text-xs text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => removeModel(model.slug)}
+                        className="touch-target flex min-h-10 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                      >
                         <X className="size-3" />
                         {t.compare.remove}
                       </button>

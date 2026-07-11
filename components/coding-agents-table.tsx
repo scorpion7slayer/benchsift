@@ -97,7 +97,7 @@ export function CodingAgentsTable({ agents }: { agents: CodingAgent[] }) {
             <p className="text-sm text-muted-foreground max-w-md mx-auto">
               {t.agents.previewNotice}
             </p>
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" size="sm" asChild className="touch-target">
               <a
                 href="https://artificialanalysis.ai/agents/coding-agents"
                 target="_blank"

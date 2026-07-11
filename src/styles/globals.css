@@ -123,45 +123,32 @@
 
 @layer base {
   * {
-    scrollbar-width: thin;
-    scrollbar-color: color-mix(in oklch, var(--muted-foreground) 42%, transparent) transparent;
-  }
-  * {
     @apply border-border outline-ring/50;
-  }
-  *::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-  }
-  *::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  *::-webkit-scrollbar-thumb {
-    border: 3px solid transparent;
-    border-radius: 999px;
-    background:
-      linear-gradient(
-        color-mix(in oklch, var(--muted-foreground) 45%, transparent),
-        color-mix(in oklch, var(--muted-foreground) 45%, transparent)
-      )
-      padding-box;
-  }
-  *::-webkit-scrollbar-thumb:hover {
-    background:
-      linear-gradient(
-        color-mix(in oklch, var(--foreground) 55%, transparent),
-        color-mix(in oklch, var(--foreground) 55%, transparent)
-      )
-      padding-box;
-  }
-  *::-webkit-scrollbar-corner {
-    background: transparent;
   }
   body {
     @apply bg-background text-foreground;
   }
   html {
     @apply font-sans;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@media (pointer: coarse) {
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
   }
 }
 
@@ -208,94 +195,56 @@ html.language-transitioning :is(header, main, footer)
 @keyframes page-route-in {
   from {
     opacity: 0;
-    filter: blur(3px);
-    transform: translateY(12px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
-    filter: blur(0);
     transform: translateY(0);
   }
 }
 
 .page-transition-frame {
-  animation: page-route-in 0.64s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-}
-
-@keyframes page-route-out {
-  from {
-    opacity: 1;
-    filter: blur(0);
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    filter: blur(3px);
-    transform: translateY(-12px);
-  }
-}
-
-html.page-route-leaving .page-transition-frame {
-  animation: page-route-out 0.54s cubic-bezier(0.64, 0, 0.78, 0) both;
-  pointer-events: none;
+  animation: page-route-in 0.18s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
 /* Search and filter changes */
-@keyframes model-grid-search-out {
-  from {
-    opacity: 1;
-    filter: blur(0);
-    transform: scale(1);
-  }
-  to {
-    opacity: 0.04;
-    filter: blur(4px);
-    transform: scale(0.99);
-  }
-}
-
 @keyframes model-grid-search-in {
   from {
-    opacity: 0;
-    filter: blur(4px);
-    transform: scale(0.99);
+    opacity: 0.55;
+    transform: translateY(3px);
   }
   to {
     opacity: 1;
-    filter: blur(0);
-    transform: scale(1);
+    transform: translateY(0);
   }
 }
 
 @keyframes model-grid-filter-item {
   from {
-    opacity: 0;
-    filter: blur(2px);
-    transform: translateY(12px);
+    opacity: 0.7;
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
-    filter: blur(0);
     transform: translateY(0);
   }
 }
 
-.model-grid-search-out {
-  transform-origin: center;
-  animation: model-grid-search-out 0.52s ease-in-out both;
-}
-
 .model-grid-search-in {
-  transform-origin: center;
-  animation: model-grid-search-in 0.72s ease-out both;
+  animation: model-grid-search-in 0.18s ease-out both;
 }
 
 .model-grid-filter-item {
-  animation: model-grid-filter-item 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: model-grid-filter-item 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .model-grid-empty-refresh {
-  animation: model-grid-search-in 0.46s ease-out both;
+  animation: model-grid-search-in 0.18s ease-out both;
+}
+
+.model-grid-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 460px;
 }
 
 .model-category-bar {
@@ -306,11 +255,9 @@ html.page-route-leaving .page-transition-frame {
 
 .model-category-indicator {
   transition:
-    left 0.36s cubic-bezier(0.22, 1, 0.36, 1),
-    width 0.36s cubic-bezier(0.22, 1, 0.36, 1),
-    height 0.18s ease-out;
-  animation: model-category-indicator-mount 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
-  will-change: left, width;
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.15s ease-out;
+  animation: model-category-indicator-mount 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes model-category-indicator-mount {
@@ -335,12 +282,10 @@ html.page-route-leaving .page-transition-frame {
 @keyframes compare-popover-in {
   from {
     opacity: 0;
-    filter: blur(2px);
     transform: translateY(-6px) scale(0.97);
   }
   to {
     opacity: 1;
-    filter: blur(0);
     transform: translateY(0) scale(1);
   }
 }
@@ -394,14 +339,13 @@ html.page-route-leaving .page-transition-frame {
 @keyframes compare-column-remove {
   to {
     opacity: 0;
-    filter: blur(2px);
     transform: translateX(-14px);
   }
 }
 
 .compare-menu-popover {
   transform-origin: top left;
-  animation: compare-popover-in 0.44s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: compare-popover-in 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .compare-bubble {
@@ -409,9 +353,8 @@ html.page-route-leaving .page-transition-frame {
   pointer-events: none;
   transform-origin: top left;
   transition:
-    opacity 0.24s ease,
-    transform 0.52s cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform, opacity;
+    opacity 0.15s ease,
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .compare-bubble[data-state="visible"] {
@@ -420,13 +363,13 @@ html.page-route-leaving .page-transition-frame {
 }
 
 .compare-bar {
-  animation: compare-state-refresh 0.82s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: compare-state-refresh 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .compare-selection-tray,
 .compare-panel-refresh,
 .compare-empty-state {
-  animation: compare-state-refresh 0.42s ease-out both;
+  animation: compare-state-refresh 0.18s ease-out both;
 }
 
 .compare-card-selected {
@@ -438,18 +381,18 @@ html.page-route-leaving .page-transition-frame {
 
 .compare-table-frame {
   transform-origin: left top;
-  animation: compare-table-resize 0.56s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: compare-table-resize 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .compare-table {
-  transition: width 0.42s ease, min-width 0.42s ease;
+  transition: width 0.18s ease, min-width 0.18s ease;
 }
 
 .compare-table:is(.compare-removing-col-0) :is(th, td):nth-child(2),
 .compare-table:is(.compare-removing-col-1) :is(th, td):nth-child(3),
 .compare-table:is(.compare-removing-col-2) :is(th, td):nth-child(4),
 .compare-table:is(.compare-removing-col-3) :is(th, td):nth-child(5) {
-  animation: compare-column-remove 0.5s ease-in both;
+  animation: compare-column-remove 0.18s ease-in both;
   pointer-events: none;
 }
 
@@ -457,25 +400,25 @@ html.page-route-leaving .page-transition-frame {
 .compare-menu-result,
 .compare-search-result {
   transition:
-    background-color 0.32s ease,
-    border-color 0.32s ease,
-    color 0.32s ease,
-    transform 0.32s ease,
-    opacity 0.32s ease;
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .compare-chip-added {
-  animation: compare-chip-added 0.86s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: compare-chip-added 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .compare-menu-results,
 .compare-search-dropdown {
-  animation: compare-state-refresh 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: compare-state-refresh 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .compare-menu-result,
 .compare-search-result {
-  animation: compare-state-refresh 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: compare-state-refresh 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .compare-menu-result-selected {
@@ -483,7 +426,7 @@ html.page-route-leaving .page-transition-frame {
 }
 
 .compare-column-added {
-  animation: compare-column-added 0.58s ease-out both;
+  animation: compare-column-added 0.2s ease-out both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -491,8 +434,6 @@ html.page-route-leaving .page-transition-frame {
   html.language-transitioning :is(header, main, footer)
     :is(h1, h2, h3, h4, p, span, a, button, label, th, td, li),
   .page-transition-frame,
-  html.page-route-leaving .page-transition-frame,
-  .model-grid-search-out,
   .model-grid-search-in,
   .model-grid-filter-item,
   .model-grid-empty-refresh,

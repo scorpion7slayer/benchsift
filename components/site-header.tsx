@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@/components/link";
 import { Activity, Brain, ExternalLink, ChevronLeft, List, MessageSquarePlus, Menu, X, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,8 @@ function LangToggle() {
       variant="ghost"
       size="sm"
       onClick={() => setLang(next)}
-      className="h-8 px-2.5 text-xs font-mono font-medium"
+      aria-label={lang === "fr" ? "Switch to English" : "Passer en français"}
+      className="touch-target h-10 px-2.5 text-xs font-mono font-medium sm:h-8"
     >
       {next.toUpperCase()}
     </Button>
@@ -34,22 +35,30 @@ interface SiteHeaderProps {
 }
 
 export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   return (
     <header className="sticky top-0 z-20 border-b bg-card/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/85">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex h-14 items-center gap-3">
         {/* Logo ou bouton retour */}
         {backHref ? (
-          <Button variant="ghost" size="sm" asChild className="h-8 px-2">
+          <Button variant="ghost" size="sm" asChild className="touch-target h-8 px-2">
             <Link href={backHref} className="flex items-center gap-1.5">
               <ChevronLeft className="size-4" />
               {t.nav.back}
             </Link>
           </Button>
         ) : (
-          <Link href="/" className="flex items-center gap-2 mr-2">
+          <Link href="/" className="flex min-h-10 items-center gap-2 mr-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Brain className="size-5" />
             <span className="font-semibold text-sm">{t.brand}</span>
           </Link>
@@ -57,30 +66,30 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
 
         <div className="flex items-center gap-2 ml-auto">
           {modelCount !== undefined && (
-            <span className="text-xs text-muted-foreground mr-1 hidden sm:inline">
+            <span className="mr-1 hidden text-xs text-muted-foreground xl:inline">
               {t.grid.results(modelCount, modelCount)}
             </span>
           )}
 
           {/* Liens internes + externes — desktop uniquement */}
-          <div className="hidden sm:flex items-center gap-2">
+          <nav aria-label={lang === "fr" ? "Navigation principale" : "Primary navigation"} className="hidden items-center gap-1 lg:flex">
             <Link
               href="/models"
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="flex min-h-8 items-center gap-1 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             >
               <List className="size-3" />
               {t.nav.models}
             </Link>
             <Link
               href="/agents/coding"
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="flex min-h-8 items-center gap-1 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             >
               <Terminal className="size-3" />
               {t.nav.codingAgents}
             </Link>
             <Link
               href="/benchmarks/deepswe"
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="flex min-h-8 items-center gap-1 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             >
               <Activity className="size-3" />
               {t.nav.deepSwe}
@@ -90,7 +99,7 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
               href="https://artificialanalysis.ai"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="flex min-h-8 items-center gap-1 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             >
               <ExternalLink className="size-3" />
               {t.nav.source}
@@ -99,32 +108,32 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
               href="https://openrouter.ai"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="flex min-h-8 items-center gap-1 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             >
               <ExternalLink className="size-3" />
               OpenRouter
             </a>
             <div className="w-px h-4 bg-border mx-1" />
             <a
-              href="https://github.com/scorpion7slayer/nxtaicard/issues"
+              href="https://github.com/scorpion7slayer/benchsift/issues"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="flex min-h-8 items-center gap-1 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             >
               <MessageSquarePlus className="size-3" />
               {t.nav.feedback}
             </a>
             <a
-              href="https://github.com/scorpion7slayer/nxtaicard"
+              href="https://github.com/scorpion7slayer/benchsift"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
               aria-label="GitHub"
             >
               <GithubIcon className="size-4" />
             </a>
             <div className="w-px h-4 bg-border mx-1" />
-          </div>
+          </nav>
 
           {/* Préférences — toujours visibles */}
           <LangToggle />
@@ -132,9 +141,14 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
 
           {/* Bouton hamburger — mobile uniquement */}
           <button
-            className="sm:hidden flex items-center justify-center h-8 w-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+            type="button"
+            className="touch-target flex size-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground lg:hidden"
             onClick={() => setMenuOpen((o) => !o)}
-            aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-navigation"
+            aria-label={menuOpen
+              ? lang === "fr" ? "Fermer le menu" : "Close menu"
+              : lang === "fr" ? "Ouvrir le menu" : "Open menu"}
           >
             {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
@@ -143,10 +157,14 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
 
       {/* Menu déroulant mobile */}
       {menuOpen && (
-        <div className="sm:hidden border-t bg-card/95 backdrop-blur px-4 py-3 flex flex-col gap-4 animate-in fade-in-0 slide-in-from-top-1 duration-150">
+        <nav
+          id="mobile-navigation"
+          aria-label={lang === "fr" ? "Navigation mobile" : "Mobile navigation"}
+          className="flex flex-col gap-1 border-t bg-card/95 px-4 py-2 backdrop-blur animate-in fade-in-0 slide-in-from-top-1 duration-150 lg:hidden"
+        >
           <Link
             href="/models"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             onClick={() => setMenuOpen(false)}
           >
             <List className="size-4 shrink-0" />
@@ -154,7 +172,7 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
           </Link>
           <Link
             href="/agents/coding"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             onClick={() => setMenuOpen(false)}
           >
             <Terminal className="size-4 shrink-0" />
@@ -162,7 +180,7 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
           </Link>
           <Link
             href="/benchmarks/deepswe"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             onClick={() => setMenuOpen(false)}
           >
             <Activity className="size-4 shrink-0" />
@@ -172,7 +190,7 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
             href="https://artificialanalysis.ai"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             onClick={() => setMenuOpen(false)}
           >
             <ExternalLink className="size-4 shrink-0" />
@@ -182,33 +200,33 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
             href="https://openrouter.ai"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             onClick={() => setMenuOpen(false)}
           >
             <ExternalLink className="size-4 shrink-0" />
             OpenRouter
           </a>
           <a
-            href="https://github.com/scorpion7slayer/nxtaicard/issues"
+            href="https://github.com/scorpion7slayer/benchsift/issues"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             onClick={() => setMenuOpen(false)}
           >
             <MessageSquarePlus className="size-4 shrink-0" />
             {t.nav.feedback}
           </a>
           <a
-            href="https://github.com/scorpion7slayer/nxtaicard"
+            href="https://github.com/scorpion7slayer/benchsift"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             onClick={() => setMenuOpen(false)}
           >
             <GithubIcon className="size-4 shrink-0" />
             GitHub
           </a>
-        </div>
+        </nav>
       )}
     </header>
   );

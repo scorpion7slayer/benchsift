@@ -37,8 +37,7 @@
     "nitro": "^3.0.260522-beta",
     "tailwindcss": "^4.2.4",
     "typescript": "^6",
-    "vite": "^8.0.16",
-    "vite-tsconfig-paths": "^5.1.4"
+    "vite": "^8.0.16"
   },
   "overrides": {
     "@babel/core": "^7.29.7",

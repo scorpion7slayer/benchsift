@@ -1,4 +1,5 @@
 import { use, Suspense } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   Zap, DollarSign, BarChart3, TrendingUp, GitCompareArrows,
   Brain, ImageIcon, Video, Mic, Type, Lock, Unlock, BookOpen, Info,
@@ -14,7 +15,6 @@ import { ModelAvailabilityBadge, ModelAvailabilityNotice } from "@/components/mo
 import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
 import { getModelProviderKey } from "@/lib/provider-map";
-import { usePageTransition } from "@/components/page-transition-provider";
 import { isModelCurrentlyUnavailable } from "@/lib/model-availability";
 import {
   applicableExtraBenchmarkEntries,
@@ -396,7 +396,7 @@ function BenchmarkRow({
       </div>
       <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all ${scoreBg(barPct > 0 ? barPct : null)}`}
+          className={`h-full rounded-full transition-[width] duration-200 ${scoreBg(barPct > 0 ? barPct : null)}`}
           style={{ width: `${Math.min(barPct, 100)}%` }}
         />
       </div>
@@ -498,8 +498,8 @@ function NoBenchmarksCard({ t }: { t: ReturnType<typeof useI18n>["t"] }) {
 
 export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMModel; capabilitiesPromise?: Promise<Caps> }) {
   const { t, lang } = useI18n();
-  const { toggle, isSelected, selected } = useCompare();
-  const { push } = usePageTransition();
+  const { replace, isSelected, isFull, selected } = useCompare();
+  const navigate = useNavigate();
   const {
     name, slug, model_creator, evaluations: ev, pricing,
     median_output_tokens_per_second, median_time_to_first_token_seconds,
@@ -603,19 +603,22 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
         <Button
           variant={isComp ? "default" : "outline"}
           size="sm"
+          disabled={!isComp && isFull}
           onClick={() => {
             const nextSelection = isComp
               ? selected.filter((slug) => slug !== model.slug)
-              : [...selected, model.slug].slice(-4);
-            toggle(model.slug);
-            const target = nextSelection.length > 0
-              ? `/compare?models=${nextSelection.join(",")}`
-              : "/compare";
-            push(target);
+              : [...selected, model.slug];
+            replace(nextSelection);
+            void navigate({
+              to: "/compare",
+              search: nextSelection.length > 0
+                ? { models: nextSelection.join(",") }
+                : {},
+            });
           }}
-          className="shrink-0 gap-1.5"
+          className="touch-target shrink-0"
         >
-          <GitCompareArrows className="size-4" />
+          <GitCompareArrows data-icon="inline-start" />
           {t.compare.compare}
         </Button>
       </div>

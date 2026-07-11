@@ -12,6 +12,7 @@ type CompareChange = {
 interface CompareCtx {
   selected: string[];
   toggle: (slug: string) => void;
+  replace: (slugs: string[]) => void;
   clear: () => void;
   isSelected: (slug: string) => boolean;
   isFull: boolean;
@@ -21,6 +22,7 @@ interface CompareCtx {
 const CompareContext = createContext<CompareCtx>({
   selected: [],
   toggle: () => {},
+  replace: () => {},
   clear: () => {},
   isSelected: () => false,
   isFull: false,
@@ -32,6 +34,31 @@ interface CompareState {
   lastChange: CompareChange | null;
 }
 
+function normalizeSelected(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+
+  return [...new Set(
+    value
+      .filter((slug): slug is string => typeof slug === "string")
+      .map((slug) => slug.trim())
+      .filter(Boolean),
+  )].slice(0, MAX_COMPARE);
+}
+
+function persistSelected(selected: string[]) {
+  try {
+    if (selected.length === 0) localStorage.removeItem(STORAGE_KEY);
+    else localStorage.setItem(STORAGE_KEY, JSON.stringify(selected));
+  } catch {
+    // Storage can be unavailable in private or hardened browsing contexts.
+    // Comparison still works for the current session.
+  }
+}
+
+function sameSelection(left: string[], right: string[]) {
+  return left.length === right.length && left.every((slug, index) => slug === right[index]);
+}
+
 export function CompareProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<CompareState>({ selected: [], lastChange: null });
 
@@ -39,7 +66,11 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (stored) setState({ selected: JSON.parse(stored), lastChange: null });
+      if (stored) {
+        const selected = normalizeSelected(JSON.parse(stored));
+        setState({ selected, lastChange: null });
+        persistSelected(selected);
+      }
     } catch {}
   }, []);
 
@@ -55,7 +86,7 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
 
       if (next === selected) return prevState;
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      persistSelected(next);
       return {
         selected: next,
         lastChange: {
@@ -67,12 +98,32 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const replace = useCallback((slugs: string[]) => {
+    const next = normalizeSelected(slugs);
+    setState((prevState) => {
+      if (sameSelection(prevState.selected, next)) return prevState;
+
+      const added = next.find((slug) => !prevState.selected.includes(slug));
+      const removed = prevState.selected.find((slug) => !next.includes(slug));
+      persistSelected(next);
+
+      return {
+        selected: next,
+        lastChange: {
+          id: Date.now(),
+          type: added ? "add" : next.length === 0 ? "clear" : "remove",
+          slug: added ?? removed,
+        },
+      };
+    });
+  }, []);
+
   const clear = useCallback(() => {
     setState({
       selected: [],
       lastChange: { id: Date.now(), type: "clear" },
     });
-    localStorage.removeItem(STORAGE_KEY);
+    persistSelected([]);
   }, []);
 
   const selected = state.selected;
@@ -82,12 +133,13 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
     () => ({
       selected,
       toggle,
+      replace,
       clear,
       isSelected: (s: string) => selected.includes(s),
       isFull: selected.length >= MAX_COMPARE,
       lastChange,
     }),
-    [selected, toggle, clear, lastChange]
+    [selected, toggle, replace, clear, lastChange]
   );
 
   return (

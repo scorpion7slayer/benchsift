@@ -14,7 +14,7 @@ Data comes from [Artificial Analysis](https://artificialanalysis.ai), [OpenRoute
 - **Search & filter** — find models by name or provider instantly
 - **Light/dark theme** — persisted across sessions
 - **French & English** — language auto-detected, switchable in one click
-- **No tracking** — no analytics, no personal data collected
+- **No account required** — language, theme and comparison preferences stay in the browser
 
 ## Getting started
 

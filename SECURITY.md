@@ -4,7 +4,7 @@
 
 If you discover a security vulnerability, **please do not open a public issue**.
 
-Instead, report it privately by opening a [GitHub Security Advisory](https://github.com/scorpion7slayer/nxtaicard/security/advisories/new).
+Instead, report it privately by opening a [GitHub Security Advisory](https://github.com/scorpion7slayer/benchsift/security/advisories/new).
 
 We will acknowledge your report within 48 hours and aim to release a fix as soon as possible.
 

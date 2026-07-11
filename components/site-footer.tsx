@@ -36,7 +36,7 @@ export function SiteFooter() {
             © scorpion7slayer
           </a>
           <a
-            href="https://github.com/scorpion7slayer/nxtaicard/blob/main/LICENSE"
+            href="https://github.com/scorpion7slayer/benchsift/blob/main/LICENSE"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-foreground transition-colors"

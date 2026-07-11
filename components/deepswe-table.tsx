@@ -122,7 +122,7 @@ export function DeepSweTable({ data }: { data: DeepSweData }) {
         <Card>
           <CardContent className="py-10 text-center space-y-4">
             <p className="text-sm text-muted-foreground">{t.deepSwe.empty}</p>
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" size="sm" asChild className="touch-target">
               <a
                 href="https://deepswe.datacurve.ai/"
                 target="_blank"
@@ -158,7 +158,7 @@ export function DeepSweTable({ data }: { data: DeepSweData }) {
                 type="button"
                 onClick={() => setVersion(entry.version)}
                 aria-pressed={entry.version === version}
-                className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors sm:flex-none ${
+                className={`touch-target flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors sm:flex-none ${
                   entry.version === version
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
@@ -406,7 +406,7 @@ export function DeepSweTable({ data }: { data: DeepSweData }) {
 
       <div className="flex flex-col items-center justify-between gap-3 text-center sm:flex-row sm:text-left">
         <p className="text-xs text-muted-foreground">{t.deepSwe.sourceNote}</p>
-        <Button variant="outline" size="sm" asChild>
+        <Button variant="outline" size="sm" asChild className="touch-target">
           <a
             href="https://deepswe.datacurve.ai/"
             target="_blank"

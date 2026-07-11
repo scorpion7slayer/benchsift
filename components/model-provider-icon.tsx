@@ -1,54 +1,129 @@
-import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
-import {
-  Adobe,
-  Ai2,
-  AionLabs,
-  Arcee,
-  Aws,
-  BAAI,
-  Bfl,
-  BriaAI,
-  ByteDance,
-  Coqui,
-  Cursor,
-  DeepCogito,
-  ElevenLabs,
-  EssentialAI,
-  FishAudio,
-  Haiper,
-  Ideogram,
-  Inception,
-  Inflection,
-  Kimi,
-  Kling,
-  Krea,
-  KwaiKAT,
-  Lightricks,
-  Liquid,
-  Luma,
-  Midjourney,
-  Morph,
-  OpenChat,
-  Pika,
-  PixVerse,
-  ProviderIcon,
-  PrunaAI,
-  Qwen,
-  Recraft,
-  Relace,
-  Reve,
-  Runway,
-  Skywork,
-  Stability,
-  Vidu,
-  ZAI,
-} from "@lobehub/icons";
+import { lazy, Suspense, useEffect, useState } from "react";
+import type { ComponentType, LazyExoticComponent } from "react";
 
 interface Props {
   provider: string;
   size?: number;
   iconUrl?: string | null;
+}
+
+type ProviderGlyph = ComponentType<{ size?: number }>;
+type CompoundedProviderGlyph = ProviderGlyph & {
+  Avatar?: ProviderGlyph;
+  Color?: ProviderGlyph;
+};
+type ProviderIconLoader = () => Promise<{ default: ProviderGlyph }>;
+
+function iconLoader(
+  loader: () => Promise<unknown>,
+  variant: "avatar" | "color" | "mono" = "mono",
+): ProviderIconLoader {
+  return async () => {
+    const iconModule = await loader() as { default: CompoundedProviderGlyph };
+    const Icon = iconModule.default;
+    const Render = variant === "avatar"
+      ? Icon.Avatar ?? Icon
+      : variant === "color"
+        ? Icon.Color ?? Icon
+        : Icon;
+    return { default: Render };
+  };
+}
+
+/**
+ * Every import is an explicit split point. Cards now load only the small logo
+ * modules they actually render instead of downloading LobeHub's full provider
+ * registry on the first catalogue view.
+ */
+const PROVIDER_ICON_LOADERS: Record<string, ProviderIconLoader> = {
+  adobe: iconLoader(() => import("@lobehub/icons/es/Adobe"), "avatar"),
+  ai2: iconLoader(() => import("@lobehub/icons/es/Ai2"), "avatar"),
+  ai21: iconLoader(() => import("@lobehub/icons/es/Ai21")),
+  aionlabs: iconLoader(() => import("@lobehub/icons/es/AionLabs"), "avatar"),
+  alibaba: iconLoader(() => import("@lobehub/icons/es/Alibaba"), "color"),
+  anthropic: iconLoader(() => import("@lobehub/icons/es/Anthropic")),
+  arcee: iconLoader(() => import("@lobehub/icons/es/Arcee"), "avatar"),
+  aws: iconLoader(() => import("@lobehub/icons/es/Aws"), "avatar"),
+  azure: iconLoader(() => import("@lobehub/icons/es/Azure"), "color"),
+  baai: iconLoader(() => import("@lobehub/icons/es/BAAI"), "avatar"),
+  baidu: iconLoader(() => import("@lobehub/icons/es/Baidu"), "color"),
+  bfl: iconLoader(() => import("@lobehub/icons/es/Bfl"), "avatar"),
+  briaai: iconLoader(() => import("@lobehub/icons/es/BriaAI"), "avatar"),
+  bytedance: iconLoader(() => import("@lobehub/icons/es/ByteDance"), "avatar"),
+  cohere: iconLoader(() => import("@lobehub/icons/es/Cohere"), "color"),
+  coqui: iconLoader(() => import("@lobehub/icons/es/Coqui"), "avatar"),
+  cursor: iconLoader(() => import("@lobehub/icons/es/Cursor"), "avatar"),
+  deepcogito: iconLoader(() => import("@lobehub/icons/es/DeepCogito"), "avatar"),
+  deepseek: iconLoader(() => import("@lobehub/icons/es/DeepSeek"), "color"),
+  elevenlabs: iconLoader(() => import("@lobehub/icons/es/ElevenLabs"), "avatar"),
+  essentialai: iconLoader(() => import("@lobehub/icons/es/EssentialAI"), "avatar"),
+  fal: iconLoader(() => import("@lobehub/icons/es/Fal"), "color"),
+  fishaudio: iconLoader(() => import("@lobehub/icons/es/FishAudio"), "avatar"),
+  google: iconLoader(() => import("@lobehub/icons/es/Google"), "color"),
+  groq: iconLoader(() => import("@lobehub/icons/es/Groq")),
+  haiper: iconLoader(() => import("@lobehub/icons/es/Haiper"), "avatar"),
+  huggingface: iconLoader(() => import("@lobehub/icons/es/HuggingFace"), "color"),
+  ibm: iconLoader(() => import("@lobehub/icons/es/IBM")),
+  ideogram: iconLoader(() => import("@lobehub/icons/es/Ideogram"), "avatar"),
+  inception: iconLoader(() => import("@lobehub/icons/es/Inception"), "avatar"),
+  inflection: iconLoader(() => import("@lobehub/icons/es/Inflection"), "avatar"),
+  kimi: iconLoader(() => import("@lobehub/icons/es/Kimi"), "avatar"),
+  kling: iconLoader(() => import("@lobehub/icons/es/Kling"), "avatar"),
+  krea: iconLoader(() => import("@lobehub/icons/es/Krea"), "avatar"),
+  kwaikat: iconLoader(() => import("@lobehub/icons/es/KwaiKAT"), "avatar"),
+  lg: iconLoader(() => import("@lobehub/icons/es/LG"), "color"),
+  lightricks: iconLoader(() => import("@lobehub/icons/es/Lightricks"), "avatar"),
+  liquidai: iconLoader(() => import("@lobehub/icons/es/Liquid"), "avatar"),
+  longcat: iconLoader(() => import("@lobehub/icons/es/LongCat")),
+  luma: iconLoader(() => import("@lobehub/icons/es/Luma"), "avatar"),
+  meta: iconLoader(() => import("@lobehub/icons/es/Meta"), "color"),
+  microsoft: iconLoader(() => import("@lobehub/icons/es/Microsoft"), "color"),
+  midjourney: iconLoader(() => import("@lobehub/icons/es/Midjourney"), "avatar"),
+  minimax: iconLoader(() => import("@lobehub/icons/es/Minimax"), "color"),
+  mistral: iconLoader(() => import("@lobehub/icons/es/Mistral"), "color"),
+  moonshot: iconLoader(() => import("@lobehub/icons/es/Moonshot")),
+  morph: iconLoader(() => import("@lobehub/icons/es/Morph"), "avatar"),
+  nvidia: iconLoader(() => import("@lobehub/icons/es/Nvidia"), "color"),
+  openai: iconLoader(() => import("@lobehub/icons/es/OpenAI")),
+  openchat: iconLoader(() => import("@lobehub/icons/es/OpenChat"), "avatar"),
+  perplexity: iconLoader(() => import("@lobehub/icons/es/Perplexity"), "color"),
+  pika: iconLoader(() => import("@lobehub/icons/es/Pika"), "avatar"),
+  pixverse: iconLoader(() => import("@lobehub/icons/es/PixVerse"), "avatar"),
+  prunaai: iconLoader(() => import("@lobehub/icons/es/PrunaAI"), "avatar"),
+  qwen: iconLoader(() => import("@lobehub/icons/es/Qwen"), "avatar"),
+  recraft: iconLoader(() => import("@lobehub/icons/es/Recraft"), "avatar"),
+  relace: iconLoader(() => import("@lobehub/icons/es/Relace"), "avatar"),
+  reve: iconLoader(() => import("@lobehub/icons/es/Reve"), "avatar"),
+  runway: iconLoader(() => import("@lobehub/icons/es/Runway"), "avatar"),
+  skywork: iconLoader(() => import("@lobehub/icons/es/Skywork"), "avatar"),
+  snowflake: iconLoader(() => import("@lobehub/icons/es/Snowflake"), "color"),
+  stability: iconLoader(() => import("@lobehub/icons/es/Stability"), "avatar"),
+  stepfun: iconLoader(() => import("@lobehub/icons/es/Stepfun"), "color"),
+  tencent: iconLoader(() => import("@lobehub/icons/es/Tencent"), "color"),
+  tii: iconLoader(() => import("@lobehub/icons/es/TII")),
+  upstage: iconLoader(() => import("@lobehub/icons/es/Upstage"), "color"),
+  vidu: iconLoader(() => import("@lobehub/icons/es/Vidu"), "avatar"),
+  xai: iconLoader(() => import("@lobehub/icons/es/XAI")),
+  xiaomimimo: iconLoader(() => import("@lobehub/icons/es/XiaomiMiMo")),
+  zai: iconLoader(() => import("@lobehub/icons/es/ZAI"), "avatar"),
+};
+
+const lazyIconCache = new Map<string, LazyExoticComponent<ProviderGlyph>>();
+
+function getLazyProviderIcon(provider: string) {
+  const loader = PROVIDER_ICON_LOADERS[provider];
+  if (!loader) return null;
+
+  let Icon = lazyIconCache.get(provider);
+  if (!Icon) {
+    Icon = lazy(loader);
+    lazyIconCache.set(provider, Icon);
+  }
+  return Icon;
+}
+
+function IconPlaceholder({ size }: { size: number }) {
+  return <span aria-hidden style={{ display: "inline-block", width: size, height: size }} />;
 }
 
 function ProviderMonogram({ provider, size }: { provider: string; size: number }) {
@@ -87,146 +162,39 @@ function RemoteProviderIcon({
       src={iconUrl}
       width={size}
       height={size}
+      loading="lazy"
+      decoding="async"
       alt={provider}
-      className="rounded-md object-cover"
+      className="rounded-md object-cover outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"
       onError={() => setFailed(true)}
     />
   );
 }
-
-/**
- * Logos SVGL pour les providers AI non couverts par @lobehub/icons.
- * Format : { light: url, dark: url } ou { light: url } si pas de variante sombre.
- * Source : https://svgl.app/docs/api
- */
-const SVGL_ICONS: Record<string, { light: string; dark?: string }> = {
-  // Ajouter ici les providers confirmés sur SVGL mais absents de @lobehub/icons
-  // Exemple (si disponibles) :
-  // "reka-ai":   { light: "https://svgl.app/library/reka.svg" },
-  // "naver":     { light: "https://svgl.app/library/naver.svg" },
-  // "ai2":       { light: "https://svgl.app/library/ai2-light.svg", dark: "https://svgl.app/library/ai2-dark.svg" },
-};
 
 /** Logos published by providers on their official product sites. */
 const OFFICIAL_PROVIDER_ICONS: Record<string, string> = {
   nex: "https://nex.sii.edu.cn/logo/nex.svg",
 };
 
-/**
- * Ensemble des clés reconnues par @lobehub/icons ProviderIcon.
- * Générées depuis node_modules/@lobehub/icons/es/features/providerEnum.js
- */
-const LOBEHUB_PROVIDERS = new Set([
-  "ai21","ai302","ai360","aihubmix","aimass","aistudio","akashchat","alephalpha",
-  "alibaba","alibabacloud","antgroup","anthropic","anyscale","apple","atlascloud",
-  "aws","azure","azureai","baichuan","baidu","baiducloud","bailian","baseten",
-  "bedrock","bfl","bilibili","burncloud","bytedance","centml","cerebras","civitai",
-  "claude","cloudflare","cohere","cometapi","comfyui","copilot","crusoe","deepinfra",
-  "deepmind","deepseek","doubao","exa","fal","featherless","fireworks","fireworksai",
-  "friendli","gemini","giteeai","github","githubcopilot","google","googlecloud",
-  "groq","higress","huawei","huaweicloud","huggingface","hunyuan","hyperbolic",
-  "ibm","iflytekcloud","inference","infermatic","infiniai","infinigence","internlm",
-  "jina","kluster","lambda","leptonai","lg","lmstudio","lobehub","longcat","menlo",
-  "meta","microsoft","minimax","mistral","modelscope","moonshot","nebius","newapi",
-  "nousresearch","novita","nplcloud","nvidia","ollama","ollamacloud","openai",
-  "openrouter","parasail","perplexity","player2","ppio","qiniu","qwen","replicate",
-  "sambanova","search1api","searchapi","sensenova","siliconcloud","snowflake",
-  "sophnet","spark","stability","statecloud","stepfun","straico","streamlake",
-  "submodel","taichu","targon","tencent","tencentcloud","tii","togetherai","upstage",
-  "v0","vercel","vercelaigateway","vertexai","vllm","volcengine","wenxin","workersai",
-  "xai","xiaomimimo","xinference","yandex","zenmux","zeroone","zhipu",
-]);
-
-/**
- * Affiche l'icône du provider AI :
- *  1. Cas spéciaux (ZAI)
- *  2. @lobehub/icons ProviderIcon pour les providers connus
- *  3. SVGL comme fallback SVG via <img>
- *  4. Monogramme déterministe pour les providers sans logo publié
- */
 export function ModelProviderIcon({ provider, size = 20, iconUrl }: Props) {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
+  const LazyProviderIcon = getLazyProviderIcon(provider);
 
-  // Cas spéciaux : rendu direct quand ProviderIcon ne correspond pas au logo voulu.
-  if (provider === "zai") return <ZAI.Avatar size={size} />;
-  if (provider === "qwen") return <Qwen.Avatar size={size} />;
-  if (provider === "kimi") return <Kimi.Avatar size={size} />;
-  if (provider === "aws") return <Aws.Avatar size={size} />;
-  if (provider === "kwaikat") return <KwaiKAT.Avatar size={size} />;
-  if (provider === "inception") return <Inception.Avatar size={size} />;
-  if (provider === "ai2") return <Ai2.Avatar size={size} />;
-  if (provider === "liquidai") return <Liquid.Avatar size={size} />;
-  if (provider === "deepcogito") return <DeepCogito.Avatar size={size} />;
-  if (provider === "openchat") return <OpenChat.Avatar size={size} />;
-  if (provider === "cursor") return <Cursor.Avatar size={size} />;
-  if (provider === "adobe") return <Adobe.Avatar size={size} />;
-  if (provider === "aionlabs") return <AionLabs.Avatar size={size} />;
-  if (provider === "arcee") return <Arcee.Avatar size={size} />;
-  if (provider === "baai") return <BAAI.Avatar size={size} />;
-  if (provider === "bfl") return <Bfl.Avatar size={size} />;
-  if (provider === "briaai") return <BriaAI.Avatar size={size} />;
-  if (provider === "bytedance") return <ByteDance.Avatar size={size} />;
-  if (provider === "coqui") return <Coqui.Avatar size={size} />;
-  if (provider === "elevenlabs") return <ElevenLabs.Avatar size={size} />;
-  if (provider === "essentialai") return <EssentialAI.Avatar size={size} />;
-  if (provider === "fishaudio") return <FishAudio.Avatar size={size} />;
-  if (provider === "haiper") return <Haiper.Avatar size={size} />;
-  if (provider === "ideogram") return <Ideogram.Avatar size={size} />;
-  if (provider === "inflection") return <Inflection.Avatar size={size} />;
-  if (provider === "kling") return <Kling.Avatar size={size} />;
-  if (provider === "krea") return <Krea.Avatar size={size} />;
-  if (provider === "lightricks") return <Lightricks.Avatar size={size} />;
-  if (provider === "luma") return <Luma.Avatar size={size} />;
-  if (provider === "midjourney") return <Midjourney.Avatar size={size} />;
-  if (provider === "morph") return <Morph.Avatar size={size} />;
-  if (provider === "pika") return <Pika.Avatar size={size} />;
-  if (provider === "pixverse") return <PixVerse.Avatar size={size} />;
-  if (provider === "prunaai") return <PrunaAI.Avatar size={size} />;
-  if (provider === "recraft") return <Recraft.Avatar size={size} />;
-  if (provider === "relace") return <Relace.Avatar size={size} />;
-  if (provider === "reve") return <Reve.Avatar size={size} />;
-  if (provider === "runway") return <Runway.Avatar size={size} />;
-  if (provider === "skywork") return <Skywork.Avatar size={size} />;
-  if (provider === "stability") return <Stability.Avatar size={size} />;
-  if (provider === "vidu") return <Vidu.Avatar size={size} />;
-
-  // @lobehub/icons — couverture principale
-  if (LOBEHUB_PROVIDERS.has(provider)) {
-    return <ProviderIcon provider={provider} size={size} type="color" />;
+  if (LazyProviderIcon) {
+    return (
+      <Suspense fallback={<IconPlaceholder size={size} />}>
+        <LazyProviderIcon size={size} />
+      </Suspense>
+    );
   }
 
   const officialIconUrl = OFFICIAL_PROVIDER_ICONS[provider];
   if (officialIconUrl) {
-    return (
-      <RemoteProviderIcon
-        provider={provider}
-        size={size}
-        iconUrl={officialIconUrl}
-      />
-    );
-  }
-
-  // SVGL — fallback pour providers non couverts par @lobehub/icons
-  const svgl = SVGL_ICONS[provider];
-  if (svgl) {
-    const url = isDark && svgl.dark ? svgl.dark : svgl.light;
-    return (
-      <img
-        src={url}
-        width={size}
-        height={size}
-        alt={provider}
-        className="rounded-sm object-contain"
-      />
-    );
+    return <RemoteProviderIcon provider={provider} size={size} iconUrl={officialIconUrl} />;
   }
 
   if (iconUrl) {
     return <RemoteProviderIcon provider={provider} size={size} iconUrl={iconUrl} />;
   }
 
-  // Last resort: keep every card visually identifiable without pretending a
-  // generic robot is the provider's official logo.
   return <ProviderMonogram provider={provider} size={size} />;
 }
