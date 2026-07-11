@@ -76,7 +76,7 @@ export const fetchCompareData = createServerFn({ method: "GET" })
         },
         provider_icon_url: model.provider_icon_url,
         intelligence_score:
-          model.evaluations.artificial_analysis_intelligence_index,
+          model.evaluations.artificial_analysis_intelligence_index ?? null,
       }));
       const selected = selectedModels.filter(
         (m): m is NonNullable<typeof m> => m != null,

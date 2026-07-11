@@ -749,7 +749,7 @@ function SearchDropdown({
             <p className="font-medium truncate">{m.name}</p>
             <p className="text-xs text-muted-foreground">{m.model_creator.name}</p>
           </div>
-          {m.intelligence_score !== null && (
+          {typeof m.intelligence_score === "number" && (
             <Badge variant="secondary" className="font-mono text-xs shrink-0">
               {m.intelligence_score.toFixed(1)}
             </Badge>
