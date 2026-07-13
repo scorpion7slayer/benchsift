@@ -318,15 +318,15 @@ export function ModelCard({ model }: { model: LLMModel }) {
         className="relative h-full border-border/70 sm:hidden data-[selected=true]:border-primary"
       >
         <CardHeader className="pb-0">
-          <div className="flex items-start gap-3">
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_2.75rem] items-start gap-3">
             <Link
               href={`/models/${slug}`}
-              className="flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="grid min-h-11 min-w-0 grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-3 overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+              <span className="flex size-10 items-center justify-center rounded-lg bg-muted">
                 <ModelProviderIcon provider={providerKey} size={22} iconUrl={model.provider_icon_url} />
               </span>
-              <span className="min-w-0 flex-1">
+              <span className="min-w-0 overflow-hidden">
                 <span className="block truncate text-sm font-medium">{name}</span>
                 <span className="block truncate text-xs text-muted-foreground">{model_creator.name}</span>
               </span>

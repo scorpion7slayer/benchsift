@@ -15,6 +15,23 @@ export interface Translations {
   grid: {
     search: string;
     sortBy: string;
+    viewModes: {
+      label: string;
+      normal: string;
+      normalDescription: string;
+      nerd: string;
+      nerdDescription: string;
+    };
+    ranking: {
+      label: string;
+      description: string;
+      general: string;
+      coding: string;
+      math: string;
+      speed: string;
+      price: string;
+      rank: (position: number) => string;
+    };
     sorts: {
       intelligence: string;
       coding: string;
@@ -315,6 +332,23 @@ const T: Record<Lang, Translations> = {
     grid: {
       search: "Rechercher un modèle ou un fournisseur…",
       sortBy: "Trier par",
+      viewModes: {
+        label: "Niveau de détail",
+        normal: "Normal",
+        normalDescription: "Un classement simple, sans scores ni benchmarks.",
+        nerd: "Nerd",
+        nerdDescription: "Tous les benchmarks, performances, prix et détails.",
+      },
+      ranking: {
+        label: "Classer par",
+        description: "Les modèles sans donnée pour le critère choisi sont exclus.",
+        general: "Général",
+        coding: "Code",
+        math: "Maths",
+        speed: "Vitesse",
+        price: "Prix",
+        rank: (position) => `Rang ${position}`,
+      },
       sorts: {
         intelligence: "Intelligence (meilleur)",
         coding: "Coding (meilleur)",
@@ -623,6 +657,23 @@ const T: Record<Lang, Translations> = {
     grid: {
       search: "Search a model or provider…",
       sortBy: "Sort by",
+      viewModes: {
+        label: "Level of detail",
+        normal: "Normal",
+        normalDescription: "A simple ranking without scores or benchmarks.",
+        nerd: "Nerd",
+        nerdDescription: "Every benchmark, performance metric, price and detail.",
+      },
+      ranking: {
+        label: "Rank by",
+        description: "Models without data for the selected criterion are excluded.",
+        general: "Overall",
+        coding: "Coding",
+        math: "Math",
+        speed: "Speed",
+        price: "Price",
+        rank: (position) => `Rank ${position}`,
+      },
       sorts: {
         intelligence: "Intelligence (best)",
         coding: "Coding (best)",

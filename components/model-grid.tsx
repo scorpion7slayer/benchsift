@@ -5,6 +5,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { ModelCard } from "@/components/model-card";
+import { RankedModelRow } from "@/components/ranked-model-row";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { isOpenWeightsModel, outputModalities, textMetricValue } from "@/lib/model-metrics";
@@ -19,6 +21,18 @@ type SortKey =
   | "open_weights"
   | "price_asc" | "price_desc"
   | "newest" | "name";
+
+type ViewMode = "normal" | "nerd";
+
+const NORMAL_RANKING_OPTIONS = [
+  { value: "intelligence", label: "general" },
+  { value: "coding", label: "coding" },
+  { value: "math", label: "math" },
+  { value: "speed", label: "speed" },
+  { value: "price_asc", label: "price" },
+] as const;
+
+type NormalRankingKey = (typeof NORMAL_RANKING_OPTIONS)[number]["value"];
 
 type CategoryFilter =
   | "all"
@@ -131,6 +145,32 @@ function sortModels(models: LLMModel[], key: SortKey): LLMModel[] {
         return a.name.localeCompare(b.name);
     }
   });
+}
+
+function hasNormalRankingValue(model: LLMModel, key: NormalRankingKey): boolean {
+  switch (key) {
+    case "intelligence":
+      return textMetricValue(model, "artificial_analysis_intelligence_index") != null;
+    case "coding":
+      return textMetricValue(model, "artificial_analysis_coding_index") != null;
+    case "math":
+      return textMetricValue(model, "artificial_analysis_math_index") != null;
+    case "speed":
+      return model.median_output_tokens_per_second != null && Number.isFinite(model.median_output_tokens_per_second);
+    case "price_asc":
+      return model.pricing.price_1m_blended_3_to_1 != null;
+  }
+}
+
+function matchesSearch(model: LLMModel, query: string): boolean {
+  if (!query) return true;
+  const tokens = query.split(/\s+/).filter(Boolean);
+  const haystack = [
+    model.name.toLowerCase(),
+    model.model_creator.name.toLowerCase(),
+    model.slug.toLowerCase().replace(/-/g, " "),
+  ].join(" ");
+  return tokens.every((token) => haystack.includes(token));
 }
 
 function hasOutputModality(model: LLMModel, modality: string): boolean {
@@ -313,6 +353,7 @@ const BATCH = 32;
 
 const NEW_MODELS_DAYS = 30;
 const SEARCH_DEBOUNCE_MS = 120;
+const VIEW_MODE_STORAGE_KEY = "benchsift-model-view-mode";
 type GridMotion = "filter" | "search-in";
 
 export function ModelGrid({ models }: { models: LLMModel[] }) {
@@ -321,6 +362,8 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [appliedQuery, setAppliedQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("intelligence");
+  const [viewMode, setViewMode] = useState<ViewMode>("normal");
+  const [normalRanking, setNormalRanking] = useState<NormalRankingKey>("intelligence");
   const [providerFilter, setProviderFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [visibleCount, setVisibleCount] = useState(BATCH);
@@ -333,9 +376,33 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
   const previousControlsRef = useRef({
     debouncedQuery: "",
     sort: "intelligence" as SortKey,
+    viewMode: "normal" as ViewMode,
+    normalRanking: "intelligence" as NormalRankingKey,
     providerFilter: "all",
     categoryFilter: "all" as CategoryFilter,
   });
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+      if (stored === "normal" || stored === "nerd") {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setViewMode(stored);
+      }
+    } catch {
+      // The default Normal mode remains available when storage is blocked.
+    }
+  }, []);
+
+  function changeViewMode(value: string) {
+    if (value !== "normal" && value !== "nerd") return;
+    setViewMode(value);
+    try {
+      localStorage.setItem(VIEW_MODE_STORAGE_KEY, value);
+    } catch {
+      // The preference remains active for the current session.
+    }
+  }
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS);
@@ -345,7 +412,14 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
   useEffect(() => {
     const previousControls = previousControlsRef.current;
     const searchChanged = previousControls.debouncedQuery !== debouncedQuery;
-    previousControlsRef.current = { debouncedQuery, sort, providerFilter, categoryFilter };
+    previousControlsRef.current = {
+      debouncedQuery,
+      sort,
+      viewMode,
+      normalRanking,
+      providerFilter,
+      categoryFilter,
+    };
 
     if (isFirstRender.current) {
       isFirstRender.current = false;
@@ -357,7 +431,7 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
     setVisibleCount(BATCH);
     setGridMotion(searchChanged ? "search-in" : "filter");
     setGridKey((k) => k + 1);
-  }, [debouncedQuery, sort, providerFilter, categoryFilter]);
+  }, [debouncedQuery, sort, viewMode, normalRanking, providerFilter, categoryFilter]);
 
   const providers = useMemo(() => {
     const unique = new Map<string, string>();
@@ -419,7 +493,7 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
       observer.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [categoryFilter, categoryCounts]);
+  }, [viewMode, categoryFilter, categoryCounts]);
 
   const sortItems = useMemo<ComboboxItem[]>(
     () =>
@@ -431,7 +505,7 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
     [t.grid.sortGroups, t.grid.sorts]
   );
 
-  const filtered = useMemo(() => {
+  const nerdFiltered = useMemo(() => {
     const q = appliedQuery.toLowerCase().trim();
     let base =
       providerFilter !== "all"
@@ -446,22 +520,38 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
       base = base.filter(isOpenWeightsModel);
     }
     if (q) {
-      const tokens = q.split(/\s+/).filter(Boolean);
-      base = base.filter((m) => {
-        const haystack = [
-          m.name.toLowerCase(),
-          m.model_creator.name.toLowerCase(),
-          // slug with hyphens replaced by spaces so "nemotron" finds "nvidia-nemotron-..."
-          m.slug.toLowerCase().replace(/-/g, " "),
-        ].join(" ");
-        return tokens.every((token) => haystack.includes(token));
-      });
+      base = base.filter((model) => matchesSearch(model, q));
     }
     return sortModels(base, sort);
   }, [models, appliedQuery, sort, providerFilter, categoryFilter]);
 
-  const visible = filtered.slice(0, visibleCount);
-  const hasMore = visibleCount < filtered.length;
+  const normalRanked = useMemo(
+    () =>
+      sortModels(
+        models.filter((model) => hasNormalRankingValue(model, normalRanking)),
+        normalRanking,
+      ).map((model, index) => ({ model, rank: index + 1 })),
+    [models, normalRanking],
+  );
+
+  const normalFiltered = useMemo(() => {
+    const q = appliedQuery.toLowerCase().trim();
+    return normalRanked.filter(({ model }) => {
+      if (
+        providerFilter !== "all" &&
+        getCanonicalCreatorSlug(model.model_creator.slug) !== providerFilter
+      ) {
+        return false;
+      }
+      return matchesSearch(model, q);
+    });
+  }, [normalRanked, appliedQuery, providerFilter]);
+
+  const activeLength = viewMode === "normal" ? normalFiltered.length : nerdFiltered.length;
+  const activeTotal = viewMode === "normal" ? normalRanked.length : models.length;
+  const visibleModels = nerdFiltered.slice(0, visibleCount);
+  const visibleRanked = normalFiltered.slice(0, visibleCount);
+  const hasMore = visibleCount < activeLength;
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -469,14 +559,14 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore) {
-          setVisibleCount((v) => Math.min(v + BATCH, filtered.length));
+          setVisibleCount((v) => Math.min(v + BATCH, activeLength));
         }
       },
       { rootMargin: "400px" }
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [hasMore, filtered.length]);
+  }, [hasMore, activeLength]);
 
   if (models.length === 0) {
     return (
@@ -495,65 +585,127 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
 
   return (
     <div className="flex flex-col gap-5 sm:gap-6">
-      <div className="relative -mx-4 sm:mx-0">
-        <div
-          ref={categoryBarRef}
-          className="model-category-bar relative flex flex-nowrap items-center gap-1 overflow-x-auto px-4 py-1 sm:flex-wrap sm:overflow-x-clip sm:rounded-xl sm:border sm:border-border/60 sm:bg-muted/30 sm:p-1 dark:sm:bg-muted/20"
-        >
-          <span
-            aria-hidden
-            className="model-category-indicator pointer-events-none absolute left-0 top-0 hidden rounded-lg border border-border/60 bg-card sm:block"
-            style={{
-              width: categoryIndicator.width,
-              height: categoryIndicator.height,
-              transform: `translate3d(${categoryIndicator.left}px, ${categoryIndicator.top}px, 0)`,
-            }}
-          />
-          {CATEGORY_OPTIONS.filter((option) => option.value === "all" || categoryCounts[option.value] > 0).map((option) => {
-            const Icon = option.icon;
-            const active = categoryFilter === option.value;
-            return (
-              <button
-                key={option.value}
-                ref={(node) => {
-                  categoryButtonRefs.current[option.value] = node;
-                }}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setCategoryFilter(option.value)}
-                className={cn(
-                  "touch-target relative z-10 inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg border border-transparent px-3 text-sm font-medium transition-colors sm:h-9",
-                  active
-                    ? "border-border/70 bg-card text-foreground shadow-sm sm:border-transparent sm:bg-transparent sm:shadow-none"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Icon
-                  className={cn(
-                    "size-4 transition-colors",
-                    active ? "text-cyan-500 dark:text-cyan-400" : "text-muted-foreground/80"
-                  )}
-                />
-                <span>{t.grid.categories[option.value]}</span>
-                <span
-                  className={cn(
-                    "ml-0.5 inline-flex min-w-5 items-center justify-center rounded-md px-1 text-[10px] font-medium tabular-nums transition-colors",
-                    active
-                      ? "bg-foreground/[0.06] text-foreground/70 dark:bg-foreground/10"
-                      : "bg-foreground/[0.04] text-muted-foreground/70 dark:bg-foreground/[0.06]"
-                  )}
-                >
-                  {categoryCounts[option.value]}
-                </span>
-              </button>
-            );
-          })}
+      <div className="flex flex-col gap-3 border-b border-border/70 pb-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-muted-foreground">
+            {t.grid.viewModes.label}
+          </p>
+          <p className="mt-0.5 text-sm">
+            {viewMode === "normal"
+              ? t.grid.viewModes.normalDescription
+              : t.grid.viewModes.nerdDescription}
+          </p>
         </div>
+        <ToggleGroup
+          type="single"
+          value={viewMode}
+          onValueChange={changeViewMode}
+          variant="outline"
+          size="lg"
+          spacing={0}
+          aria-label={t.grid.viewModes.label}
+          className="w-full sm:w-auto"
+        >
+          <ToggleGroupItem value="normal" className="touch-target flex-1 px-4 sm:min-w-24 sm:flex-none">
+            {t.grid.viewModes.normal}
+          </ToggleGroupItem>
+          <ToggleGroupItem value="nerd" className="touch-target flex-1 px-4 sm:min-w-24 sm:flex-none">
+            {t.grid.viewModes.nerd}
+          </ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
+      {viewMode === "normal" ? (
+        <div className="flex flex-col gap-2">
+          <div>
+            <p className="text-sm font-medium">{t.grid.ranking.label}</p>
+            <p className="text-xs text-muted-foreground">{t.grid.ranking.description}</p>
+          </div>
+          <div className="-mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+            <ToggleGroup
+              type="single"
+              value={normalRanking}
+              onValueChange={(value) => {
+                if (value) setNormalRanking(value as NormalRankingKey);
+              }}
+              variant="outline"
+              size="lg"
+              aria-label={t.grid.ranking.label}
+              className="min-w-max"
+            >
+              {NORMAL_RANKING_OPTIONS.map((option) => (
+                <ToggleGroupItem
+                  key={option.value}
+                  value={option.value}
+                  className="touch-target px-4"
+                >
+                  {t.grid.ranking[option.label]}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+        </div>
+      ) : (
+        <div className="relative -mx-4 sm:mx-0">
+          <div
+            ref={categoryBarRef}
+            className="model-category-bar relative flex flex-nowrap items-center gap-1 overflow-x-auto px-4 py-1 sm:flex-wrap sm:overflow-x-clip sm:rounded-xl sm:border sm:border-border/60 sm:bg-muted/30 sm:p-1 dark:sm:bg-muted/20"
+          >
+            <span
+              aria-hidden
+              className="model-category-indicator pointer-events-none absolute left-0 top-0 hidden rounded-lg border border-border/60 bg-card sm:block"
+              style={{
+                width: categoryIndicator.width,
+                height: categoryIndicator.height,
+                transform: `translate3d(${categoryIndicator.left}px, ${categoryIndicator.top}px, 0)`,
+              }}
+            />
+            {CATEGORY_OPTIONS.filter((option) => option.value === "all" || categoryCounts[option.value] > 0).map((option) => {
+              const Icon = option.icon;
+              const active = categoryFilter === option.value;
+              return (
+                <button
+                  key={option.value}
+                  ref={(node) => {
+                    categoryButtonRefs.current[option.value] = node;
+                  }}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setCategoryFilter(option.value)}
+                  className={cn(
+                    "touch-target relative z-10 inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg border border-transparent px-3 text-sm font-medium transition-colors sm:h-9",
+                    active
+                      ? "border-border/70 bg-card text-foreground shadow-sm sm:border-transparent sm:bg-transparent sm:shadow-none"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Icon
+                    className={cn(
+                      "size-4 transition-colors",
+                      active ? "text-cyan-500 dark:text-cyan-400" : "text-muted-foreground/80"
+                    )}
+                  />
+                  <span>{t.grid.categories[option.value]}</span>
+                  <span
+                    className={cn(
+                      "ml-0.5 inline-flex min-w-5 items-center justify-center rounded-md px-1 text-[10px] font-medium tabular-nums transition-colors",
+                      active
+                        ? "bg-foreground/[0.06] text-foreground/70 dark:bg-foreground/10"
+                        : "bg-foreground/[0.04] text-muted-foreground/70 dark:bg-foreground/[0.06]"
+                    )}
+                  >
+                    {categoryCounts[option.value]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Toolbar */}
-      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:gap-3">
-        <div className="col-span-2 flex h-11 flex-1 items-center gap-2 rounded-lg border border-input bg-card px-3 text-sm transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 sm:h-9 dark:bg-input/30">
+      <div className={cn("grid gap-2 sm:flex sm:flex-row sm:gap-3", viewMode === "normal" ? "grid-cols-1" : "grid-cols-2")}>
+        <div className="col-span-full flex h-11 flex-1 items-center gap-2 rounded-lg border border-input bg-card px-3 text-sm transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 sm:h-9 dark:bg-input/30">
           <Search className="size-4 text-muted-foreground shrink-0 pointer-events-none" />
           <input
             type="search"
@@ -583,13 +735,15 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
           withSearch
           width="w-full sm:w-52"
         />
-        <Combobox
-          items={sortItems}
-          value={sort}
-          onChange={(v) => setSort(v as SortKey)}
-          placeholder={t.grid.sortBy}
-          width="w-full sm:w-56"
-        />
+        {viewMode === "nerd" && (
+          <Combobox
+            items={sortItems}
+            value={sort}
+            onChange={(v) => setSort(v as SortKey)}
+            placeholder={t.grid.sortBy}
+            width="w-full sm:w-56"
+          />
+        )}
       </div>
 
       {/* Compteur */}
@@ -600,34 +754,49 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
         )}
       >
         <p className="text-sm text-muted-foreground">
-          {t.grid.results(filtered.length, models.length)}
+          {t.grid.results(activeLength, activeTotal)}
         </p>
       </div>
 
-      {/* Grille avec animation */}
-      {filtered.length > 0 ? (
+      {/* Résultats classés ou grille experte */}
+      {activeLength > 0 ? (
         <>
-          <div
-            key={`${gridKey}-${gridMotion}`}
-            className={cn(
-              "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4",
-              gridMotion === "search-in" && "model-grid-search-in",
-              gridMotion === "filter" && "model-grid-filter-refresh"
-            )}
-          >
-            {visible.map((model, i) => (
-              <div
-                key={model.id}
-                className={cn(
-                  "model-grid-item",
-                  gridMotion === "filter" && "model-grid-filter-item",
-                )}
-                style={gridMotion === "filter" ? { animationDelay: `${Math.min(i, 12) * 16}ms` } : undefined}
-              >
-                <ModelCard model={model} />
-              </div>
-            ))}
-          </div>
+          {viewMode === "normal" ? (
+            <ol
+              key={`${gridKey}-${gridMotion}-ranking`}
+              className={cn(
+                "overflow-hidden rounded-xl border border-border/70 bg-card",
+                gridMotion === "search-in" && "model-grid-search-in",
+                gridMotion === "filter" && "model-grid-filter-refresh",
+              )}
+            >
+              {visibleRanked.map(({ model, rank }) => (
+                <RankedModelRow key={model.id} model={model} rank={rank} />
+              ))}
+            </ol>
+          ) : (
+            <div
+              key={`${gridKey}-${gridMotion}-grid`}
+              className={cn(
+                "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4",
+                gridMotion === "search-in" && "model-grid-search-in",
+                gridMotion === "filter" && "model-grid-filter-refresh"
+              )}
+            >
+              {visibleModels.map((model, i) => (
+                <div
+                  key={model.id}
+                  className={cn(
+                    "model-grid-item",
+                    gridMotion === "filter" && "model-grid-filter-item",
+                  )}
+                  style={gridMotion === "filter" ? { animationDelay: `${Math.min(i, 12) * 16}ms` } : undefined}
+                >
+                  <ModelCard model={model} />
+                </div>
+              ))}
+            </div>
+          )}
 
           <div ref={sentinelRef} className="h-px" />
 
