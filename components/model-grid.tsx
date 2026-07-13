@@ -494,15 +494,15 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="relative">
+    <div className="flex flex-col gap-5 sm:gap-6">
+      <div className="relative -mx-4 sm:mx-0">
         <div
           ref={categoryBarRef}
-          className="model-category-bar relative flex flex-wrap items-center gap-1 rounded-xl border border-border/60 bg-muted/30 p-1 shadow-sm dark:bg-muted/20"
+          className="model-category-bar relative flex flex-nowrap items-center gap-1 overflow-x-auto px-4 py-1 sm:flex-wrap sm:overflow-x-clip sm:rounded-xl sm:border sm:border-border/60 sm:bg-muted/30 sm:p-1 dark:sm:bg-muted/20"
         >
           <span
             aria-hidden
-            className="model-category-indicator pointer-events-none absolute left-0 top-0 rounded-lg border border-border/60 bg-card shadow-sm ring-1 ring-foreground/[0.03]"
+            className="model-category-indicator pointer-events-none absolute left-0 top-0 hidden rounded-lg border border-border/60 bg-card sm:block"
             style={{
               width: categoryIndicator.width,
               height: categoryIndicator.height,
@@ -522,9 +522,9 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
                 aria-pressed={active}
                 onClick={() => setCategoryFilter(option.value)}
                 className={cn(
-                  "touch-target relative z-10 inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-colors",
+                  "touch-target relative z-10 inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg border border-transparent px-3 text-sm font-medium transition-colors sm:h-9",
                   active
-                    ? "text-foreground"
+                    ? "border-border/70 bg-card text-foreground shadow-sm sm:border-transparent sm:bg-transparent sm:shadow-none"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -552,8 +552,8 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex h-10 flex-1 items-center gap-2 rounded-lg border border-input bg-card px-3 text-sm shadow-sm transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 sm:h-9 dark:bg-input/30">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:gap-3">
+        <div className="col-span-2 flex h-11 flex-1 items-center gap-2 rounded-lg border border-input bg-card px-3 text-sm transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 sm:h-9 dark:bg-input/30">
           <Search className="size-4 text-muted-foreground shrink-0 pointer-events-none" />
           <input
             type="search"
@@ -610,7 +610,7 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
           <div
             key={`${gridKey}-${gridMotion}`}
             className={cn(
-              "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+              "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4",
               gridMotion === "search-in" && "model-grid-search-in",
               gridMotion === "filter" && "model-grid-filter-refresh"
             )}

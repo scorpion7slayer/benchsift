@@ -90,7 +90,7 @@ function HomePage() {
     <div className="flex flex-col flex-1">
       <SiteHeader modelCount={models.length} />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-24 pt-4 sm:px-6 sm:pt-8 lg:px-8">
         <HomeHero
           count={models.length}
           latestModels={latestModels}

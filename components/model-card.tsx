@@ -1,5 +1,5 @@
 import { Link } from "@/components/link";
-import { Zap, Timer, DollarSign, ChevronRight, Plus, Check, Brain, ImageIcon, Video, Mic, Type, BarChart3, Trophy, Unlock, ExternalLink } from "lucide-react";
+import { Zap, Timer, DollarSign, ChevronRight, ChevronDown, Plus, Check, Brain, ImageIcon, Video, Mic, Type, BarChart3, Trophy, Unlock, ExternalLink } from "lucide-react";
 import {
   Card,
   CardHeader,
@@ -15,6 +15,7 @@ import { useCompare } from "@/lib/compare-store";
 import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
 import { ModelAvailabilityBadge } from "@/components/model-availability";
 import { getModelProviderKey } from "@/lib/provider-map";
+import { cn } from "@/lib/utils";
 import {
   hasAAIndexBenchmarks,
   isOpenWeightsModel,
@@ -87,7 +88,7 @@ function scoreBadgeClass(val: number | null): string {
 function ScoreRow({ label, value }: { label: string; value: number | null | undefined }) {
   const pct = (value != null && !isNaN(value)) ? Math.min(100, Math.max(0, value)) : 0;
   return (
-    <div className="space-y-1">
+    <div className="flex flex-col gap-1">
       <div className="flex items-center justify-between text-xs">
         <span className="text-muted-foreground">{label}</span>
         <span className="tabular-nums font-medium">{fmt(value)}</span>
@@ -138,7 +139,7 @@ function HuggingFaceStats({ model }: { model: LLMModel }) {
   if (downloads == null && likes == null && inferenceProviders === 0) return null;
 
   return (
-    <div className="rounded-md border bg-muted/30 px-2 py-1.5 space-y-1">
+    <div className="flex flex-col gap-1 rounded-md border bg-muted/30 px-2 py-1.5">
       <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
         <BarChart3 className="size-3" />
         {t.card.huggingface}
@@ -167,7 +168,7 @@ function OpenRouterStats({ model }: { model: LLMModel }) {
   if (!bestDA && !hasUsage) return null;
 
   return (
-    <div className="rounded-md border bg-muted/30 px-2 py-1.5 space-y-1.5">
+    <div className="flex flex-col gap-1.5 rounded-md border bg-muted/30 px-2 py-1.5">
       <div className="flex items-center justify-between gap-2 text-[10px] font-medium text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
           <BarChart3 className="size-3" />
@@ -206,7 +207,7 @@ function MediaBenchmarkStats({ model }: { model: LLMModel }) {
   if (!best) return null;
 
   return (
-    <div className="rounded-md border bg-muted/30 px-2 py-1.5 space-y-1">
+    <div className="flex flex-col gap-1 rounded-md border bg-muted/30 px-2 py-1.5">
       <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
         <BarChart3 className="size-3" />
         {t.detail.mediaBenchmarks}
@@ -223,14 +224,78 @@ function MediaBenchmarkStats({ model }: { model: LLMModel }) {
 
 const NEW_BADGE_DAYS = 30;
 
+function ModelStatusBadges({
+  model,
+  isNew,
+}: {
+  model: LLMModel;
+  isNew: boolean;
+}) {
+  const { t } = useI18n();
+
+  return (
+    <>
+      {isNew && (
+        <Badge className="bg-blue-50 px-1.5 py-0 text-xs font-medium text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300">
+          {t.card.newBadge}
+        </Badge>
+      )}
+      {model.reasoning_model && (
+        <Badge variant="secondary" className="gap-1 px-1.5 py-0 text-xs font-medium">
+          <Brain className="size-2.5" />
+          {t.card.thinkingBadge}
+        </Badge>
+      )}
+      {isOpenWeightsModel(model) && (
+        <Badge
+          variant="outline"
+          className="gap-1 border-amber-200 bg-amber-50 px-1.5 py-0 text-xs font-medium text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
+        >
+          <Unlock className="size-2.5" />
+          {t.card.openWeightsBadge}
+        </Badge>
+      )}
+      <ModelAvailabilityBadge model={model} />
+    </>
+  );
+}
+
+function ModelBenchmarks({ model }: { model: LLMModel }) {
+  const { t } = useI18n();
+
+  return (
+    <>
+      {hasAAIndexBenchmarks(model) && (
+        <div className="flex flex-col gap-2.5">
+          <ScoreRow
+            label={t.card.intelligence}
+            value={textMetricValue(model, "artificial_analysis_intelligence_index")}
+          />
+          <ScoreRow
+            label={t.card.coding}
+            value={textMetricValue(model, "artificial_analysis_coding_index")}
+          />
+          <ScoreRow
+            label={t.card.math}
+            value={textMetricValue(model, "artificial_analysis_math_index")}
+          />
+        </div>
+      )}
+      <MediaBenchmarkStats model={model} />
+      <OpenRouterStats model={model} />
+      <HuggingFaceStats model={model} />
+      <ModalityChips model={model} />
+    </>
+  );
+}
+
 export function ModelCard({ model }: { model: LLMModel }) {
   const { t } = useI18n();
   const { toggle, isSelected, isFull } = useCompare();
   const {
-    name, slug, release_date, model_creator, evaluations, pricing,
+    name, slug, release_date, model_creator, pricing,
     median_output_tokens_per_second, median_time_to_first_token_seconds,
-    context_window_tokens, reasoning_model,
-    is_open_weights, huggingface_url, huggingface_official,
+    context_window_tokens, huggingface_url, huggingface_official,
   } = model;
 
   const providerKey = getModelProviderKey(slug, model_creator.slug);
@@ -247,53 +312,118 @@ export function ModelCard({ model }: { model: LLMModel }) {
 
   return (
     <div className="group relative h-full">
-      <Card className={`relative h-full cursor-pointer transition-shadow hover:shadow-md focus-within:shadow-md ${selected ? "compare-card-selected ring-2 ring-primary" : ""}`}>
+      <Card
+        size="sm"
+        data-selected={selected ? "true" : undefined}
+        className="relative h-full border-border/70 sm:hidden data-[selected=true]:border-primary"
+      >
+        <CardHeader className="pb-0">
+          <div className="flex items-start gap-3">
+            <Link
+              href={`/models/${slug}`}
+              className="flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                <ModelProviderIcon provider={providerKey} size={22} iconUrl={model.provider_icon_url} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium">{name}</span>
+                <span className="block truncate text-xs text-muted-foreground">{model_creator.name}</span>
+              </span>
+            </Link>
+            <Button
+              type="button"
+              variant={selected ? "default" : "outline"}
+              size="icon-lg"
+              onClick={() => toggle(slug)}
+              disabled={!selected && isFull}
+              aria-pressed={selected}
+              aria-label={selected ? t.card.removeCompare : t.card.addCompare}
+              title={!selected && isFull ? t.compare.maxReached : selected ? t.card.removeCompare : t.card.addCompare}
+              className="touch-target shrink-0"
+            >
+              {selected ? <Check /> : <Plus />}
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            <ModelStatusBadges model={model} isNew={isNew} />
+          </div>
+        </CardHeader>
+
+        <CardContent className="grid grid-cols-3 gap-2">
+          <div className="flex min-w-0 flex-col gap-0.5 rounded-md bg-muted/45 px-2 py-2">
+            <span className="truncate text-[10px] text-muted-foreground">{t.card.intelligence}</span>
+            <span className="font-mono text-sm font-medium tabular-nums">{fmt(intelligence)}</span>
+          </div>
+          <div className="flex min-w-0 flex-col gap-0.5 rounded-md bg-muted/45 px-2 py-2">
+            <span className="truncate text-[10px] text-muted-foreground">{t.card.speed}</span>
+            <span className="text-sm font-medium tabular-nums">
+              {median_output_tokens_per_second !== null
+                ? `${fmt(median_output_tokens_per_second, 0)} t/s`
+                : "—"}
+            </span>
+          </div>
+          <div className="flex min-w-0 flex-col gap-0.5 rounded-md bg-muted/45 px-2 py-2">
+            <span className="truncate text-[10px] text-muted-foreground">{t.card.price1m}</span>
+            <span className="truncate text-sm font-medium tabular-nums">{cardPriceLabel(pricing)}</span>
+          </div>
+        </CardContent>
+
+        <CardFooter className="block p-0 group-data-[size=sm]/card:p-0">
+          <details className="group/details">
+            <summary className="touch-target flex min-h-11 list-none items-center justify-between gap-3 px-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
+              <span>{t.grid.sortGroups.benchmarks}</span>
+              <ChevronDown className="size-4 text-muted-foreground transition-transform duration-150 group-open/details:rotate-180" />
+            </summary>
+            <div className="flex flex-col gap-2.5 border-t px-3 pb-3 pt-3">
+              <ModelBenchmarks model={model} />
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Timer className="size-3" />
+                  {median_time_to_first_token_seconds !== null
+                    ? `${fmt(median_time_to_first_token_seconds, 2)}s`
+                    : "—"}
+                </span>
+                {ctxLabel && (
+                  <span className="flex items-center gap-1">
+                    <Type className="size-3" />
+                    {ctxLabel}
+                  </span>
+                )}
+                {officialHuggingFaceUrl && (
+                  <a
+                    href={officialHuggingFaceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-auto inline-flex min-h-11 items-center gap-1 rounded-md px-2 font-medium text-foreground"
+                  >
+                    {t.card.huggingface}
+                    <ExternalLink className="size-3" />
+                  </a>
+                )}
+              </div>
+            </div>
+          </details>
+        </CardFooter>
+      </Card>
+
+      <Card
+        data-selected={selected ? "true" : undefined}
+        className="relative hidden h-full cursor-pointer border-border/70 transition-colors hover:border-foreground/25 focus-within:border-foreground/25 sm:flex data-[selected=true]:border-primary"
+      >
           <CardHeader className="pb-2">
-            <div className="flex items-center justify-between gap-2 mb-1.5">
-              <div className="flex shrink-0 items-center gap-1">
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <div className="flex shrink-0 items-center">
                 <div className="flex size-8 items-center justify-center rounded-md bg-muted">
                   <ModelProviderIcon provider={providerKey} size={20} iconUrl={model.provider_icon_url} />
                 </div>
-                <Button
-                  type="button"
-                  variant={selected ? "default" : "outline"}
-                  size="icon"
-                  onClick={() => toggle(slug)}
-                  disabled={!selected && isFull}
-                  aria-pressed={selected}
-                  aria-label={selected ? t.card.removeCompare : t.card.addCompare}
-                  title={!selected && isFull ? t.compare.maxReached : selected ? t.card.removeCompare : t.card.addCompare}
-                  className="touch-target relative z-10 size-8"
-                >
-                  {selected ? <Check /> : <Plus />}
-                </Button>
               </div>
-              <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                {isNew && (
-                  <Badge className="text-xs px-1.5 py-0 font-medium bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
-                    {t.card.newBadge}
-                  </Badge>
-                )}
-                {reasoning_model && (
-                  <Badge variant="secondary" className="text-xs px-1.5 py-0 gap-1 font-medium">
-                    <Brain className="size-2.5" />
-                    {t.card.thinkingBadge}
-                  </Badge>
-                )}
-                {isOpenWeightsModel(model) && (
-                  <Badge
-                    variant="outline"
-                    className="text-xs px-1.5 py-0 gap-1 font-medium bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900"
-                  >
-                    <Unlock className="size-2.5" />
-                    {t.card.openWeightsBadge}
-                  </Badge>
-                )}
-                <ModelAvailabilityBadge model={model} />
+              <div className="flex flex-wrap items-center justify-end gap-1.5">
+                <ModelStatusBadges model={model} isNew={isNew} />
                 {intelligence !== null && (
                   <Badge
                     variant="outline"
-                    className={`font-mono text-xs shrink-0 ${scoreBadgeClass(intelligence)}`}
+                    className={cn("shrink-0 font-mono text-xs", scoreBadgeClass(intelligence))}
                   >
                     {fmt(intelligence)}
                   </Badge>
@@ -302,8 +432,8 @@ export function ModelCard({ model }: { model: LLMModel }) {
                   <Button
                     asChild
                     variant="ghost"
-                    size="icon"
-                    className="touch-target relative z-10 size-8 text-muted-foreground"
+                    size="icon-xs"
+                    className="touch-target relative z-10 text-muted-foreground"
                   >
                     <a
                       href={officialHuggingFaceUrl}
@@ -316,6 +446,22 @@ export function ModelCard({ model }: { model: LLMModel }) {
                     </a>
                   </Button>
                 )}
+                <Button
+                  type="button"
+                  variant={selected ? "default" : "ghost"}
+                  size="icon-xs"
+                  onClick={() => toggle(slug)}
+                  disabled={!selected && isFull}
+                  aria-pressed={selected}
+                  aria-label={selected ? t.card.removeCompare : t.card.addCompare}
+                  title={!selected && isFull ? t.compare.maxReached : selected ? t.card.removeCompare : t.card.addCompare}
+                  className={cn(
+                    "touch-target relative z-10",
+                    !selected && "text-muted-foreground",
+                  )}
+                >
+                  {selected ? <Check /> : <Plus />}
+                </Button>
               </div>
             </div>
             <CardTitle className="leading-snug text-sm">
@@ -329,24 +475,8 @@ export function ModelCard({ model }: { model: LLMModel }) {
             <CardDescription className="truncate">{model_creator.name}</CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-2.5 flex-1">
-            {(() => {
-              if (!hasAAIndexBenchmarks(model)) return null;
-              const ii = textMetricValue(model, "artificial_analysis_intelligence_index");
-              const ic = textMetricValue(model, "artificial_analysis_coding_index");
-              const im = textMetricValue(model, "artificial_analysis_math_index");
-              return (
-                <>
-                  <ScoreRow label={t.card.intelligence} value={ii} />
-                  <ScoreRow label={t.card.coding} value={ic} />
-                  <ScoreRow label={t.card.math} value={im} />
-                </>
-              );
-            })()}
-            <MediaBenchmarkStats model={model} />
-            <OpenRouterStats model={model} />
-            <HuggingFaceStats model={model} />
-            <ModalityChips model={model} />
+          <CardContent className="flex flex-1 flex-col gap-2.5">
+            <ModelBenchmarks model={model} />
           </CardContent>
 
           <CardFooter className="gap-2 text-xs text-muted-foreground flex-wrap">

@@ -133,10 +133,10 @@ export function HomeHero({
   );
 
   return (
-    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
       <div className="min-w-0">
         <div className="mb-1 flex flex-wrap items-center gap-2 sm:gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">{t.hero.title}</h1>
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{t.hero.title}</h1>
           <Badge variant="secondary">{count}</Badge>
           <div ref={inlineCompareRef} className="compare-anchor inline-flex">
             <CompareMenu />
@@ -148,94 +148,97 @@ export function HomeHero({
       {portalTarget ? createPortal(compareBubble, portalTarget) : null}
 
       {latestModel && (
-        <div className="w-full shrink-0 rounded-lg border bg-card p-3 shadow-sm sm:max-w-80">
-          <div className="flex items-center justify-between gap-3">
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <>
+          <section aria-label={t.hero.latestModels} className="sm:hidden">
+            <div className="mb-2 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <Sparkles className="size-3.5 text-primary" />
               {t.hero.latestModels}
-            </span>
-            {hasLatestSlider ? (
-              <span className="inline-flex shrink-0 items-center gap-1">
-                <button
-                  type="button"
-                  onClick={showPreviousLatestModel}
-                  aria-label={t.hero.previousModel}
-                  className="touch-target inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                >
-                  <ChevronLeft className="size-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={showNextLatestModel}
-                  aria-label={t.hero.nextModel}
-                  className="touch-target inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                >
-                  <ChevronRight className="size-3.5" />
-                </button>
-              </span>
-            ) : latestDate ? (
-              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                {latestDate}
-              </span>
-            ) : null}
-          </div>
+            </div>
+            <div className="latest-models-mobile -mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-1">
+              {latestModels.map((model) => {
+                const modelDate = formatReleaseDate(model.releaseDate, lang);
+                return (
+                  <Link
+                    key={model.slug}
+                    href={`/models/${model.slug}`}
+                    className="flex w-[calc(100vw-3.5rem)] max-w-72 shrink-0 snap-start items-center gap-2.5 rounded-lg border border-border/70 bg-card p-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
+                      <ModelProviderIcon
+                        provider={getModelProviderKey(model.slug, model.providerSlug)}
+                        size={20}
+                        iconUrl={model.providerIconUrl}
+                      />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">{model.name}</span>
+                      <span className="block truncate text-xs text-muted-foreground">{model.providerName}</span>
+                    </span>
+                    {modelDate && (
+                      <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
+                        {modelDate}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
 
-          <Link
-            href={`/models/${latestModel.slug}`}
-            className="group mt-2 flex min-h-11 items-center gap-2 rounded-md transition-colors hover:text-primary"
+          <section
+            aria-label={t.hero.latestModels}
+            className="hidden w-72 shrink-0 rounded-lg border border-border/70 bg-card p-2.5 sm:block"
           >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted">
-              <ModelProviderIcon
-                provider={getModelProviderKey(latestModel.slug, latestModel.providerSlug)}
-                size={20}
-                iconUrl={latestModel.providerIconUrl}
-              />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium">
-                {latestModel.name}
+            <div className="flex items-center justify-between gap-3">
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Sparkles className="size-3.5 text-primary" />
+                {t.hero.latestModels}
               </span>
-              <span className="block truncate text-xs text-muted-foreground">
-                {latestModel.providerName}
-              </span>
-            </span>
-            {latestDate && hasLatestSlider && (
-              <span className="ml-2 hidden shrink-0 text-xs tabular-nums text-muted-foreground sm:inline">
-                {latestDate}
-              </span>
-            )}
-          </Link>
+              {hasLatestSlider ? (
+                <span className="inline-flex shrink-0 items-center gap-0.5">
+                  <button
+                    type="button"
+                    onClick={showPreviousLatestModel}
+                    aria-label={t.hero.previousModel}
+                    className="touch-target inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    <ChevronLeft className="size-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={showNextLatestModel}
+                    aria-label={t.hero.nextModel}
+                    className="touch-target inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    <ChevronRight className="size-3.5" />
+                  </button>
+                </span>
+              ) : null}
+            </div>
 
-          {hasLatestSlider && (
-            <div className="mt-2 flex items-center justify-between gap-2">
+            <Link
+              href={`/models/${latestModel.slug}`}
+              className="group mt-1 flex min-h-9 items-center gap-2 rounded-md transition-colors hover:text-primary"
+            >
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted">
+                <ModelProviderIcon
+                  provider={getModelProviderKey(latestModel.slug, latestModel.providerSlug)}
+                  size={18}
+                  iconUrl={latestModel.providerIconUrl}
+                />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium">{latestModel.name}</span>
+                <span className="block truncate text-[11px] text-muted-foreground">{latestModel.providerName}</span>
+              </span>
               {latestDate && (
-                <span className="text-xs tabular-nums text-muted-foreground sm:hidden">
+                <span className="ml-1 shrink-0 text-[10px] tabular-nums text-muted-foreground">
                   {latestDate}
                 </span>
               )}
-              <span className="ml-auto inline-flex items-center gap-1">
-                {latestModels.map((model, index) => (
-                  <button
-                    type="button"
-                    key={model.slug}
-                    onClick={() => setActiveLatestIndex(index)}
-                    aria-label={`${t.hero.latestModels} ${index + 1}`}
-                    aria-current={index === activeLatestIndex ? "true" : undefined}
-                    className="group touch-target inline-flex size-8 items-center justify-center rounded-md"
-                  >
-                    <span
-                      className={`size-1.5 rounded-full transition-colors ${
-                        index === activeLatestIndex
-                          ? "bg-foreground"
-                          : "bg-muted-foreground/35 group-hover:bg-muted-foreground/60"
-                      }`}
-                    />
-                  </button>
-                ))}
-              </span>
-            </div>
-          )}
-        </div>
+            </Link>
+          </section>
+        </>
       )}
     </div>
   );

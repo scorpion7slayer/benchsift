@@ -248,9 +248,16 @@ html.language-transitioning :is(header, main, footer)
 }
 
 .model-category-bar {
-  /* Always wrap to avoid horizontal scrolling on narrow viewports. */
-  flex-wrap: wrap;
-  overflow-x: clip;
+  scrollbar-width: none;
+}
+
+.model-category-bar::-webkit-scrollbar,
+.latest-models-mobile::-webkit-scrollbar {
+  display: none;
+}
+
+.latest-models-mobile {
+  scrollbar-width: none;
 }
 
 .model-category-indicator {
