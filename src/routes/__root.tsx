@@ -55,14 +55,14 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
-  const { lang, theme } = Route.useLoaderData();
+  const { lang, theme, noticeAcknowledged } = Route.useLoaderData();
   return (
     <RootDocument lang={lang}>
       <Providers initialLang={lang} initialTheme={theme}>
+        <CookieBanner initiallyVisible={!noticeAcknowledged} />
         <PageTransitionProvider>
           <Outlet />
         </PageTransitionProvider>
-        <CookieBanner />
         <WebMcpProvider />
       </Providers>
     </RootDocument>

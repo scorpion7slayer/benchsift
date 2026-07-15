@@ -2,6 +2,7 @@ import {
   lazy,
   Suspense,
   useEffect,
+  useRef,
   useState,
   type ComponentType,
 } from "react";
@@ -27,7 +28,28 @@ const LazyModelProviderIcon: ComponentType<IconProps> | null = import.meta.env
 
 export function ModelProviderIcon({ provider, size = 20, iconUrl }: IconProps) {
   const [mounted, setMounted] = useState(false);
+  const [nearViewport, setNearViewport] = useState(false);
+  const hostRef = useRef<HTMLSpanElement>(null);
   useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const node = hostRef.current;
+    if (!node) return;
+    if (!("IntersectionObserver" in window)) {
+      setNearViewport(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) return;
+        setNearViewport(true);
+        observer.disconnect();
+      },
+      { rootMargin: "240px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
   const initials = provider
     .split(/[-_\s]+/)
     .filter(Boolean)
@@ -47,11 +69,19 @@ export function ModelProviderIcon({ provider, size = 20, iconUrl }: IconProps) {
 
   // Server render + first client paint: keep a useful monogram visible while
   // the real split icon loads, without introducing layout shift.
-  if (!mounted || !LazyModelProviderIcon) return placeholder;
-
   return (
-    <Suspense fallback={placeholder}>
-      <LazyModelProviderIcon provider={provider} size={size} iconUrl={iconUrl} />
-    </Suspense>
+    <span
+      ref={hostRef}
+      className="inline-flex shrink-0 items-center justify-center"
+      style={{ width: size, height: size }}
+    >
+      {!mounted || !nearViewport || !LazyModelProviderIcon ? (
+        placeholder
+      ) : (
+        <Suspense fallback={placeholder}>
+          <LazyModelProviderIcon provider={provider} size={size} iconUrl={iconUrl} />
+        </Suspense>
+      )}
+    </span>
   );
 }

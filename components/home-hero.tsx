@@ -7,16 +7,7 @@ import { CompareMenu } from "@/components/compare-menu";
 import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
 import { getModelProviderKey } from "@/lib/provider-map";
 import { useI18n } from "@/lib/i18n";
-
-export interface LatestModelSummary {
-  slug: string;
-  name: string;
-  providerName: string;
-  providerSlug: string;
-  providerIconUrl?: string | null;
-  releaseDate: string | null;
-  releaseTimestamp?: string | null;
-}
+import type { LatestModelSummary } from "@/lib/home-catalog";
 
 function subscribeHydration(onStoreChange: () => void) {
   const id = window.setTimeout(onStoreChange, 0);

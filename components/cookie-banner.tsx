@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 
@@ -10,15 +10,9 @@ function CookieIcon({ className }: { className?: string }) {
   );
 }
 
-export function CookieBanner() {
-  const [visible, setVisible] = useState(false);
+export function CookieBanner({ initiallyVisible }: { initiallyVisible: boolean }) {
+  const [visible, setVisible] = useState(initiallyVisible);
   const { t } = useI18n();
-
-  useEffect(() => {
-    const hasAcknowledged = /(?:^|;\s*)benchsift_(?:notice=1|consent=(?:0|1))(?:;|$)/.test(document.cookie);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!hasAcknowledged) setVisible(true);
-  }, []);
 
   if (!visible) return null;
 
