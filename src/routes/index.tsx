@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { fetchModels } from "@/lib/server-fns";
-import { type LLMModel } from "@/lib/api";
+import { fetchHomeCatalog } from "@/lib/server-fns";
 import { ModelGrid } from "@/components/model-grid";
 import { SiteHeader } from "@/components/site-header";
-import { HomeHero, type LatestModelSummary } from "@/components/home-hero";
+import { HomeHero } from "@/components/home-hero";
 import { SiteFooter } from "@/components/site-footer";
 import { Separator } from "@/components/ui/separator";
 import { ScrollToTop } from "@/components/scroll-to-top";
@@ -13,24 +12,6 @@ import {
   homepageMarkdown,
   markdownTokenEstimate,
 } from "@/lib/agent-discovery";
-import { modelReleaseTime } from "@/lib/model-release";
-
-function getLatestModelSummaries(models: LLMModel[], limit = 3): LatestModelSummary[] {
-  return models
-    .map((model, index) => ({ model, index, time: modelReleaseTime(model) }))
-    .filter((entry) => Number.isFinite(entry.time))
-    .sort((a, b) => b.time - a.time || a.index - b.index)
-    .slice(0, limit)
-    .map(({ model }) => ({
-      slug: model.slug,
-      name: model.name,
-      providerName: model.model_creator.name,
-      providerSlug: model.model_creator.slug,
-      providerIconUrl: model.provider_icon_url,
-      releaseDate: model.release_date,
-      releaseTimestamp: model.release_timestamp ?? null,
-    }));
-}
 
 export const Route = createFileRoute("/")({
   server: {
@@ -74,25 +55,24 @@ export const Route = createFileRoute("/")({
           url: absoluteUrl("/"),
           description:
             "A ranked directory of AI models with benchmarks, performance and pricing.",
-          numberOfItems: loaderData?.length,
+          numberOfItems: loaderData?.count,
         },
       ],
     }),
-  loader: async () => fetchModels(),
+  loader: async () => fetchHomeCatalog(),
   component: HomePage,
 });
 
 function HomePage() {
-  const models = Route.useLoaderData();
-  const latestModels = getLatestModelSummaries(models);
+  const { count, latestModels, models } = Route.useLoaderData();
 
   return (
     <div className="flex flex-col flex-1">
-      <SiteHeader modelCount={models.length} />
+      <SiteHeader modelCount={count} />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-24 pt-4 sm:px-6 sm:pt-8 lg:px-8">
         <HomeHero
-          count={models.length}
+          count={count}
           latestModels={latestModels}
         />
         <Separator className="mb-6" />

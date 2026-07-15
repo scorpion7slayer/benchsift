@@ -14,6 +14,10 @@ import {
 import { getDeepSweData, type DeepSweData } from "@/lib/deepswe";
 import type { CompareModelOption } from "@/lib/compare-model";
 import type { Lang } from "@/lib/i18n";
+import {
+  buildHomeCatalogData,
+  type HomeCatalogData,
+} from "@/lib/home-catalog";
 
 function setPublicResponseCache(): void {
   try {
@@ -36,6 +40,14 @@ export const fetchModels = createServerFn({ method: "GET" }).handler(
   async (): Promise<LLMModel[]> => {
     setPublicResponseCache();
     return getLLMModels();
+  },
+);
+
+/** Lightweight data needed by the default homepage ranking. */
+export const fetchHomeCatalog = createServerFn({ method: "GET" }).handler(
+  async (): Promise<HomeCatalogData> => {
+    setPublicResponseCache();
+    return buildHomeCatalogData(await getLLMModels());
   },
 );
 
@@ -101,6 +113,7 @@ export const fetchDeepSweData = createServerFn({ method: "GET" }).handler(
 export interface Preferences {
   lang: Lang;
   theme: string;
+  noticeAcknowledged: boolean;
 }
 
 /** Reads the language/theme preferences from the request cookies. */
@@ -115,7 +128,9 @@ export const fetchPreferences = createServerFn({ method: "GET" }).handler(
     const theme = ["dark", "light", "system"].includes(storedTheme ?? "")
       ? storedTheme!
       : "system";
+    const noticeAcknowledged =
+      /(?:^|;\s*)benchsift_(?:notice=1|consent=(?:0|1))(?:;|$)/.test(cookie);
 
-    return { lang, theme };
+    return { lang, theme, noticeAcknowledged };
   },
 );

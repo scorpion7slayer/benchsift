@@ -1,17 +1,34 @@
-import { useState, useMemo, useEffect, useId, useLayoutEffect, useRef } from "react";
+import {
+  lazy,
+  Suspense,
+  useState,
+  useMemo,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+} from "react";
 import {
   Search, X, Loader2, ChevronDown, Check, Type, ImageIcon, AudioLines,
   Video, ArrowUpDown, Mic, Captions, Blocks, Sparkles,
   type LucideIcon,
 } from "lucide-react";
-import { ModelCard } from "@/components/model-card";
 import { RankedModelRow } from "@/components/ranked-model-row";
+import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { isOpenWeightsModel, outputModalities, textMetricValue } from "@/lib/model-metrics";
 import { getCanonicalCreatorSlug, getCreatorDisplayName } from "@/lib/provider-map";
+import { fetchModels } from "@/lib/server-fns";
 import type { LLMModel } from "@/lib/api";
+import type { HomeCatalogModel } from "@/lib/home-catalog";
+
+const ModelCard = lazy(() =>
+  import("@/components/model-card").then((module) => ({
+    default: module.ModelCard,
+  })),
+);
 
 type SortKey =
   | "intelligence" | "coding" | "math"
@@ -103,7 +120,7 @@ function sortablePrice(model: LLMModel): number | null {
   return prices.length > 0 ? Math.min(...prices) : null;
 }
 
-function sortModels(models: LLMModel[], key: SortKey): LLMModel[] {
+function sortNerdModels(models: LLMModel[], key: SortKey): LLMModel[] {
   return [...models].sort((a, b) => {
     switch (key) {
       case "intelligence":
@@ -147,14 +164,49 @@ function sortModels(models: LLMModel[], key: SortKey): LLMModel[] {
   });
 }
 
-function hasNormalRankingValue(model: LLMModel, key: NormalRankingKey): boolean {
+function homeMetric(
+  model: HomeCatalogModel,
+  key:
+    | "artificial_analysis_intelligence_index"
+    | "artificial_analysis_coding_index"
+    | "artificial_analysis_math_index",
+): number | null {
+  return model.evaluations[key] ?? null;
+}
+
+function sortHomeModels(
+  models: HomeCatalogModel[],
+  key: NormalRankingKey,
+): HomeCatalogModel[] {
+  return [...models].sort((a, b) => {
+    switch (key) {
+      case "intelligence":
+        return (homeMetric(b, "artificial_analysis_intelligence_index") ?? -1)
+          - (homeMetric(a, "artificial_analysis_intelligence_index") ?? -1);
+      case "coding":
+        return (homeMetric(b, "artificial_analysis_coding_index") ?? -1)
+          - (homeMetric(a, "artificial_analysis_coding_index") ?? -1);
+      case "math":
+        return (homeMetric(b, "artificial_analysis_math_index") ?? -1)
+          - (homeMetric(a, "artificial_analysis_math_index") ?? -1);
+      case "speed":
+        return (b.median_output_tokens_per_second ?? -1)
+          - (a.median_output_tokens_per_second ?? -1);
+      case "price_asc":
+        return (a.pricing.price_1m_blended_3_to_1 ?? Infinity)
+          - (b.pricing.price_1m_blended_3_to_1 ?? Infinity);
+    }
+  });
+}
+
+function hasNormalRankingValue(model: HomeCatalogModel, key: NormalRankingKey): boolean {
   switch (key) {
     case "intelligence":
-      return textMetricValue(model, "artificial_analysis_intelligence_index") != null;
+      return homeMetric(model, "artificial_analysis_intelligence_index") != null;
     case "coding":
-      return textMetricValue(model, "artificial_analysis_coding_index") != null;
+      return homeMetric(model, "artificial_analysis_coding_index") != null;
     case "math":
-      return textMetricValue(model, "artificial_analysis_math_index") != null;
+      return homeMetric(model, "artificial_analysis_math_index") != null;
     case "speed":
       return model.median_output_tokens_per_second != null && Number.isFinite(model.median_output_tokens_per_second);
     case "price_asc":
@@ -162,7 +214,10 @@ function hasNormalRankingValue(model: LLMModel, key: NormalRankingKey): boolean 
   }
 }
 
-function matchesSearch(model: LLMModel, query: string): boolean {
+function matchesSearch(
+  model: Pick<HomeCatalogModel, "name" | "slug" | "model_creator">,
+  query: string,
+): boolean {
   if (!query) return true;
   const tokens = query.split(/\s+/).filter(Boolean);
   const haystack = [
@@ -356,7 +411,7 @@ const SEARCH_DEBOUNCE_MS = 120;
 const VIEW_MODE_STORAGE_KEY = "benchsift-model-view-mode";
 type GridMotion = "filter" | "search-in";
 
-export function ModelGrid({ models }: { models: LLMModel[] }) {
+export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
   const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -369,6 +424,11 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
   const [visibleCount, setVisibleCount] = useState(BATCH);
   const [gridKey, setGridKey] = useState(0);
   const [gridMotion, setGridMotion] = useState<GridMotion>("filter");
+  const [nerdModels, setNerdModels] = useState<LLMModel[] | null>(null);
+  const [nerdLoading, setNerdLoading] = useState(false);
+  const [nerdLoadError, setNerdLoadError] = useState(false);
+  const [nerdLoadAttempt, setNerdLoadAttempt] = useState(0);
+  const nerdRequestRef = useRef<Promise<LLMModel[]> | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const categoryBarRef = useRef<HTMLDivElement>(null);
   const categoryButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -393,6 +453,33 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
       // The default Normal mode remains available when storage is blocked.
     }
   }, []);
+
+  useEffect(() => {
+    if (viewMode !== "nerd" || nerdModels) return;
+
+    let cancelled = false;
+    setNerdLoading(true);
+    setNerdLoadError(false);
+
+    const request = nerdRequestRef.current ?? fetchModels();
+    nerdRequestRef.current = request;
+
+    void request
+      .then((loadedModels) => {
+        if (!cancelled) setNerdModels(loadedModels);
+      })
+      .catch(() => {
+        nerdRequestRef.current = null;
+        if (!cancelled) setNerdLoadError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setNerdLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [viewMode, nerdModels, nerdLoadAttempt]);
 
   function changeViewMode(value: string) {
     if (value !== "normal" && value !== "nerd") return;
@@ -456,11 +543,11 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
     () =>
       CATEGORY_OPTIONS.reduce<Record<CategoryFilter, number>>((acc, option) => {
         acc[option.value] = option.value === "all"
-          ? models.length
-          : models.filter((model) => matchesCategory(model, option.value)).length;
+          ? (nerdModels?.length ?? 0)
+          : (nerdModels?.filter((model) => matchesCategory(model, option.value)).length ?? 0);
         return acc;
       }, {} as Record<CategoryFilter, number>),
-    [models]
+    [nerdModels]
   );
 
   const [categoryIndicator, setCategoryIndicator] = useState({ left: 0, top: 0, width: 0, height: 0 });
@@ -509,10 +596,10 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
     const q = appliedQuery.toLowerCase().trim();
     let base =
       providerFilter !== "all"
-        ? models.filter(
+        ? (nerdModels ?? []).filter(
             (m) => getCanonicalCreatorSlug(m.model_creator.slug) === providerFilter,
           )
-        : models;
+        : (nerdModels ?? []);
     if (categoryFilter !== "all") {
       base = base.filter((m) => matchesCategory(m, categoryFilter));
     }
@@ -522,12 +609,12 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
     if (q) {
       base = base.filter((model) => matchesSearch(model, q));
     }
-    return sortModels(base, sort);
-  }, [models, appliedQuery, sort, providerFilter, categoryFilter]);
+    return sortNerdModels(base, sort);
+  }, [nerdModels, appliedQuery, sort, providerFilter, categoryFilter]);
 
   const normalRanked = useMemo(
     () =>
-      sortModels(
+      sortHomeModels(
         models.filter((model) => hasNormalRankingValue(model, normalRanking)),
         normalRanking,
       ).map((model, index) => ({ model, rank: index + 1 })),
@@ -548,7 +635,7 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
   }, [normalRanked, appliedQuery, providerFilter]);
 
   const activeLength = viewMode === "normal" ? normalFiltered.length : nerdFiltered.length;
-  const activeTotal = viewMode === "normal" ? normalRanked.length : models.length;
+  const activeTotal = viewMode === "normal" ? normalRanked.length : (nerdModels?.length ?? models.length);
   const visibleModels = nerdFiltered.slice(0, visibleCount);
   const visibleRanked = normalFiltered.slice(0, visibleCount);
   const hasMore = visibleCount < activeLength;
@@ -746,70 +833,114 @@ export function ModelGrid({ models }: { models: LLMModel[] }) {
         )}
       </div>
 
-      {/* Compteur */}
-      <div
-        className={cn(
-          "flex items-center justify-between",
-          gridMotion === "search-in" && "model-grid-search-in"
-        )}
-      >
-        <p className="text-sm text-muted-foreground">
-          {t.grid.results(activeLength, activeTotal)}
-        </p>
-      </div>
-
-      {/* Résultats classés ou grille experte */}
-      {activeLength > 0 ? (
-        <>
-          {viewMode === "normal" ? (
-            <ol
-              key={`${gridKey}-${gridMotion}-ranking`}
-              className={cn(
-                "overflow-hidden rounded-xl border border-border/70 bg-card",
-                gridMotion === "search-in" && "model-grid-search-in",
-                gridMotion === "filter" && "model-grid-filter-refresh",
-              )}
-            >
-              {visibleRanked.map(({ model, rank }) => (
-                <RankedModelRow key={model.id} model={model} rank={rank} />
-              ))}
-            </ol>
+      {viewMode === "nerd" && !nerdModels ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-card/50 px-6 text-center"
+        >
+          {nerdLoadError ? (
+            <>
+              <Blocks className="size-7 text-muted-foreground" />
+              <div className="flex max-w-md flex-col gap-1">
+                <p className="font-medium">{t.grid.unavailableTitle}</p>
+                <p className="text-sm text-muted-foreground">{t.grid.unavailableDescription}</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  nerdRequestRef.current = null;
+                  setNerdLoadAttempt((attempt) => attempt + 1);
+                }}
+              >
+                {t.error.retry}
+              </Button>
+            </>
           ) : (
-            <div
-              key={`${gridKey}-${gridMotion}-grid`}
-              className={cn(
-                "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4",
-                gridMotion === "search-in" && "model-grid-search-in",
-                gridMotion === "filter" && "model-grid-filter-refresh"
-              )}
-            >
-              {visibleModels.map((model, i) => (
-                <div
-                  key={model.id}
-                  className={cn(
-                    "model-grid-item",
-                    gridMotion === "filter" && "model-grid-filter-item",
-                  )}
-                  style={gridMotion === "filter" ? { animationDelay: `${Math.min(i, 12) * 16}ms` } : undefined}
-                >
-                  <ModelCard model={model} />
-                </div>
-              ))}
-            </div>
+            <>
+              <Loader2 className={cn("size-5 text-muted-foreground", nerdLoading && "animate-spin")} />
+              <p className="text-sm text-muted-foreground">{t.grid.loadingDetails}</p>
+            </>
           )}
+        </div>
+      ) : (
+        <>
+          {/* Compteur */}
+          <div
+            className={cn(
+              "flex items-center justify-between",
+              gridMotion === "search-in" && "model-grid-search-in"
+            )}
+          >
+            <p className="text-sm text-muted-foreground">
+              {t.grid.results(activeLength, activeTotal)}
+            </p>
+          </div>
 
-          <div ref={sentinelRef} className="h-px" />
+          {/* Résultats classés ou grille experte */}
+          {activeLength > 0 ? (
+            <>
+              {viewMode === "normal" ? (
+                <ol
+                  key={`${gridKey}-${gridMotion}-ranking`}
+                  className={cn(
+                    "overflow-hidden rounded-xl border border-border/70 bg-card",
+                    gridMotion === "search-in" && "model-grid-search-in",
+                    gridMotion === "filter" && "model-grid-filter-refresh",
+                  )}
+                >
+                  {visibleRanked.map(({ model, rank }) => (
+                    <RankedModelRow key={model.slug} model={model} rank={rank} />
+                  ))}
+                </ol>
+              ) : (
+                <Suspense
+                  fallback={(
+                    <div role="status" className="flex min-h-48 items-center justify-center">
+                      <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                >
+                  <div
+                    key={`${gridKey}-${gridMotion}-grid`}
+                    className={cn(
+                      "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4",
+                      gridMotion === "search-in" && "model-grid-search-in",
+                      gridMotion === "filter" && "model-grid-filter-refresh"
+                    )}
+                  >
+                    {visibleModels.map((model, i) => (
+                      <div
+                        key={model.id}
+                        className={cn(
+                          "model-grid-item",
+                          gridMotion === "filter" && "model-grid-filter-item",
+                        )}
+                        style={gridMotion === "filter" ? { animationDelay: `${Math.min(i, 12) * 16}ms` } : undefined}
+                      >
+                        <ModelCard model={model} />
+                      </div>
+                    ))}
+                  </div>
+                </Suspense>
+              )}
 
-          {hasMore && (
-            <div className="flex justify-center py-4">
-              <Loader2 className="size-5 animate-spin text-muted-foreground" />
+              <div ref={sentinelRef} className="h-px" />
+
+              {hasMore && (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="model-grid-empty-refresh flex flex-col items-center justify-center py-20 text-center">
+              <p className="text-muted-foreground">{t.grid.noResults}</p>
             </div>
           )}
         </>
-      ) : (
-        <div className="model-grid-empty-refresh flex flex-col items-center justify-center py-20 text-center">
-          <p className="text-muted-foreground">{t.grid.noResults}</p>
-        </div>
       )}
     </div>
   );

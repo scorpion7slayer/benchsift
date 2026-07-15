@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { useCompare } from "@/lib/compare-store";
 import { useI18n } from "@/lib/i18n";
 import { getModelProviderKey } from "@/lib/provider-map";
-import type { LLMModel } from "@/lib/api";
+import type { HomeCatalogModel } from "@/lib/home-catalog";
 
 export function RankedModelRow({
   model,
   rank,
 }: {
-  model: LLMModel;
+  model: HomeCatalogModel;
   rank: number;
 }) {
   const { t } = useI18n();

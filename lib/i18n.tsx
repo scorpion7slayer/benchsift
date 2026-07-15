@@ -63,6 +63,7 @@ export interface Translations {
     results: (n: number, total: number) => string;
     noResults: string;
     noOptions: string;
+    loadingDetails: string;
     unavailableTitle: string;
     unavailableDescription: string;
     models: string;
@@ -381,6 +382,7 @@ const T: Record<Lang, Translations> = {
         n === total ? `${n} modèle${n !== 1 ? "s" : ""}` : `${n} résultat${n !== 1 ? "s" : ""} sur ${total}`,
       noResults: "Aucun modèle ne correspond à votre recherche.",
       noOptions: "Aucune option ne correspond à votre recherche.",
+      loadingDetails: "Chargement des benchmarks et détails avancés…",
       unavailableTitle: "Catalogue temporairement indisponible",
       unavailableDescription: "Les données réelles des modèles n'ont pas pu être chargées. Réessayez dans un instant.",
       models: "modèles",
@@ -706,6 +708,7 @@ const T: Record<Lang, Translations> = {
         n === total ? `${n} model${n !== 1 ? "s" : ""}` : `${n} result${n !== 1 ? "s" : ""} of ${total}`,
       noResults: "No models match your search.",
       noOptions: "No options match your search.",
+      loadingDetails: "Loading benchmarks and advanced details…",
       unavailableTitle: "Catalog temporarily unavailable",
       unavailableDescription: "The live model data could not be loaded. Please try again in a moment.",
       models: "models",

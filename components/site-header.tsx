@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@/components/link";
-import { Activity, Brain, ExternalLink, ChevronLeft, List, MessageSquarePlus, Menu, X, Terminal } from "lucide-react";
+import { Activity, ExternalLink, ChevronLeft, List, MessageSquarePlus, Menu, X, Terminal } from "lucide-react";
+import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useI18n, type Lang } from "@/lib/i18n";
@@ -59,7 +60,7 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
           </Button>
         ) : (
           <Link href="/" className="flex min-h-10 items-center gap-2 mr-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <Brain className="size-5" />
+            <BrandMark className="size-5" />
             <span className="font-semibold text-sm">{t.brand}</span>
           </Link>
         )}
