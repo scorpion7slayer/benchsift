@@ -3,11 +3,26 @@ import { useNavigate } from "@tanstack/react-router";
 import {
   Zap, DollarSign, BarChart3, TrendingUp, GitCompareArrows,
   Brain, ImageIcon, Video, Mic, Type, Lock, Unlock, BookOpen, Info,
-  Sparkles, ExternalLink,
+  Sparkles, ExternalLink, SlidersHorizontal,
 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress, type ProgressTone } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
@@ -15,16 +30,17 @@ import { ModelAvailabilityBadge, ModelAvailabilityNotice } from "@/components/mo
 import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
 import { getModelProviderKey } from "@/lib/provider-map";
+import { cn } from "@/lib/utils";
 import { isModelCurrentlyUnavailable } from "@/lib/model-availability";
 import {
   applicableExtraBenchmarkEntries,
   hasAAIndexBenchmarks,
   hasPricingData,
-  hasStandardTextBenchmarks,
   mediaBenchmarkValues,
   textMetricValue,
 } from "@/lib/model-metrics";
 import type { LLMModel } from "@/lib/api";
+import type { ModelReasoningVariantOption } from "@/lib/model-reasoning";
 
 type Caps = Partial<LLMModel>;
 
@@ -46,18 +62,18 @@ function ScrapedBadges({
         <ModelAvailabilityBadge model={{ availability_status: caps.availability_status }} />
       )}
       {caps.reasoning_model && (
-        <Badge variant="secondary" className="gap-1">
-          <Brain className="size-3" />
+        <Badge variant="secondary">
+          <Brain data-icon="inline-start" />
           {t.reasoning}
         </Badge>
       )}
       {caps.is_open_weights ? (
-        <Badge variant="outline" className="gap-1 text-xs">
-          <Unlock className="size-3" />{t.openWeights}
+        <Badge variant="outline" className="text-xs">
+          <Unlock data-icon="inline-start" />{t.openWeights}
         </Badge>
       ) : caps.is_open_weights === false ? (
-        <Badge variant="outline" className="gap-1 text-xs text-muted-foreground">
-          <Lock className="size-3" />{t.closedWeights}
+        <Badge variant="outline" className="text-xs text-muted-foreground">
+          <Lock data-icon="inline-start" />{t.closedWeights}
         </Badge>
       ) : null}
     </>
@@ -154,13 +170,13 @@ function CapabilitiesSection({ promise, t }: { promise: Promise<Caps>; t: CapsTr
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="border-b border-border/70">
         <CardTitle className="flex items-center gap-2 text-sm font-medium">
           <BookOpen className="size-4 text-muted-foreground" />
           {t.capabilities}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 text-sm">
+      <CardContent className="flex flex-col gap-3 text-sm">
         {caps.context_window_tokens && (
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">{t.contextWindow}</span>
@@ -226,7 +242,7 @@ function CapabilitiesSection({ promise, t }: { promise: Promise<Caps>; t: CapsTr
           </div>
         )}
         {(caps.openrouter_supported_parameters?.length ?? 0) > 0 && (
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <span className="text-muted-foreground">{t.supportedParameters}</span>
             <div className="flex flex-wrap gap-1">
               {caps.openrouter_supported_parameters?.map((parameter) => (
@@ -238,7 +254,7 @@ function CapabilitiesSection({ promise, t }: { promise: Promise<Caps>; t: CapsTr
           </div>
         )}
         {(inputMods.length > 0 || outputMods.length > 0) && (
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             {inputMods.length > 0 && (
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">{t.inputModality}</span>
@@ -288,7 +304,7 @@ function MetaEvalSection({ promise, t }: {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="border-b border-border/70">
         <CardTitle className="flex items-center gap-2 text-sm font-medium">
           <Sparkles className="size-4 text-muted-foreground" />
           {t.metaInfo}
@@ -367,21 +383,32 @@ function formatBenchmarkKey(key: string): string {
   return title(key);
 }
 
-function scoreBg(val: number | null) {
-  if (val === null) return "bg-muted";
-  if (val >= 75) return "bg-emerald-500";
-  if (val >= 50) return "bg-amber-500";
-  return "bg-red-500";
-}
-
-function scoreBadgeClass(val: number | null) {
-  if (val === null) return "";
-  if (val >= 75) return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800";
-  if (val >= 50) return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800";
-  return "bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800";
+function reasoningVariantLabel(
+  variant: ModelReasoningVariantOption,
+  labels: ReturnType<typeof useI18n>["t"]["detail"]["reasoningLevels"],
+): string {
+  const effort = variant.effort ? labels[variant.effort] : null;
+  if (variant.mode === "non-reasoning") {
+    return effort ? `${labels.nonReasoning} · ${effort}` : labels.nonReasoning;
+  }
+  if (variant.mode === "default") return labels.default;
+  if (variant.mode === "adaptive-reasoning") {
+    return effort ? `${labels.adaptiveReasoning} · ${effort}` : labels.adaptiveReasoning;
+  }
+  if (variant.mode === "thinking") {
+    return effort ? `${labels.thinking} · ${effort}` : labels.thinking;
+  }
+  return effort ?? labels.reasoning;
 }
 
 // Sub-components / Sous-composants
+
+function benchmarkTone(value: number): ProgressTone {
+  if (value >= 75) return "strong";
+  if (value >= 50) return "good";
+  if (value >= 25) return "moderate";
+  return "low";
+}
 
 function BenchmarkRow({
   label, displayValue, barPct,
@@ -389,17 +416,17 @@ function BenchmarkRow({
   label: string; displayValue: string; barPct: number;
 }) {
   return (
-    <div className="space-y-1.5">
+    <div className="flex min-w-0 flex-col gap-2 border-b border-border/70 py-3 last:border-b-0">
       <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">{label}</span>
-        <span className="font-mono font-medium tabular-nums text-xs">{displayValue}</span>
+        <span className="min-w-0 pr-3 text-muted-foreground">{label}</span>
+        <span className="shrink-0 font-mono text-sm font-medium tabular-nums">{displayValue}</span>
       </div>
-      <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-[width] duration-200 ${scoreBg(barPct > 0 ? barPct : null)}`}
-          style={{ width: `${Math.min(barPct, 100)}%` }}
-        />
-      </div>
+      <Progress
+        value={Math.min(Math.max(barPct, 0), 100)}
+        tone={benchmarkTone(barPct)}
+        aria-label={`${label}: ${displayValue}`}
+        className="h-1"
+      />
     </div>
   );
 }
@@ -428,11 +455,11 @@ function ModalityChip({ icon, label, active }: { icon: React.ReactNode; label: s
   return (
     <span
       title={label}
-      className={`inline-flex items-center justify-center size-7 rounded-md border transition-colors ${
+      className={cn("inline-flex size-7 items-center justify-center rounded-md border transition-colors",
         active
           ? "bg-muted text-foreground border-border"
           : "text-muted-foreground/20 border-border/20"
-      }`}
+      )}
     >
       {icon}
     </span>
@@ -453,13 +480,13 @@ function MediaBenchmarksSection({
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="border-b border-border/70">
         <CardTitle className="flex items-center gap-2 text-sm font-medium">
-          <BarChart3 className="size-4 text-muted-foreground" />
+          <BarChart3 className="size-4 text-chart-2" />
           {t.detail.mediaBenchmarks}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="grid gap-x-6 sm:grid-cols-2">
         {rows.map((row) => {
           const rank = row.rank != null ? ` · #${fmt(row.rank, 0)}` : "";
           const appearances =
@@ -481,7 +508,7 @@ function MediaBenchmarksSection({
 function NoBenchmarksCard({ t }: { t: ReturnType<typeof useI18n>["t"] }) {
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="border-b border-border/70">
         <CardTitle className="flex items-center gap-2 text-sm font-medium">
           <BarChart3 className="size-4 text-muted-foreground" />
           {t.detail.noBenchmarks}
@@ -496,12 +523,22 @@ function NoBenchmarksCard({ t }: { t: ReturnType<typeof useI18n>["t"] }) {
 
 // Main component / Composant principal
 
-export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMModel; capabilitiesPromise?: Promise<Caps> }) {
+export function ModelDetailClient({
+  model,
+  familyName,
+  variants,
+  capabilitiesPromise,
+}: {
+  model: LLMModel;
+  familyName: string;
+  variants: ModelReasoningVariantOption[];
+  capabilitiesPromise?: Promise<Caps>;
+}) {
   const { t, lang } = useI18n();
   const { replace, isSelected, isFull, selected } = useCompare();
   const navigate = useNavigate();
   const {
-    name, slug, model_creator, evaluations: ev, pricing,
+    slug, model_creator, evaluations: ev, pricing,
     median_output_tokens_per_second, median_time_to_first_token_seconds,
     median_time_to_first_answer_token, release_date,
   } = model;
@@ -513,6 +550,10 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
   const usesOpenRouterDisplayPrices = openRouterDisplayPrices.length > 0;
   const officialHuggingFaceUrl =
     model.huggingface_official === true ? model.huggingface_url : null;
+  const selectedVariant = variants.find((variant) => variant.slug === model.slug) ?? variants[0];
+  const selectedVariantLabel = selectedVariant
+    ? reasoningVariantLabel(selectedVariant, t.detail.reasoningLevels)
+    : t.detail.reasoningLevels.default;
 
 
   // Known benchmarks as % / Benchmarks connus en %
@@ -540,10 +581,50 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
     omniscience_non_hallucination: pct(textMetricValue(model, "omniscience_non_hallucination")),
   };
 
+  const standardBenchmarkRows = [
+    { key: "mmlu_pro", label: t.benchmarks.mmlu_pro, value: benchmarksPct.mmlu_pro },
+    { key: "gpqa", label: t.benchmarks.gpqa, value: benchmarksPct.gpqa },
+    { key: "hle", label: t.benchmarks.hle, value: benchmarksPct.hle },
+    { key: "livecodebench", label: t.benchmarks.livecodebench, value: benchmarksPct.livecodebench },
+    { key: "scicode", label: t.benchmarks.scicode, value: benchmarksPct.scicode },
+    { key: "math_500", label: t.benchmarks.math_500, value: benchmarksPct.math_500 },
+    { key: "aime", label: t.benchmarks.aime, value: benchmarksPct.aime },
+    { key: "aime_25", label: t.benchmarks.aime_25, value: benchmarksPct.aime_25 },
+    { key: "ifbench", label: t.benchmarks.ifbench, value: benchmarksPct.ifbench },
+    { key: "lcr", label: t.benchmarks.lcr, value: benchmarksPct.lcr },
+    { key: "terminalbench_hard", label: t.benchmarks.terminalbench_hard, value: benchmarksPct.terminalbench_hard },
+    { key: "tau2", label: t.benchmarks.tau2, value: benchmarksPct.tau2 },
+    { key: "humaneval", label: t.benchmarks.humaneval, value: benchmarksPct.humaneval },
+    { key: "omniscience", label: t.benchmarks.omniscience, value: benchmarksPct.omniscience },
+    { key: "multilingual_aa", label: t.benchmarks.multilingual, value: benchmarksPct.multilingual_aa },
+    { key: "mmmu_pro", label: t.benchmarks.mmmu_pro, value: benchmarksPct.mmmu_pro },
+    { key: "critpt", label: t.benchmarks.critpt, value: benchmarksPct.critpt },
+    { key: "gdpval_normalized", label: t.benchmarks.gdpval_normalized, value: benchmarksPct.gdpval_normalized },
+    { key: "apex_agents", label: t.benchmarks.apex_agents, value: benchmarksPct.apex_agents },
+    { key: "itbench_aa", label: t.benchmarks.itbench_aa, value: benchmarksPct.itbench_aa },
+    { key: "omniscience_non_hallucination", label: t.benchmarks.omniscience_non_hallucination, value: benchmarksPct.omniscience_non_hallucination },
+  ].flatMap((row) => row.value == null
+    ? []
+    : [{
+        key: row.key,
+        label: row.label,
+        displayValue: `${fmt(row.value)}%`,
+        barPct: row.value,
+      }]);
+
+  if (ev.gdpval != null) {
+    standardBenchmarkRows.push({
+      key: "gdpval",
+      label: t.benchmarks.gdpval,
+      displayValue: ev.gdpval.toFixed(0),
+      barPct: Math.min((ev.gdpval / 2000) * 100, 100),
+    });
+  }
+
   // Unknown additional benchmarks / Benchmarks supplémentaires non connus
   const extraBenchmarks = applicableExtraBenchmarkEntries(model);
   const showAAIndices = hasAAIndexBenchmarks(model);
-  const showStandardBenchmarks = hasStandardTextBenchmarks(model);
+  const showStandardBenchmarks = standardBenchmarkRows.length > 0;
   const showMediaBenchmarks = mediaBenchmarkValues(model).length > 0;
   const showNoBenchmarks = !showAAIndices && !showStandardBenchmarks && !showMediaBenchmarks && extraBenchmarks.length === 0;
   const showPerformance = [
@@ -561,69 +642,119 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
   const showPricing = hasPricingData(model);
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       {/* Hero */}
-      <div className="flex items-start gap-4">
-        <div className="size-14 rounded-xl bg-muted flex items-center justify-center shrink-0">
-          <ModelProviderIcon provider={providerKey} size={32} iconUrl={model.provider_icon_url} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm text-muted-foreground truncate">{model_creator.name}</p>
-          <h1 className="text-xl font-semibold tracking-tight break-words leading-tight mt-0.5">{name}</h1>
-          <div className="flex items-center gap-2 mt-2 flex-wrap">
-            {intelligence !== null && (
-              <Badge variant="outline" className={`font-mono ${scoreBadgeClass(intelligence)}`}>
-                {fmt(intelligence)} {t.detail.intelligenceIndex}
-              </Badge>
-            )}
-            {release_date && (
-              <Badge variant="secondary" className="font-mono text-xs">
-                {release_date}
-              </Badge>
-            )}
-            <ModelAvailabilityBadge model={model} />
-            {capabilitiesPromise && (
-              <Suspense>
-                <ScrapedBadges
-                  promise={capabilitiesPromise}
-                  availabilityStatus={model.availability_status}
-                  t={{ reasoning: t.detail.reasoning, openWeights: t.detail.openWeights, closedWeights: t.detail.closedWeights }}
-                />
-              </Suspense>
-            )}
-            {officialHuggingFaceUrl ? (
-              <HuggingFaceAnchor url={officialHuggingFaceUrl} label={t.card.huggingface} />
-            ) : capabilitiesPromise ? (
-              <Suspense>
-                <StreamedHuggingFaceLink promise={capabilitiesPromise} label={t.card.huggingface} />
-              </Suspense>
-            ) : null}
+      <section className="flex flex-col gap-5 rounded-xl border border-border/70 bg-card p-4 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+          <div className="flex min-w-0 flex-1 items-start gap-4">
+            <div className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-muted">
+              <ModelProviderIcon provider={providerKey} size={32} iconUrl={model.provider_icon_url} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm text-muted-foreground">{model_creator.name}</p>
+              <h1 className="mt-0.5 break-words text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">
+                {familyName}
+              </h1>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {intelligence !== null && (
+                  <Badge variant="outline" className="font-mono tabular-nums">
+                    {fmt(intelligence)} {t.detail.intelligenceIndex}
+                  </Badge>
+                )}
+                {release_date && (
+                  <Badge variant="secondary" className="font-mono text-xs">
+                    {release_date}
+                  </Badge>
+                )}
+                <ModelAvailabilityBadge model={model} />
+                {capabilitiesPromise && (
+                  <Suspense>
+                    <ScrapedBadges
+                      promise={capabilitiesPromise}
+                      availabilityStatus={model.availability_status}
+                      t={{ reasoning: t.detail.reasoning, openWeights: t.detail.openWeights, closedWeights: t.detail.closedWeights }}
+                    />
+                  </Suspense>
+                )}
+                {officialHuggingFaceUrl ? (
+                  <HuggingFaceAnchor url={officialHuggingFaceUrl} label={t.card.huggingface} />
+                ) : capabilitiesPromise ? (
+                  <Suspense>
+                    <StreamedHuggingFaceLink promise={capabilitiesPromise} label={t.card.huggingface} />
+                  </Suspense>
+                ) : null}
+              </div>
+            </div>
           </div>
+          <Button
+            variant={isComp ? "default" : "outline"}
+            size="sm"
+            disabled={!isComp && isFull}
+            onClick={() => {
+              const nextSelection = isComp
+                ? selected.filter((selectedSlug) => selectedSlug !== model.slug)
+                : [...selected, model.slug];
+              replace(nextSelection);
+              void navigate({
+                to: "/compare",
+                search: nextSelection.length > 0
+                  ? { models: nextSelection.join(",") }
+                  : {},
+              });
+            }}
+            className="touch-target w-full shrink-0 sm:w-auto"
+          >
+            <GitCompareArrows data-icon="inline-start" />
+            {t.compare.compare}
+          </Button>
         </div>
-        <Button
-          variant={isComp ? "default" : "outline"}
-          size="sm"
-          disabled={!isComp && isFull}
-          onClick={() => {
-            const nextSelection = isComp
-              ? selected.filter((slug) => slug !== model.slug)
-              : [...selected, model.slug];
-            replace(nextSelection);
-            void navigate({
-              to: "/compare",
-              search: nextSelection.length > 0
-                ? { models: nextSelection.join(",") }
-                : {},
-            });
-          }}
-          className="touch-target shrink-0"
-        >
-          <GitCompareArrows data-icon="inline-start" />
-          {t.compare.compare}
-        </Button>
-      </div>
 
-      <Separator />
+        {variants.length > 1 && (
+          <>
+            <Separator />
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_18rem] sm:items-end">
+              <div className="flex min-w-0 items-start gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                  <SlidersHorizontal className="size-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{t.detail.reasoningConfiguration}</p>
+                  <p className="mt-0.5 max-w-2xl text-sm text-muted-foreground">
+                    {t.detail.reasoningConfigurationDescription}
+                  </p>
+                </div>
+              </div>
+              <Select
+                value={model.slug}
+                onValueChange={(nextSlug) => {
+                  if (nextSlug === model.slug) return;
+                  void navigate({
+                    to: "/models/$slug",
+                    params: { slug: nextSlug },
+                    replace: true,
+                  });
+                }}
+              >
+                <SelectTrigger
+                  aria-label={t.detail.reasoningConfiguration}
+                  className="touch-target w-full"
+                >
+                  <SelectValue>{selectedVariantLabel}</SelectValue>
+                </SelectTrigger>
+                <SelectContent position="popper" align="end">
+                  <SelectGroup>
+                    {variants.map((variant) => (
+                      <SelectItem key={variant.slug} value={variant.slug}>
+                        {reasoningVariantLabel(variant, t.detail.reasoningLevels)}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        )}
+      </section>
 
       <ModelAvailabilityNotice model={model} />
       {capabilitiesPromise && !isModelCurrentlyUnavailable(model) && (
@@ -632,44 +763,20 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
         </Suspense>
       )}
 
-      {capabilitiesPromise && (
-        <Suspense>
-          <CapabilitiesSection
-            promise={capabilitiesPromise}
-            t={{
-              capabilities: t.detail.capabilities,
-              contextWindow: t.detail.contextWindow,
-              maxOutputTokens: t.detail.maxOutputTokens,
-              supportedParameters: t.detail.supportedParameters,
-              deprecationDate: t.detail.deprecationDate,
-              modalities: t.detail.modalities,
-              inputModality: t.detail.inputModality,
-              outputModality: t.detail.outputModality,
-              totalParams: t.detail.totalParams,
-              activeParams: t.detail.activeParams,
-              knowledgeCutoff: t.detail.knowledgeCutoff,
-              knowledgeCutoffTooltip: t.detail.knowledgeCutoffTooltip,
-              opennessIndex: t.detail.opennessIndex,
-              opennessTooltip: t.detail.opennessTooltip,
-              modalityLabels: t.detail.modalityLabels,
-            }}
-          />
-        </Suspense>
-      )}
-
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]">
         {/* Left: benchmarks */}
-        <div className="space-y-6">
+        <div className="flex min-w-0 flex-col gap-6">
           {/* AA Indices */}
           {showAAIndices && (
             <Card>
-              <CardHeader>
+              <CardHeader className="border-b border-border/70">
                 <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <TrendingUp className="size-4 text-muted-foreground" />
+                  <TrendingUp className="size-4 text-chart-1" />
                   {t.detail.aaIndices}
                 </CardTitle>
+                <CardDescription>{selectedVariantLabel}</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="grid gap-x-6 sm:grid-cols-2">
                 {textMetricValue(model, "artificial_analysis_intelligence_index") != null && (
                   <BenchmarkRow label={t.benchmarks.intelligence} displayValue={fmt(textMetricValue(model, "artificial_analysis_intelligence_index"))} barPct={textMetricValue(model, "artificial_analysis_intelligence_index") ?? 0} />
                 )}
@@ -689,55 +796,21 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
           {/* Standard benchmarks */}
           {showStandardBenchmarks && (
           <Card>
-            <CardHeader>
+            <CardHeader className="border-b border-border/70">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <BarChart3 className="size-4 text-muted-foreground" />
+                <BarChart3 className="size-4 text-chart-2" />
                 {t.detail.standardBenchmarks}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <BenchmarkRow label={t.benchmarks.mmlu_pro}           displayValue={benchmarksPct.mmlu_pro !== null ? `${fmt(benchmarksPct.mmlu_pro)}%` : "—"} barPct={benchmarksPct.mmlu_pro ?? 0} />
-              <BenchmarkRow label={t.benchmarks.gpqa}               displayValue={benchmarksPct.gpqa !== null ? `${fmt(benchmarksPct.gpqa)}%` : "—"} barPct={benchmarksPct.gpqa ?? 0} />
-              <BenchmarkRow label={t.benchmarks.hle}                displayValue={benchmarksPct.hle !== null ? `${fmt(benchmarksPct.hle)}%` : "—"} barPct={benchmarksPct.hle ?? 0} />
-              <BenchmarkRow label={t.benchmarks.livecodebench}      displayValue={benchmarksPct.livecodebench !== null ? `${fmt(benchmarksPct.livecodebench)}%` : "—"} barPct={benchmarksPct.livecodebench ?? 0} />
-              <BenchmarkRow label={t.benchmarks.scicode}            displayValue={benchmarksPct.scicode !== null ? `${fmt(benchmarksPct.scicode)}%` : "—"} barPct={benchmarksPct.scicode ?? 0} />
-              <BenchmarkRow label={t.benchmarks.math_500}           displayValue={benchmarksPct.math_500 !== null ? `${fmt(benchmarksPct.math_500)}%` : "—"} barPct={benchmarksPct.math_500 ?? 0} />
-              <BenchmarkRow label={t.benchmarks.aime}               displayValue={benchmarksPct.aime !== null ? `${fmt(benchmarksPct.aime)}%` : "—"} barPct={benchmarksPct.aime ?? 0} />
-              <BenchmarkRow label={t.benchmarks.aime_25}            displayValue={benchmarksPct.aime_25 !== null ? `${fmt(benchmarksPct.aime_25)}%` : "—"} barPct={benchmarksPct.aime_25 ?? 0} />
-              <BenchmarkRow label={t.benchmarks.ifbench}            displayValue={benchmarksPct.ifbench !== null ? `${fmt(benchmarksPct.ifbench)}%` : "—"} barPct={benchmarksPct.ifbench ?? 0} />
-              <BenchmarkRow label={t.benchmarks.lcr}                displayValue={benchmarksPct.lcr !== null ? `${fmt(benchmarksPct.lcr)}%` : "—"} barPct={benchmarksPct.lcr ?? 0} />
-              <BenchmarkRow label={t.benchmarks.terminalbench_hard} displayValue={benchmarksPct.terminalbench_hard !== null ? `${fmt(benchmarksPct.terminalbench_hard)}%` : "—"} barPct={benchmarksPct.terminalbench_hard ?? 0} />
-              <BenchmarkRow label={t.benchmarks.tau2}               displayValue={benchmarksPct.tau2 !== null ? `${fmt(benchmarksPct.tau2)}%` : "—"} barPct={benchmarksPct.tau2 ?? 0} />
-              {benchmarksPct.humaneval !== null && (
-                <BenchmarkRow label={t.benchmarks.humaneval} displayValue={`${fmt(benchmarksPct.humaneval)}%`} barPct={benchmarksPct.humaneval ?? 0} />
-              )}
-              {benchmarksPct.omniscience !== null && (
-                <BenchmarkRow label={t.benchmarks.omniscience} displayValue={`${fmt(benchmarksPct.omniscience)}%`} barPct={benchmarksPct.omniscience ?? 0} />
-              )}
-              {benchmarksPct.multilingual_aa !== null && (
-                <BenchmarkRow label={t.benchmarks.multilingual} displayValue={`${fmt(benchmarksPct.multilingual_aa)}%`} barPct={benchmarksPct.multilingual_aa ?? 0} />
-              )}
-              {benchmarksPct.mmmu_pro !== null && (
-                <BenchmarkRow label={t.benchmarks.mmmu_pro} displayValue={`${fmt(benchmarksPct.mmmu_pro)}%`} barPct={benchmarksPct.mmmu_pro ?? 0} />
-              )}
-              {benchmarksPct.critpt !== null && (
-                <BenchmarkRow label={t.benchmarks.critpt} displayValue={`${fmt(benchmarksPct.critpt)}%`} barPct={benchmarksPct.critpt ?? 0} />
-              )}
-              {ev.gdpval !== null && ev.gdpval !== undefined && (
-                <BenchmarkRow label={t.benchmarks.gdpval} displayValue={ev.gdpval.toFixed(0)} barPct={Math.min((ev.gdpval / 2000) * 100, 100)} />
-              )}
-              {benchmarksPct.gdpval_normalized !== null && (
-                <BenchmarkRow label={t.benchmarks.gdpval_normalized} displayValue={`${fmt(benchmarksPct.gdpval_normalized)}%`} barPct={benchmarksPct.gdpval_normalized ?? 0} />
-              )}
-              {benchmarksPct.apex_agents !== null && (
-                <BenchmarkRow label={t.benchmarks.apex_agents} displayValue={`${fmt(benchmarksPct.apex_agents)}%`} barPct={benchmarksPct.apex_agents ?? 0} />
-              )}
-              {benchmarksPct.itbench_aa !== null && (
-                <BenchmarkRow label={t.benchmarks.itbench_aa} displayValue={`${fmt(benchmarksPct.itbench_aa)}%`} barPct={benchmarksPct.itbench_aa ?? 0} />
-              )}
-              {benchmarksPct.omniscience_non_hallucination !== null && (
-                <BenchmarkRow label={t.benchmarks.omniscience_non_hallucination} displayValue={`${fmt(benchmarksPct.omniscience_non_hallucination)}%`} barPct={benchmarksPct.omniscience_non_hallucination ?? 0} />
-              )}
+            <CardContent className="grid gap-x-6 sm:grid-cols-2">
+              {standardBenchmarkRows.map((row) => (
+                <BenchmarkRow
+                  key={row.key}
+                  label={row.label}
+                  displayValue={row.displayValue}
+                  barPct={row.barPct}
+                />
+              ))}
             </CardContent>
           </Card>
           )}
@@ -747,13 +820,13 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
           {/* Additional benchmarks (dynamic) / Supplémentaires dynamiques */}
           {extraBenchmarks.length > 0 && (
             <Card>
-              <CardHeader>
+              <CardHeader className="border-b border-border/70">
                 <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <BarChart3 className="size-4 text-muted-foreground" />
+                  <BarChart3 className="size-4 text-chart-3" />
                   {t.detail.extraBenchmarks}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="grid gap-x-6 sm:grid-cols-2">
                 {extraBenchmarks.map(([key, val]) => {
                   const numVal = val as number;
                   const isPercentScore = key.startsWith("openrouter_da_");
@@ -775,10 +848,35 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
         </div>
 
         {/* Right: perf + pricing */}
-        <div className="space-y-6">
+        <div className="flex min-w-0 flex-col gap-6">
+          {capabilitiesPromise && (
+            <Suspense>
+              <CapabilitiesSection
+                promise={capabilitiesPromise}
+                t={{
+                  capabilities: t.detail.capabilities,
+                  contextWindow: t.detail.contextWindow,
+                  maxOutputTokens: t.detail.maxOutputTokens,
+                  supportedParameters: t.detail.supportedParameters,
+                  deprecationDate: t.detail.deprecationDate,
+                  modalities: t.detail.modalities,
+                  inputModality: t.detail.inputModality,
+                  outputModality: t.detail.outputModality,
+                  totalParams: t.detail.totalParams,
+                  activeParams: t.detail.activeParams,
+                  knowledgeCutoff: t.detail.knowledgeCutoff,
+                  knowledgeCutoffTooltip: t.detail.knowledgeCutoffTooltip,
+                  opennessIndex: t.detail.opennessIndex,
+                  opennessTooltip: t.detail.opennessTooltip,
+                  modalityLabels: t.detail.modalityLabels,
+                }}
+              />
+            </Suspense>
+          )}
+
           {showPerformance && (
           <Card>
-            <CardHeader>
+            <CardHeader className="border-b border-border/70">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <Zap className="size-4 text-muted-foreground" />{t.detail.performance}
               </CardTitle>
@@ -824,7 +922,7 @@ export function ModelDetailClient({ model, capabilitiesPromise }: { model: LLMMo
 
           {showPricing && (
           <Card>
-            <CardHeader>
+            <CardHeader className="border-b border-border/70">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <DollarSign className="size-4 text-muted-foreground" />{t.detail.pricing}
               </CardTitle>

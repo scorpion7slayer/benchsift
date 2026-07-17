@@ -1,5 +1,5 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { fetchModelBasic, fetchModelCapabilities } from "@/lib/server-fns";
+import { fetchModelDetail, fetchModelCapabilities } from "@/lib/server-fns";
 import { ModelDetailClient } from "@/components/model-detail-client";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -16,12 +16,12 @@ import {
 
 export const Route = createFileRoute("/models/$slug")({
   loader: async ({ params }) => {
-    const model = await fetchModelBasic({ data: params.slug });
-    if (!model) throw notFound();
+    const detail = await fetchModelDetail({ data: params.slug });
+    if (!detail) throw notFound();
     // Capabilities scraping starts in parallel — the promise is streamed to
     // the client and consumed there, so it never blocks the initial render.
     const capabilitiesPromise = fetchModelCapabilities({ data: params.slug });
-    return { model, capabilitiesPromise };
+    return { ...detail, capabilitiesPromise };
   },
   head: ({ loaderData }) => {
     const model = loaderData?.model;
@@ -78,13 +78,18 @@ export const Route = createFileRoute("/models/$slug")({
 });
 
 function ModelPage() {
-  const { model, capabilitiesPromise } = Route.useLoaderData();
+  const { model, familyName, variants, capabilitiesPromise } = Route.useLoaderData();
 
   return (
     <div className="flex flex-col flex-1">
       <SiteHeader backHref="/" />
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-8">
-        <ModelDetailClient model={model} capabilitiesPromise={capabilitiesPromise} />
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <ModelDetailClient
+          model={model}
+          familyName={familyName}
+          variants={variants}
+          capabilitiesPromise={capabilitiesPromise}
+        />
       </main>
       <SiteFooter />
     </div>

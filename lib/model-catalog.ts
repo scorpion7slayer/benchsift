@@ -1,5 +1,6 @@
 import type { LLMModel } from "@/lib/api";
 import { shouldIndexModelPage } from "@/lib/model-metrics";
+import { collapseReasoningVariants } from "@/lib/model-reasoning";
 
 export const MODEL_CATALOG_PAGE_SIZE = 48;
 
@@ -11,7 +12,7 @@ export interface ModelCatalogPageData {
 }
 
 export function getIndexableCatalogModels(models: LLMModel[]): LLMModel[] {
-  return models
+  return collapseReasoningVariants(models)
     .filter(shouldIndexModelPage)
     .sort(
       (a, b) =>

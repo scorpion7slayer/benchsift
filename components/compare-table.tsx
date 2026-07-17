@@ -5,12 +5,13 @@ import { GitCompareArrows, ChevronLeft, Search, X, Check, Trophy, Type, ImageIco
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Progress, type ProgressTone } from "@/components/ui/progress";
 import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
 import { getModelProviderKey } from "@/lib/provider-map";
+import { cn } from "@/lib/utils";
 import {
   AA_MEDIA_BENCHMARK_DEFS,
   applicableExtraBenchmarkEntries,
@@ -74,13 +75,6 @@ function formatBenchmarkKey(key: string): string {
 
 // ─── Score helpers ────────────────────────────────────────────────────────────
 
-function scoreBg(val: number | null): string {
-  if (val === null) return "";
-  if (val >= 75) return "text-emerald-600 dark:text-emerald-400";
-  if (val >= 50) return "text-amber-600 dark:text-amber-400";
-  return "text-red-600 dark:text-red-400";
-}
-
 type Direction = "higher" | "lower";
 
 function getBest(values: (number | null)[], dir: Direction): number | null {
@@ -103,6 +97,21 @@ function relBar(val: number | null, values: (number | null)[], dir: Direction): 
   return dir === "higher"
     ? ((val - minV) / range) * 100
     : ((maxV - val) / range) * 100;
+}
+
+const toneDotClassNames: Record<ProgressTone, string> = {
+  default: "bg-muted-foreground",
+  strong: "bg-chart-1",
+  good: "bg-chart-2",
+  moderate: "bg-chart-3",
+  low: "bg-chart-4",
+};
+
+function relativeTone(value: number, winner: boolean): ProgressTone {
+  if (winner) return "strong";
+  if (value >= 66) return "good";
+  if (value >= 33) return "moderate";
+  return "low";
 }
 
 // ─── Shared sub-components ───────────────────────────────────────────────────
@@ -150,18 +159,26 @@ function displayPriceValue(model: LLMModel, metric: DisplayPriceMetric): number 
 
 function LabelCell({ children }: { children: React.ReactNode }) {
   return (
-    <td className="py-2.5 px-4 text-sm text-muted-foreground whitespace-nowrap sticky left-0 bg-background z-10 min-w-[180px] border-r">
+    <td className="sticky left-0 z-10 min-w-[180px] whitespace-nowrap border-r bg-card px-4 py-2.5 text-sm text-muted-foreground">
       {children}
     </td>
   );
 }
 
-function SectionHeader({ label }: { label: string }) {
+function SectionHeader({
+  label,
+  tone = "default",
+}: {
+  label: string;
+  tone?: ProgressTone;
+}) {
   return (
     <tr>
-      <td colSpan={99} className="pt-6 pb-1 px-4">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-        <Separator className="mt-1" />
+      <td colSpan={99} className="border-y bg-muted/40 px-4 py-2.5">
+        <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+          <span aria-hidden="true" className={cn("size-1.5 rounded-full", toneDotClassNames[tone])} />
+          {label}
+        </p>
       </td>
     </tr>
   );
@@ -172,30 +189,52 @@ interface MetricConfig {
   values: (number | null)[];
   dir: Direction;
   format: (v: number | null) => string;
-  colorize?: boolean;
   noBar?: boolean;
 }
 
-function MetricRow({ label, values, dir, format, colorize, noBar }: MetricConfig) {
+function MetricRow({ label, values, dir, format, noBar }: MetricConfig) {
   if (values.every(v => v === null)) return null;
-  const best = getBest(values, dir);
+  const best = values.filter((value) => value !== null).length > 1
+    ? getBest(values, dir)
+    : null;
   return (
     <tr className="border-b last:border-0 hover:bg-muted/30 transition-colors">
       <LabelCell>{label}</LabelCell>
       {values.map((val, i) => {
         const winner = isBest(val, best);
         const pct = noBar ? 0 : relBar(val, values, dir);
+        const tone = relativeTone(pct, winner);
         return (
-          <td key={i} className="py-2.5 px-4 text-sm text-center">
+          <td
+            key={i}
+            className={cn(
+              "px-4 py-2.5 text-center text-sm transition-colors",
+              winner && "bg-chart-1-soft",
+            )}
+          >
             <div className="flex flex-col items-center gap-1">
-              <span className={`font-mono text-xs ${winner ? "font-semibold" : ""} ${colorize ? scoreBg(val) : ""} ${winner && !colorize ? "text-emerald-600 dark:text-emerald-400" : ""}`}>
+              <span
+                className={cn(
+                  "font-mono text-xs tabular-nums",
+                  val === null ? "text-muted-foreground" : "text-foreground",
+                  winner && "font-semibold",
+                )}
+              >
+                {val !== null && (
+                  <span
+                    aria-hidden="true"
+                    className={cn("mr-1 inline-block size-1.5 rounded-full align-middle", toneDotClassNames[tone])}
+                  />
+                )}
                 {format(val)}
-                {winner && val !== null && <span className="ml-1 inline-block size-1.5 rounded-full bg-emerald-500 align-middle" />}
               </span>
               {!noBar && val !== null && (
-                <div className="h-0.5 w-14 rounded-full bg-muted overflow-hidden">
-                  <div className={`h-full rounded-full transition-[width] duration-200 ${winner ? "bg-emerald-500" : "bg-primary/40"}`} style={{ width: `${pct}%` }} />
-                </div>
+                <Progress
+                  aria-hidden="true"
+                  className="h-1 w-14"
+                  tone={tone}
+                  value={pct}
+                />
               )}
             </div>
           </td>
@@ -215,8 +254,8 @@ function BoolRow({ label, values }: { label: string; values: (boolean | undefine
           {val == null ? (
             <span className="text-muted-foreground font-mono text-xs">—</span>
           ) : val ? (
-            <span className="inline-flex items-center justify-center size-5 rounded-full bg-emerald-100 dark:bg-emerald-900/50">
-              <Check className="size-3 text-emerald-600 dark:text-emerald-400" />
+            <span className="inline-flex size-5 items-center justify-center rounded-full bg-chart-1 text-background">
+              <Check className="size-3" />
             </span>
           ) : (
             <span className="inline-flex items-center justify-center size-5 rounded-full bg-muted">
@@ -256,10 +295,45 @@ function ModalityRow({ label, rows }: { label: string; rows: ModalityData[] }) {
 
 // ─── Mobile components ────────────────────────────────────────────────────────
 
-function MobileSectionHeader({ label }: { label: string }) {
+function MobileSectionHeader({
+  label,
+  tone = "default",
+}: {
+  label: string;
+  tone?: ProgressTone;
+}) {
   return (
-    <div className="px-4 py-2 bg-muted/40 border-b">
-      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+    <div className="border-b bg-muted/50 px-4 py-2.5">
+      <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+        <span aria-hidden="true" className={cn("size-1.5 rounded-full", toneDotClassNames[tone])} />
+        {label}
+      </p>
+    </div>
+  );
+}
+
+function ComparisonLegend() {
+  const { t } = useI18n();
+  const items: { label: string; tone: ProgressTone }[] = [
+    { label: t.compare.legend.best, tone: "strong" },
+    { label: t.compare.legend.close, tone: "good" },
+    { label: t.compare.legend.intermediate, tone: "moderate" },
+    { label: t.compare.legend.behind, tone: "low" },
+  ];
+
+  return (
+    <div
+      role="group"
+      aria-label={t.compare.legend.label}
+      className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-xs text-muted-foreground"
+    >
+      <span className="font-medium text-foreground">{t.compare.legend.label}</span>
+      {items.map((item) => (
+        <span key={item.tone} className="inline-flex items-center gap-1.5">
+          <span aria-hidden="true" className={cn("size-1.5 rounded-full", toneDotClassNames[item.tone])} />
+          {item.label}
+        </span>
+      ))}
     </div>
   );
 }
@@ -268,23 +342,31 @@ interface MobileRowProps {
   label: React.ReactNode;
   value: string;
   isBest?: boolean;
-  colorClass?: string;
   barPct?: number;
 }
 
-function MobileRow({ label, value, isBest, colorClass, barPct }: MobileRowProps) {
+function MobileRow({ label, value, isBest, barPct }: MobileRowProps) {
+  const tone = relativeTone(barPct ?? 0, isBest ?? false);
   return (
-    <div className={`flex items-center justify-between gap-3 px-4 py-2.5 border-b last:border-b-0 ${isBest ? "bg-emerald-50/40 dark:bg-emerald-900/10" : ""}`}>
+    <div className={cn("flex items-center justify-between gap-3 border-b px-4 py-2.5 last:border-b-0", isBest && "bg-chart-1-soft")}>
       <span className="text-sm text-muted-foreground shrink-0">{label}</span>
       <div className="flex flex-col items-end gap-0.5 min-w-0">
-        <span className={`text-sm font-mono ${isBest ? "text-emerald-600 dark:text-emerald-400 font-semibold" : ""} ${colorClass ?? ""}`}>
+        <span className={cn("font-mono text-sm tabular-nums", isBest && "font-semibold text-foreground")}>
+          {value !== "—" && (
+            <span
+              aria-hidden="true"
+              className={cn("mr-1 inline-block size-1.5 rounded-full align-middle", toneDotClassNames[tone])}
+            />
+          )}
           {value}
-          {isBest && value !== "—" && <span className="ml-1 inline-block size-1.5 rounded-full bg-emerald-500 align-middle" />}
         </span>
         {barPct !== undefined && value !== "—" && (
-          <div className="h-0.5 w-16 rounded-full bg-muted overflow-hidden">
-            <div className={`h-full rounded-full ${isBest ? "bg-emerald-500" : "bg-primary/40"}`} style={{ width: `${barPct}%` }} />
-          </div>
+          <Progress
+            aria-hidden="true"
+            className="h-1 w-16"
+            tone={tone}
+            value={barPct}
+          />
         )}
       </div>
     </div>
@@ -297,8 +379,8 @@ function MobileBoolRow({ label, value }: { label: string; value: boolean | undef
     <div className="flex items-center justify-between px-4 py-2.5 border-b last:border-b-0">
       <span className="text-sm text-muted-foreground">{label}</span>
       {value ? (
-        <span className="inline-flex items-center justify-center size-5 rounded-full bg-emerald-100 dark:bg-emerald-900/50">
-          <Check className="size-3 text-emerald-600 dark:text-emerald-400" />
+        <span className="inline-flex size-5 items-center justify-center rounded-full bg-chart-1 text-background">
+          <Check className="size-3" />
         </span>
       ) : (
         <span className="inline-flex items-center justify-center size-5 rounded-full bg-muted">
@@ -365,17 +447,17 @@ function MobileCompareView({
   // Helpers to check best and bar for the active model
   const av = (getter: (x: LLMModel) => number | null) => models.map(getter);
   const isB = (val: number | null, getter: (x: LLMModel) => number | null, dir: Direction) =>
-    isBest(val, getBest(av(getter), dir));
+    models.length > 1 && isBest(val, getBest(av(getter), dir));
   const rb = (val: number | null, getter: (x: LLMModel) => number | null, dir: Direction) =>
     relBar(val, av(getter), dir);
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {/* Tabs — one per model */}
       <div
         role="tablist"
         aria-label={t.compare.title}
-        className="flex snap-x snap-mandatory gap-2 overflow-x-auto rounded-xl border bg-muted/20 p-1"
+        className="flex snap-x snap-mandatory gap-1 overflow-x-auto rounded-xl border border-border/70 bg-card p-1"
       >
         {models.map((model, i) => (
           <button
@@ -384,9 +466,12 @@ function MobileCompareView({
             role="tab"
             aria-selected={i === idx}
             onClick={() => setActiveIdx(i)}
-            className={`touch-target flex w-40 max-w-40 snap-start shrink-0 flex-col items-center gap-1 rounded-lg px-2 py-2.5 transition-colors ${
-              i === idx ? "border bg-card shadow-sm" : "border border-transparent hover:bg-muted/50"
-            }`}
+            className={cn(
+              "touch-target flex w-40 max-w-40 snap-start shrink-0 flex-col items-center gap-1 rounded-lg border px-2 py-2.5 transition-colors",
+              i === idx
+                ? "border-border bg-muted"
+                : "border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+            )}
           >
             <div className="size-7 flex items-center justify-center">
               <ModelProviderIcon provider={getModelProviderKey(model.slug, model.model_creator.slug)} size={20} iconUrl={model.provider_icon_url} />
@@ -397,7 +482,7 @@ function MobileCompareView({
                 variant={winnerCounts[i] === maxWins && maxWins > 0 ? "default" : "secondary"}
                 className="text-xs gap-0.5 py-0 h-4 px-1.5"
               >
-                <Trophy className="size-2" />
+                <Trophy data-icon="inline-start" />
                 {winnerCounts[i]}
               </Badge>
             )}
@@ -406,8 +491,8 @@ function MobileCompareView({
       </div>
 
       {/* Active model header */}
-      <div className="flex items-start gap-3">
-        <div className="size-12 rounded-xl bg-muted border flex items-center justify-center shrink-0">
+      <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-card p-3">
+        <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted">
           <ModelProviderIcon provider={getModelProviderKey(m.slug, m.model_creator.slug)} size={28} iconUrl={m.provider_icon_url} />
         </div>
         <div className="flex-1 min-w-0">
@@ -424,18 +509,19 @@ function MobileCompareView({
               className="h-6 gap-1"
               title={t.compare.wins(winnerCounts[idx])}
             >
-              <Trophy className="size-3" />
+              <Trophy data-icon="inline-start" />
               {winnerCounts[idx]}
             </Badge>
           )}
-          <button
-            type="button"
+          <Button
+            variant="destructive"
+            size="icon"
             onClick={() => { onRemove(m.slug); setActiveIdx(Math.max(0, idx - 1)); }}
-            className="touch-target inline-flex size-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+            className="touch-target"
             aria-label={`${t.compare.remove} ${m.name}`}
           >
-            <X className="size-4" />
-          </button>
+            <X />
+          </Button>
         </div>
       </div>
 
@@ -474,13 +560,15 @@ function MobileCompareView({
         </div>
       )}
 
+      {models.length > 1 && <ComparisonLegend />}
+
       {/* Metrics card */}
-      <div className="rounded-xl border overflow-hidden divide-y">
+      <div className="overflow-hidden rounded-xl border border-border/70 bg-card divide-y">
 
         {/* AA Indices */}
         {hasAAIndexBenchmarks(m) && (
           <>
-            <MobileSectionHeader label={t.compare.sections.aaIndices} />
+            <MobileSectionHeader label={t.compare.sections.aaIndices} tone="strong" />
             {([
               [t.benchmarks.intelligence, "artificial_analysis_intelligence_index"],
               [t.benchmarks.coding, "artificial_analysis_coding_index"],
@@ -492,7 +580,6 @@ function MobileCompareView({
                 <MobileRow key={key} label={label}
                   value={fmt(val)}
                   isBest={isB(val, x => textMetricValue(x, key), "higher")}
-                  colorClass={scoreBg(val)}
                   barPct={rb(val, x => textMetricValue(x, key), "higher")}
                 />
               ) : null;
@@ -503,7 +590,7 @@ function MobileCompareView({
         {/* Benchmarks */}
         {hasStandardTextBenchmarks(m) && (
           <>
-            <MobileSectionHeader label={t.compare.sections.benchmarks} />
+            <MobileSectionHeader label={t.compare.sections.benchmarks} tone="good" />
             {([
               [t.benchmarks.mmlu_pro,          textMetricValue(m, "mmlu_pro"),          (x: LLMModel) => textMetricValue(x, "mmlu_pro")],
               [t.benchmarks.gpqa,              textMetricValue(m, "gpqa"),              (x: LLMModel) => textMetricValue(x, "gpqa")],
@@ -532,7 +619,7 @@ function MobileCompareView({
 
         {hasMediaBenchmarks(m) && (
           <>
-            <MobileSectionHeader label={t.detail.mediaBenchmarks} />
+            <MobileSectionHeader label={t.detail.mediaBenchmarks} tone="good" />
             {AA_MEDIA_BENCHMARK_DEFS.map((def) => {
               const val = numericEval(ev, def.eloKey);
               return val !== null ? (
@@ -549,7 +636,7 @@ function MobileCompareView({
         {/* Extra benchmarks */}
         {extraBenchmarkKeys.length > 0 && (
           <>
-            <MobileSectionHeader label={t.detail.extraBenchmarks} />
+            <MobileSectionHeader label={t.detail.extraBenchmarks} tone="moderate" />
             {extraBenchmarkKeys.map(key => {
               const val = ev[key] ?? null;
               return val !== null ? (
@@ -566,7 +653,7 @@ function MobileCompareView({
         {/* Performance */}
         {[m.median_output_tokens_per_second, m.median_time_to_first_token_seconds, m.median_time_to_first_answer_token, m.end_to_end_response_time_seconds].some(v => v != null) && (
           <>
-            <MobileSectionHeader label={t.compare.sections.performance} />
+            <MobileSectionHeader label={t.compare.sections.performance} tone="moderate" />
             <MobileRow label={t.compare.fields.outputSpeed}
               value={m.median_output_tokens_per_second !== null ? `${fmt(m.median_output_tokens_per_second, 0)} t/s` : "—"}
               isBest={isB(m.median_output_tokens_per_second, x => x.median_output_tokens_per_second, "higher")}
@@ -595,7 +682,7 @@ function MobileCompareView({
         {/* Pricing */}
         {([pr.price_1m_input_tokens, pr.price_1m_output_tokens, pr.price_1m_blended_3_to_1].some(v => v !== null) || displayPriceRows.some((row) => displayPriceValue(m, row) !== null)) && (
           <>
-            <MobileSectionHeader label={t.compare.sections.pricing} />
+            <MobileSectionHeader label={t.compare.sections.pricing} tone="moderate" />
             {displayPriceRows.map((row) => {
               const value = displayPriceValue(m, row);
               return value !== null ? (
@@ -646,7 +733,7 @@ function MobileCompareView({
 
         {/* Capabilities */}
         <>
-          <MobileSectionHeader label={t.compare.sections.capabilities} />
+          <MobileSectionHeader label={t.compare.sections.capabilities} tone="good" />
           {m.context_window_tokens != null && (
             <MobileRow label={t.detail.contextWindow}
               value={`${fmtCtx(m.context_window_tokens)} tokens`}
@@ -839,6 +926,7 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
 
   const winnerDetails = useMemo(() => {
     const details: string[][] = models.map(() => []);
+    if (models.length < 2) return details;
     const metrics: { vals: (number | null)[]; dir: Direction; label: string }[] = [
       { vals: models.map(m => textMetricValue(m, "artificial_analysis_intelligence_index")), dir: "higher", label: t.benchmarks.intelligence },
       { vals: models.map(m => textMetricValue(m, "artificial_analysis_coding_index")), dir: "higher", label: t.benchmarks.coding },
@@ -879,7 +967,7 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
     return (
       <div className="compare-empty-state flex-1 flex flex-col items-center justify-center gap-6 text-center py-12">
         <GitCompareArrows className="size-12 text-muted-foreground" />
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           <p className="font-medium">
             {dataUnavailable ? t.grid.unavailableTitle : t.compare.noModels}
           </p>
@@ -920,13 +1008,26 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       {/* Page header */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{t.compare.title}</h1>
-        <div className="flex items-center gap-2">
+      <section className="flex flex-col gap-4 border-b border-border/70 pb-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card text-muted-foreground">
+            <GitCompareArrows className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-semibold tracking-tight">{t.compare.title}</h1>
+              <Badge variant="secondary">{t.compare.selectedCount(models.length)}</Badge>
+            </div>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+              {t.compare.description}
+            </p>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
           <Button variant="outline" size="sm" asChild className="touch-target">
-            <Link href="/">
+            <Link href="/" aria-label={t.compare.backToList}>
               <ChevronLeft data-icon="inline-start" />
               <span className="hidden sm:inline">{t.compare.backToList}</span>
             </Link>
@@ -942,7 +1043,7 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
             {t.compare.clear}
           </Button>
         </div>
-      </div>
+      </section>
 
       {/* ── MOBILE VIEW ─────────────────────────────────────────────────── */}
       <div
@@ -964,11 +1065,11 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
 
       {/* ── DESKTOP VIEW ─────────────────────────────────────────────────── */}
       <div
-        className="compare-panel-refresh hidden space-y-4 lg:block"
+        className="compare-panel-refresh hidden flex-col gap-4 lg:flex"
       >
         {/* Add model search */}
         {!compareIsFull && (
-          <div className="relative">
+          <div className="relative max-w-xl">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
             <Input
               type="search"
@@ -993,27 +1094,31 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
           </div>
         )}
 
+        {models.length > 1 && <ComparisonLegend />}
+
         {/* Table */}
-        <div key={`table-${compareSignature}`} className="compare-table-frame overflow-x-auto rounded-xl border">
+        <div key={`table-${compareSignature}`} className="compare-table-frame overflow-x-auto rounded-xl border border-border/70 bg-card">
           <table
-            className={`compare-table w-full min-w-[500px] text-sm ${
-              removingIndex >= 0 ? `compare-removing-col-${removingIndex}` : ""
-            }`}
+            className={cn(
+              "compare-table w-full min-w-[500px] text-sm",
+              removingIndex >= 0 && `compare-removing-col-${removingIndex}`,
+            )}
           >
             <thead>
-              <tr className="border-b bg-muted/40">
-                <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky left-0 bg-muted/40 min-w-[180px] border-r">
+              <tr className="border-b bg-muted/30">
+                <th className="sticky left-0 min-w-[180px] border-r bg-muted/30 px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                   {t.compare.model}
                 </th>
                 {models.map((model, idx) => (
                   <th
                     key={model.id}
-                    className={`py-3 px-4 text-center min-w-[180px] ${
-                      lastChange?.slug === model.slug && lastChange.type === "add" ? "compare-column-added" : ""
-                    }`}
+                    className={cn(
+                      "min-w-[180px] px-4 py-3 text-center",
+                      lastChange?.slug === model.slug && lastChange.type === "add" && "compare-column-added",
+                    )}
                   >
                     <div className="flex flex-col items-center gap-1.5">
-                      <div className="size-9 rounded-lg bg-background flex items-center justify-center border">
+                      <div className="flex size-9 items-center justify-center rounded-lg bg-muted">
                         <ModelProviderIcon provider={getModelProviderKey(model.slug, model.model_creator.slug)} size={22} iconUrl={model.provider_icon_url} />
                       </div>
                       <Link href={`/models/${model.slug}`} className="font-medium text-sm leading-tight hover:underline text-foreground line-clamp-2">
@@ -1024,26 +1129,27 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Badge variant={winnerCounts[idx] === maxWins && maxWins > 0 ? "default" : "secondary"} className="text-xs gap-1 py-0 h-5 cursor-help">
-                              <Trophy className="size-2.5" />
+                              <Trophy data-icon="inline-start" />
                               {winnerCounts[idx]}
                             </Badge>
                           </TooltipTrigger>
                           <TooltipContent className="max-w-[200px]">
                             <p className="font-medium">{t.compare.wins(winnerCounts[idx])}</p>
-                            <ul className="mt-1 space-y-0.5">
+                            <ul className="mt-1 flex flex-col gap-0.5">
                               {winnerDetails[idx].map(cat => <li key={cat} className="text-xs opacity-80">· {cat}</li>)}
                             </ul>
                           </TooltipContent>
                         </Tooltip>
                       )}
-                      <button
-                        type="button"
+                      <Button
+                        variant="ghost"
+                        size="xs"
                         onClick={() => removeModel(model.slug)}
-                        className="touch-target flex min-h-10 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                        className="touch-target text-muted-foreground"
                       >
-                        <X className="size-3" />
+                        <X data-icon="inline-start" />
                         {t.compare.remove}
-                      </button>
+                      </Button>
                     </div>
                   </th>
                 ))}
@@ -1060,7 +1166,7 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
                 {models.map(m => <td key={m.id} className="py-2.5 px-4 text-sm text-center font-mono">{m.release_date ?? "—"}</td>)}
               </tr>
 
-              <SectionHeader label={t.compare.sections.capabilities} />
+              <SectionHeader label={t.compare.sections.capabilities} tone="good" />
               <MetricRow label={t.detail.contextWindow} values={models.map(m => m.context_window_tokens ?? null)} dir="higher" format={fmtCtx} />
               <MetricRow label={t.detail.totalParams}   values={models.map(m => m.total_parameters_b ?? null)} dir="higher" format={fmtParams} noBar />
               <MetricRow label={t.detail.activeParams}  values={models.map(m => m.active_parameters_b ?? null)} dir="higher" format={fmtParams} noBar />
@@ -1085,17 +1191,17 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
 
               {hasAAIndexRows && (
                 <>
-                  <SectionHeader label={t.compare.sections.aaIndices} />
-                  <MetricRow label={t.benchmarks.intelligence} values={models.map(m => textMetricValue(m, "artificial_analysis_intelligence_index"))} dir="higher" format={fmt} colorize />
-                  <MetricRow label={t.benchmarks.coding}       values={models.map(m => textMetricValue(m, "artificial_analysis_coding_index"))} dir="higher" format={fmt} colorize />
-                  <MetricRow label={t.benchmarks.math}         values={models.map(m => textMetricValue(m, "artificial_analysis_math_index"))} dir="higher" format={fmt} colorize />
-                  <MetricRow label={t.benchmarks.agentic}      values={models.map(m => textMetricValue(m, "agentic_index"))} dir="higher" format={fmt} colorize />
+                  <SectionHeader label={t.compare.sections.aaIndices} tone="strong" />
+                  <MetricRow label={t.benchmarks.intelligence} values={models.map(m => textMetricValue(m, "artificial_analysis_intelligence_index"))} dir="higher" format={fmt} />
+                  <MetricRow label={t.benchmarks.coding}       values={models.map(m => textMetricValue(m, "artificial_analysis_coding_index"))} dir="higher" format={fmt} />
+                  <MetricRow label={t.benchmarks.math}         values={models.map(m => textMetricValue(m, "artificial_analysis_math_index"))} dir="higher" format={fmt} />
+                  <MetricRow label={t.benchmarks.agentic}      values={models.map(m => textMetricValue(m, "agentic_index"))} dir="higher" format={fmt} />
                 </>
               )}
 
               {hasStandardBenchmarkRows && (
                 <>
-                  <SectionHeader label={t.compare.sections.benchmarks} />
+                  <SectionHeader label={t.compare.sections.benchmarks} tone="good" />
                   <MetricRow label={t.benchmarks.mmlu_pro}          values={models.map(m => textMetricValue(m, "mmlu_pro"))}            dir="higher" format={fmtPct} />
                   <MetricRow label={t.benchmarks.gpqa}              values={models.map(m => textMetricValue(m, "gpqa"))}               dir="higher" format={fmtPct} />
                   <MetricRow label={t.benchmarks.hle}               values={models.map(m => textMetricValue(m, "hle"))}                dir="higher" format={fmtPct} />
@@ -1115,7 +1221,7 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
 
               {hasMediaBenchmarkRows && (
                 <>
-                  <SectionHeader label={t.detail.mediaBenchmarks} />
+                  <SectionHeader label={t.detail.mediaBenchmarks} tone="good" />
                   {AA_MEDIA_BENCHMARK_DEFS.map((def) => (
                     <MetricRow
                       key={def.eloKey}
@@ -1130,7 +1236,7 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
 
               {extraBenchmarkKeys.length > 0 && (
                 <>
-                  <SectionHeader label={t.detail.extraBenchmarks} />
+                  <SectionHeader label={t.detail.extraBenchmarks} tone="moderate" />
                   {extraBenchmarkKeys.map(key => (
                     <MetricRow
                       key={key}
@@ -1143,7 +1249,7 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
                 </>
               )}
 
-              <SectionHeader label={t.compare.sections.performance} />
+              <SectionHeader label={t.compare.sections.performance} tone="moderate" />
               <MetricRow label={t.compare.fields.outputSpeed} values={models.map(m => m.median_output_tokens_per_second)} dir="higher" format={v => v !== null ? `${fmt(v, 0)} t/s` : "—"} />
               <MetricRow label={t.compare.fields.ttft}        values={models.map(m => m.median_time_to_first_token_seconds)} dir="lower" format={v => v !== null ? `${fmt(v, 2)}s` : "—"} />
               <MetricRow label={t.compare.fields.firstAnswer} values={models.map(m => m.median_time_to_first_answer_token)} dir="lower" format={v => v !== null ? `${fmt(v, 2)}s` : "—"} />
@@ -1164,7 +1270,7 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
                 format={v => v !== null ? `${fmt(v, 1)}s` : "—"}
               />
 
-              <SectionHeader label={t.compare.sections.pricing} />
+              <SectionHeader label={t.compare.sections.pricing} tone="moderate" />
               {displayPriceRows.map((row) => (
                 <MetricRow
                   key={row.id}

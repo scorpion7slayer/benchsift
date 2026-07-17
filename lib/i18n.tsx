@@ -115,6 +115,21 @@ export interface Translations {
     unavailableBadge: string;
   };
   detail: {
+    reasoningConfiguration: string;
+    reasoningConfigurationDescription: string;
+    reasoningLevels: {
+      default: string;
+      nonReasoning: string;
+      reasoning: string;
+      adaptiveReasoning: string;
+      thinking: string;
+      minimal: string;
+      low: string;
+      medium: string;
+      high: string;
+      xhigh: string;
+      max: string;
+    };
     aaIndices: string;
     standardBenchmarks: string;
     mediaBenchmarks: string;
@@ -179,6 +194,8 @@ export interface Translations {
   };
   compare: {
     title: string;
+    description: string;
+    selectedCount: (n: number) => string;
     select: string;
     maxReached: string;
     clear: string;
@@ -188,6 +205,13 @@ export interface Translations {
     loading: string;
     backToList: string;
     noModels: string;
+    legend: {
+      label: string;
+      best: string;
+      close: string;
+      intermediate: string;
+      behind: string;
+    };
     sections: {
       info: string;
       capabilities: string;
@@ -434,6 +458,21 @@ const T: Record<Lang, Translations> = {
       unavailableBadge: "Indisponible actuellement",
     },
     detail: {
+      reasoningConfiguration: "Niveau de réflexion",
+      reasoningConfigurationDescription: "Les scores, performances et prix affichés correspondent à la configuration sélectionnée.",
+      reasoningLevels: {
+        default: "Par défaut",
+        nonReasoning: "Sans réflexion",
+        reasoning: "Raisonnement",
+        adaptiveReasoning: "Raisonnement adaptatif",
+        thinking: "Thinking",
+        minimal: "Minimal",
+        low: "Faible",
+        medium: "Moyen",
+        high: "Élevé",
+        xhigh: "Très élevé",
+        max: "Maximum",
+      },
       aaIndices: "Indices Artificial Analysis",
       standardBenchmarks: "Benchmarks standard",
       mediaBenchmarks: "Benchmarks média Artificial Analysis",
@@ -498,6 +537,8 @@ const T: Record<Lang, Translations> = {
     },
     compare: {
       title: "Comparateur de modèles",
+      description: "Comparez les écarts utiles entre benchmarks, vitesse, prix et capacités, configuration par configuration.",
+      selectedCount: (n) => `${n} modèle${n > 1 ? "s" : ""} comparé${n > 1 ? "s" : ""}`,
       select: "modèle(s) sélectionné(s)",
       maxReached: "Maximum 4 modèles",
       clear: "Effacer",
@@ -507,6 +548,13 @@ const T: Record<Lang, Translations> = {
       loading: "Chargement de la comparaison…",
       backToList: "Retour à la liste",
       noModels: "Aucun modèle sélectionné",
+      legend: {
+        label: "Position relative",
+        best: "Meilleur",
+        close: "Proche",
+        intermediate: "Intermédiaire",
+        behind: "En retrait",
+      },
       sections: {
         info: "Informations",
         capabilities: "Capacités",
@@ -760,6 +808,21 @@ const T: Record<Lang, Translations> = {
       unavailableBadge: "Not currently available",
     },
     detail: {
+      reasoningConfiguration: "Reasoning level",
+      reasoningConfigurationDescription: "Scores, performance, and pricing reflect the selected configuration.",
+      reasoningLevels: {
+        default: "Default",
+        nonReasoning: "Non-reasoning",
+        reasoning: "Reasoning",
+        adaptiveReasoning: "Adaptive reasoning",
+        thinking: "Thinking",
+        minimal: "Minimal",
+        low: "Low",
+        medium: "Medium",
+        high: "High",
+        xhigh: "Extra high",
+        max: "Maximum",
+      },
       aaIndices: "Artificial Analysis Indices",
       standardBenchmarks: "Standard Benchmarks",
       mediaBenchmarks: "Artificial Analysis media benchmarks",
@@ -824,6 +887,8 @@ const T: Record<Lang, Translations> = {
     },
     compare: {
       title: "Model Comparator",
+      description: "Compare meaningful differences across benchmarks, speed, pricing, and capabilities, configuration by configuration.",
+      selectedCount: (n) => `${n} model${n === 1 ? "" : "s"} compared`,
       select: "model(s) selected",
       maxReached: "Maximum 4 models",
       clear: "Clear",
@@ -833,6 +898,13 @@ const T: Record<Lang, Translations> = {
       loading: "Loading comparison…",
       backToList: "Back to list",
       noModels: "No models selected",
+      legend: {
+        label: "Relative position",
+        best: "Best",
+        close: "Close",
+        intermediate: "Intermediate",
+        behind: "Behind",
+      },
       sections: {
         info: "Information",
         capabilities: "Capabilities",
