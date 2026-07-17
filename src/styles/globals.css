@@ -87,6 +87,11 @@
   --sidebar-accent-foreground: oklch(0.22 0.006 85);
   --sidebar-border: oklch(0.84 0.012 88);
   --sidebar-ring: oklch(0.62 0.01 88);
+  --stagger-dur: 500ms;
+  --stagger-distance: 12px;
+  --stagger-stagger: 40ms;
+  --stagger-blur: 3px;
+  --stagger-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .dark {
@@ -440,6 +445,160 @@ html.language-transitioning :is(header, main, footer)
 
 .compare-column-added {
   animation: compare-column-added 0.2s ease-out both;
+}
+
+/* Shared 404 state */
+
+/* Lines start translated down + blurred + invisible; .is-shown
+   on the parent flips them to their resting state. The second
+   line's transition-delay holds it back by --stagger-stagger
+   so the eye lands on the headline first. */
+.t-stagger-line {
+  display: block;
+  opacity: 0;
+  transform: translateY(var(--stagger-distance));
+  filter: blur(var(--stagger-blur));
+  transition:
+    opacity   var(--stagger-dur) var(--stagger-ease),
+    transform var(--stagger-dur) var(--stagger-ease),
+    filter    var(--stagger-dur) var(--stagger-ease);
+  will-change: transform, opacity, filter;
+}
+.t-stagger-line--2 { transition-delay: var(--stagger-stagger); }
+
+.t-stagger.is-shown .t-stagger-line {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+/* Exit decouples from the stagger: same fade for every line,
+   no Y return, no blur — so the disappearance reads as a
+   single quiet fade instead of a reverse reveal. */
+.t-stagger.is-hiding .t-stagger-line {
+  opacity: 0;
+  transform: translateY(0);
+  filter: blur(0);
+  transition:
+    opacity 200ms ease,
+    transform 0s linear,
+    filter 0s linear;
+  transition-delay: 0s;
+}
+
+.t-stagger-line--3 {
+  transition-delay: calc(var(--stagger-stagger) * 2);
+}
+
+@keyframes not-found-scan {
+  from {
+    transform: translateX(-102%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes not-found-symbol-in {
+  from {
+    opacity: 0.15;
+    transform: translateY(8px);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes not-found-mark-in {
+  from {
+    opacity: 0;
+    transform: scale(0.84);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes not-found-trace-in {
+  from {
+    opacity: 0;
+    transform: scaleX(0.2);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+.not-found-scan {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  transform: translateX(0);
+  border-right: 1px solid color-mix(in oklch, var(--foreground) 28%, transparent);
+  background: color-mix(in oklch, var(--foreground) 2.5%, transparent);
+  animation: not-found-scan 700ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+}
+
+.not-found-symbol,
+.not-found-zero {
+  animation: not-found-symbol-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.not-found-symbol--first {
+  animation-delay: 80ms;
+}
+
+.not-found-zero {
+  display: inline-flex;
+  width: 0.64em;
+  height: 0.82em;
+  align-items: center;
+  justify-content: center;
+  border: 0.075em solid currentColor;
+  border-radius: 50%;
+  animation-delay: 120ms;
+}
+
+.not-found-symbol--last {
+  animation-delay: 160ms;
+}
+
+.not-found-mark {
+  animation: not-found-mark-in 350ms cubic-bezier(0.22, 1, 0.36, 1) 480ms both;
+}
+
+.not-found-trace {
+  transform-origin: left;
+  animation: not-found-trace-in 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.not-found-trace--one {
+  animation-delay: 260ms;
+}
+
+.not-found-trace--two {
+  animation-delay: 300ms;
+}
+
+.not-found-trace--three {
+  animation-delay: 340ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-stagger-line { transition: none !important; }
+
+  .not-found-scan,
+  .not-found-symbol,
+  .not-found-zero,
+  .not-found-mark,
+  .not-found-trace {
+    animation: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

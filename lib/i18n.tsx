@@ -262,6 +262,15 @@ export interface Translations {
   footer: { via: string; cache: string };
   cookies: { title: string; message: string; dismiss: string };
   error: { title: string; description: string; rateLimitDescription: (s: number) => string; retry: string };
+  notFound: {
+    title: string;
+    description: string;
+    home: string;
+    browse: string;
+    status: string;
+    scanLabel: string;
+    zeroMatches: string;
+  };
   agents: {
     title: string;
     description: string;
@@ -630,6 +639,15 @@ const T: Record<Lang, Translations> = {
       rateLimitDescription: (_s) => "Impossible de charger les données. Réessaie dans un instant.",
       retry: "Réessayer",
     },
+    notFound: {
+      title: "Cette page est introuvable",
+      description: "Cette adresse ne correspond à aucune page ni à aucun modèle du catalogue. Le contenu a peut-être été déplacé ou supprimé.",
+      home: "Retour à l’accueil",
+      browse: "Parcourir les modèles",
+      status: "Page introuvable",
+      scanLabel: "Index BenchSift",
+      zeroMatches: "Aucun résultat",
+    },
     agents: {
       title: "Agents de programmation",
       description: "Performance des harnais (Claude Code, Cursor CLI, OpenCode…) sur l'Artificial Analysis Coding Agent Index, composé de 3 benchmarks : DeepSWE, Terminal-Bench v2 et SWE-Atlas-QnA.",
@@ -995,6 +1013,15 @@ const T: Record<Lang, Translations> = {
       description: "Unable to load data. Please try again in a moment.",
       rateLimitDescription: (_s) => "Unable to load data. Please try again in a moment.",
       retry: "Try again",
+    },
+    notFound: {
+      title: "This page could not be found",
+      description: "This address does not match any page or model in the catalogue. The content may have been moved or removed.",
+      home: "Back to home",
+      browse: "Browse models",
+      status: "Page not found",
+      scanLabel: "BenchSift index",
+      zeroMatches: "No matches",
     },
     agents: {
       title: "Coding Agents",
