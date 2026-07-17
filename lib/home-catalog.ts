@@ -1,5 +1,6 @@
 import type { Evaluations, LLMModel, ModelCreator, Pricing } from "@/lib/api";
 import { modelReleaseTime } from "@/lib/model-release";
+import { collapseReasoningVariants } from "@/lib/model-reasoning";
 
 export interface HomeCatalogModel {
   name: string;
@@ -50,12 +51,13 @@ function latestModelSummaries(models: LLMModel[], limit = 3): LatestModelSummary
 }
 
 export function buildHomeCatalogData(models: LLMModel[]): HomeCatalogData {
+  const catalogModels = collapseReasoningVariants(models);
   const creators = new Map<string, Pick<ModelCreator, "name" | "slug">>();
 
   return {
-    count: models.length,
-    latestModels: latestModelSummaries(models),
-    models: models.map((model) => {
+    count: catalogModels.length,
+    latestModels: latestModelSummaries(catalogModels),
+    models: catalogModels.map((model) => {
       const creatorSlug = model.model_creator.slug;
       let creator = creators.get(creatorSlug);
       if (!creator) {

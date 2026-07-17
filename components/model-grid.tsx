@@ -20,6 +20,7 @@ import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { isOpenWeightsModel, outputModalities, textMetricValue } from "@/lib/model-metrics";
 import { getCanonicalCreatorSlug, getCreatorDisplayName } from "@/lib/provider-map";
+import { collapseReasoningVariants } from "@/lib/model-reasoning";
 import { fetchModels } from "@/lib/server-fns";
 import type { LLMModel } from "@/lib/api";
 import type { HomeCatalogModel } from "@/lib/home-catalog";
@@ -466,7 +467,7 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
 
     void request
       .then((loadedModels) => {
-        if (!cancelled) setNerdModels(loadedModels);
+        if (!cancelled) setNerdModels(collapseReasoningVariants(loadedModels));
       })
       .catch(() => {
         nerdRequestRef.current = null;

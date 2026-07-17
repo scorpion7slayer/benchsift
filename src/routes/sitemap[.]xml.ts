@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getLLMModels } from "@/lib/api";
 import { absoluteUrl } from "@/lib/seo";
-import { shouldIndexModelPage } from "@/lib/model-metrics";
-import { MODEL_CATALOG_PAGE_SIZE } from "@/lib/model-catalog";
+import {
+  getIndexableCatalogModels,
+  MODEL_CATALOG_PAGE_SIZE,
+} from "@/lib/model-catalog";
 
 interface SitemapEntry {
   url: string;
@@ -52,7 +54,7 @@ export const Route = createFileRoute("/sitemap.xml")({
     handlers: {
       GET: async () => {
         const models = await getLLMModels();
-        const indexableModels = models.filter(shouldIndexModelPage);
+        const indexableModels = getIndexableCatalogModels(models);
         const catalogPages = Math.max(
           1,
           Math.ceil(indexableModels.length / MODEL_CATALOG_PAGE_SIZE),

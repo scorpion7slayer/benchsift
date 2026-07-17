@@ -5,12 +5,16 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader, setResponseHeader } from "@tanstack/react-start/server";
 import {
   getLLMModels,
-  getLLMModelBasic,
   getLLMModel,
   getLLMModelSupplementary,
   getCodingAgents,
   type LLMModel,
 } from "@/lib/api";
+import {
+  getModelReasoningFamily,
+  toModelDetailData,
+  type ModelDetailData,
+} from "@/lib/model-reasoning";
 import { getDeepSweData, type DeepSweData } from "@/lib/deepswe";
 import type { CompareModelOption } from "@/lib/compare-model";
 import type { Lang } from "@/lib/i18n";
@@ -51,12 +55,13 @@ export const fetchHomeCatalog = createServerFn({ method: "GET" }).handler(
   },
 );
 
-/** A single model's base data (no scraped capabilities). */
-export const fetchModelBasic = createServerFn({ method: "GET" })
+/** A model and its matching reasoning variants (no scraped capabilities). */
+export const fetchModelDetail = createServerFn({ method: "GET" })
   .inputValidator((slug: string) => slug)
-  .handler(async ({ data }): Promise<LLMModel | null> => {
+  .handler(async ({ data }): Promise<ModelDetailData | null> => {
     if (!isSafeSlug(data)) return null;
-    return (await getLLMModelBasic(data)) ?? null;
+    const family = getModelReasoningFamily(await getLLMModels(), data);
+    return family ? toModelDetailData(family, data) : null;
   });
 
 /** Scraped capabilities for a model (context window, modalities, params…). */

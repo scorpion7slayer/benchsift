@@ -3,11 +3,24 @@ import { Progress as ProgressPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
+export type ProgressTone = "default" | "strong" | "good" | "moderate" | "low"
+
+const indicatorToneClassNames: Record<ProgressTone, string> = {
+  default: "bg-primary",
+  strong: "bg-chart-1",
+  good: "bg-chart-2",
+  moderate: "bg-chart-3",
+  low: "bg-chart-4",
+}
+
 function Progress({
   className,
+  tone = "default",
   value,
   ...props
-}: React.ComponentProps<typeof ProgressPrimitive.Root>) {
+}: React.ComponentProps<typeof ProgressPrimitive.Root> & {
+  tone?: ProgressTone
+}) {
   return (
     <ProgressPrimitive.Root
       data-slot="progress"
@@ -19,8 +32,11 @@ function Progress({
     >
       <ProgressPrimitive.Indicator
         data-slot="progress-indicator"
-        className="size-full flex-1 bg-primary transition-transform duration-200"
-        style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
+        className={cn(
+          "size-full flex-1 transition-transform duration-200",
+          indicatorToneClassNames[tone]
+        )}
+        style={{ transform: `translateX(-${100 - (value ?? 0)}%)` }}
       />
     </ProgressPrimitive.Root>
   )
