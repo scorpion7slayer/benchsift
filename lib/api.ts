@@ -95,7 +95,9 @@ export interface Evaluations {
   ifbench: number | null;
   lcr: number | null;
   terminalbench_hard: number | null;
+  terminalbench_v2_1: number | null;
   tau2: number | null;
+  tau_banking: number | null;
   // Newer AA benchmarks / Benchmarks AA plus récents
   apex_agents?: number | null;          // APEX-Agents-AA (long-horizon agentic)
   omniscience_non_hallucination?: number | null; // AA-Omniscience non-hallucination rate
@@ -424,7 +426,9 @@ async function buildPartialModel(slug: string, includeCapabilities = true): Prom
       ifbench:           extractJsonNum(html, "ifbench"),
       lcr:               extractJsonNum(html, "lcr"),
       terminalbench_hard: extractJsonNum(html, "terminalbench_hard"),
+      terminalbench_v2_1: extractJsonNum(html, "terminalbench_v2_1"),
       tau2:              extractJsonNum(html, "tau2"),
+      tau_banking:       extractJsonNum(html, "tau_banking"),
       agentic_index:     extractJsonNum(html, "agentic_index"),
       gdpval:            extractJsonNum(html, "gdpval"),
       gdpval_normalized: extractJsonNum(html, "gdpval_normalized"),
