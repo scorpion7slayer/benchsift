@@ -2,7 +2,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { ModelCatalogPage } from "@/components/model-catalog-page";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { getModelCatalogPage } from "@/lib/model-catalog";
+import { getModelCatalogPage, MODEL_CATALOG_PAGE_SIZE } from "@/lib/model-catalog";
 import { absoluteUrl, seo } from "@/lib/seo";
 import { fetchModels } from "@/lib/server-fns";
 
@@ -29,6 +29,17 @@ export const Route = createFileRoute("/models/page/$page")({
         "@type": "CollectionPage",
         name: `All AI Models - Page ${page}`,
         url: absoluteUrl(`/models/page/${page}`),
+        mainEntity: {
+          "@type": "ItemList",
+          numberOfItems: loaderData?.totalModels,
+          itemListOrder: "https://schema.org/ItemListOrderAscending",
+          itemListElement: loaderData?.models.map((model, index) => ({
+            "@type": "ListItem",
+            position: (page - 1) * MODEL_CATALOG_PAGE_SIZE + index + 1,
+            name: model.name,
+            url: absoluteUrl(`/models/${encodeURIComponent(model.slug)}`),
+          })),
+        },
       },
     });
   },

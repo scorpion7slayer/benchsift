@@ -11,7 +11,12 @@ interface ProvidersProps {
 
 export function Providers({ children, initialLang, initialTheme }: ProvidersProps) {
   return (
-    <ThemeProvider attribute="class" defaultTheme={initialTheme ?? "system"} enableSystem>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme={initialTheme ?? "system"}
+      enableSystem
+      disableTransitionOnChange
+    >
       <LanguageProvider initialLang={initialLang}>
         <CompareProvider>
           <TooltipProvider>{children}</TooltipProvider>

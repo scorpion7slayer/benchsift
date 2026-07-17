@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useId } from "react";
 import { Link } from "@/components/link";
 import { useNavigate } from "@tanstack/react-router";
 import { GitCompareArrows, ChevronLeft, Search, X, Check, Trophy, Type, ImageIcon, Video, Mic, Info } from "lucide-react";
@@ -338,6 +338,48 @@ function ComparisonLegend() {
   );
 }
 
+function ComparePageHeader({
+  modelCount,
+  onClear,
+}: {
+  modelCount: number;
+  onClear?: () => void;
+}) {
+  const { t } = useI18n();
+
+  return (
+    <section className="flex flex-col gap-4 border-b border-border/70 pb-5 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex min-w-0 items-start gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card text-muted-foreground">
+          <GitCompareArrows className="size-5" />
+        </span>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-semibold tracking-tight">{t.compare.title}</h1>
+            <Badge variant="secondary">{t.compare.selectedCount(modelCount)}</Badge>
+          </div>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            {t.compare.description}
+          </p>
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <Button variant="outline" size="sm" asChild className="touch-target">
+          <Link href="/" aria-label={t.compare.backToList}>
+            <ChevronLeft data-icon="inline-start" />
+            <span className="hidden sm:inline">{t.compare.backToList}</span>
+          </Link>
+        </Button>
+        {modelCount > 0 && onClear ? (
+          <Button variant="ghost" size="sm" className="touch-target" onClick={onClear}>
+            {t.compare.clear}
+          </Button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 interface MobileRowProps {
   label: React.ReactNode;
   value: string;
@@ -527,37 +569,16 @@ function MobileCompareView({
 
       {/* Add model search */}
       {!isFull && (
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-          <Input
-            type="search"
-            placeholder={`${t.compare.addModel}…`}
-            aria-label={t.compare.addModel}
-            autoComplete="off"
-            value={addSearch}
-            onChange={(e) => setAddSearch(e.target.value)}
-            className="pl-9 pr-9"
-          />
-          {addSearch && (
-            <button
-              type="button"
-              onClick={() => setAddSearch("")}
-              aria-label={t.compare.clear}
-              className="touch-target absolute right-0 top-1/2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <X className="size-4" />
-            </button>
-          )}
-          <SearchDropdown
-            results={searchResults}
-            query={addSearch}
-            onAdd={(result) => {
-              onAdd(result);
-              setAddSearch("");
-              setActiveIdx(models.length);
-            }}
-          />
-        </div>
+        <CompareModelSearch
+          query={addSearch}
+          results={searchResults}
+          onQueryChange={setAddSearch}
+          onAdd={(result) => {
+            onAdd(result);
+            setAddSearch("");
+            setActiveIdx(models.length);
+          }}
+        />
       )}
 
       {models.length > 1 && <ComparisonLegend />}
@@ -602,7 +623,9 @@ function MobileCompareView({
               [t.benchmarks.ifbench,           textMetricValue(m, "ifbench"),           (x: LLMModel) => textMetricValue(x, "ifbench")],
               [t.benchmarks.lcr,               textMetricValue(m, "lcr"),               (x: LLMModel) => textMetricValue(x, "lcr")],
               [t.benchmarks.terminalbench_hard, textMetricValue(m, "terminalbench_hard"),(x: LLMModel) => textMetricValue(x, "terminalbench_hard")],
+              [t.benchmarks.terminalbench_v2_1, textMetricValue(m, "terminalbench_v2_1"),(x: LLMModel) => textMetricValue(x, "terminalbench_v2_1")],
               [t.benchmarks.tau2,              textMetricValue(m, "tau2"),              (x: LLMModel) => textMetricValue(x, "tau2")],
+              [t.benchmarks.tau_banking,       textMetricValue(m, "tau_banking"),       (x: LLMModel) => textMetricValue(x, "tau_banking")],
               [t.benchmarks.gdpval_normalized, textMetricValue(m, "gdpval_normalized"), (x: LLMModel) => textMetricValue(x, "gdpval_normalized")],
               [t.benchmarks.itbench_aa,        textMetricValue(m, "itbench_aa"),        (x: LLMModel) => textMetricValue(x, "itbench_aa")],
             ] as [string, number | null, (x: LLMModel) => number | null][]).map(([label, val, getter]) =>
@@ -793,10 +816,12 @@ function MobileCompareView({
 // ─── Search results dropdown (shared) ────────────────────────────────────────
 
 function SearchDropdown({
+  id,
   results,
   onAdd,
   query,
 }: {
+  id: string;
   results: CompareModelOption[];
   onAdd: (m: CompareModelOption) => void;
   query: string;
@@ -806,6 +831,7 @@ function SearchDropdown({
     if (!query.trim()) return null;
     return (
       <div
+        id={id}
         role="status"
         className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg border bg-popover px-3 py-4 text-center text-sm text-muted-foreground shadow-md"
       >
@@ -815,6 +841,7 @@ function SearchDropdown({
   }
   return (
     <div
+      id={id}
       role="listbox"
       aria-label={t.compare.addModel}
       className="compare-search-dropdown absolute top-full left-0 right-0 z-50 mt-1 max-h-72 overflow-y-auto rounded-lg border bg-popover shadow-md"
@@ -843,6 +870,65 @@ function SearchDropdown({
           )}
         </button>
       ))}
+    </div>
+  );
+}
+
+function CompareModelSearch({
+  query,
+  results,
+  onQueryChange,
+  onAdd,
+  className,
+  inputClassName,
+  label,
+  inputId,
+}: {
+  query: string;
+  results: CompareModelOption[];
+  onQueryChange: (value: string) => void;
+  onAdd: (model: CompareModelOption) => void;
+  className?: string;
+  inputClassName?: string;
+  label?: string;
+  inputId?: string;
+}) {
+  const { t } = useI18n();
+  const listboxId = useId();
+  const hasQuery = query.trim().length > 0;
+  const accessibleLabel = label ?? t.compare.addModel;
+
+  return (
+    <div className={cn("relative", className)}>
+      <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        id={inputId}
+        type="search"
+        placeholder={`${t.compare.addModel}…`}
+        aria-label={accessibleLabel}
+        aria-autocomplete="list"
+        aria-controls={hasQuery ? listboxId : undefined}
+        aria-expanded={hasQuery}
+        aria-haspopup="listbox"
+        autoComplete="off"
+        value={query}
+        onChange={(event) => onQueryChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && query) onQueryChange("");
+        }}
+        className={cn("pl-9 pr-10", inputClassName)}
+      />
+      {query ? (
+        <button
+          type="button"
+          onClick={() => onQueryChange("")}
+          aria-label={t.compare.clear}
+          className="touch-target absolute right-0 top-1/2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <X className="size-4" />
+        </button>
+      ) : null}
+      <SearchDropdown id={listboxId} results={results} onAdd={onAdd} query={query} />
     </div>
   );
 }
@@ -937,6 +1023,8 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
       { vals: models.map(m => textMetricValue(m, "livecodebench")), dir: "higher", label: t.benchmarks.livecodebench },
       { vals: models.map(m => textMetricValue(m, "math_500")), dir: "higher", label: t.benchmarks.math_500 },
       { vals: models.map(m => textMetricValue(m, "aime_25")), dir: "higher", label: t.benchmarks.aime_25 },
+      { vals: models.map(m => textMetricValue(m, "terminalbench_v2_1")), dir: "higher", label: t.benchmarks.terminalbench_v2_1 },
+      { vals: models.map(m => textMetricValue(m, "tau_banking")), dir: "higher", label: t.benchmarks.tau_banking },
       { vals: models.map(m => m.median_output_tokens_per_second), dir: "higher", label: t.compare.fields.outputSpeed },
       { vals: models.map(m => m.median_time_to_first_token_seconds), dir: "lower", label: t.compare.fields.ttft },
       { vals: models.map(m => m.pricing.price_1m_blended_3_to_1), dir: "lower", label: t.compare.fields.blendedPrice },
@@ -965,85 +1053,87 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
   if (models.length === 0) {
     const dataUnavailable = allModels.length === 0;
     return (
-      <div className="compare-empty-state flex-1 flex flex-col items-center justify-center gap-6 text-center py-12">
-        <GitCompareArrows className="size-12 text-muted-foreground" />
-        <div className="flex flex-col gap-1">
-          <p className="font-medium">
-            {dataUnavailable ? t.grid.unavailableTitle : t.compare.noModels}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {dataUnavailable ? t.grid.unavailableDescription : t.compare.addMore}
-          </p>
-        </div>
-        {!dataUnavailable && <div className="relative w-full max-w-md">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-            <Input
-              type="search"
-              placeholder={`${t.compare.addModel}…`}
-              aria-label={t.compare.addModel}
-              autoComplete="off"
-              value={addSearch}
-              onChange={(e) => setAddSearch(e.target.value)}
-              className="pl-9 pr-9"
-            />
-            {addSearch && (
-              <button
-                type="button"
-                onClick={() => setAddSearch("")}
-                aria-label={t.compare.clear}
-                className="touch-target absolute right-0 top-1/2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <X className="size-4" />
-              </button>
-            )}
-          </div>
-          <SearchDropdown results={searchResults} onAdd={addModel} query={addSearch} />
-        </div>}
-        <Button variant="outline" size="sm" asChild className="touch-target">
-          <Link href="/">{t.compare.backToList}</Link>
-        </Button>
+      <div className="flex flex-col gap-6">
+        <ComparePageHeader modelCount={0} />
+
+        {dataUnavailable ? (
+          <section className="compare-empty-state flex min-h-72 flex-col items-center justify-center rounded-xl border border-border/70 bg-card px-6 py-12 text-center">
+            <span className="mb-5 flex size-12 items-center justify-center rounded-xl bg-chart-4/12 text-chart-4">
+              <GitCompareArrows className="size-6" />
+            </span>
+            <h2 className="text-lg font-semibold tracking-tight">{t.grid.unavailableTitle}</h2>
+            <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+              {t.grid.unavailableDescription}
+            </p>
+          </section>
+        ) : (
+          <section className="compare-empty-state grid rounded-xl border border-border/70 bg-card lg:grid-cols-[minmax(0,1.2fr)_minmax(19rem,0.8fr)]">
+            <div className="min-w-0 p-6 sm:p-8 lg:p-10">
+              <span className="flex size-12 items-center justify-center rounded-xl bg-chart-2/12 text-chart-2">
+                <GitCompareArrows className="size-6" />
+              </span>
+              <h2 className="mt-6 text-xl font-semibold tracking-tight sm:text-2xl">
+                {t.compare.emptyTitle}
+              </h2>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+                {t.compare.emptyDescription}
+              </p>
+
+              <div className="mt-7 max-w-xl">
+                <label htmlFor="compare-empty-search" className="mb-2 block text-sm font-medium">
+                  {t.compare.emptySearchLabel}
+                </label>
+                <CompareModelSearch
+                  query={addSearch}
+                  results={searchResults}
+                  onQueryChange={setAddSearch}
+                  onAdd={addModel}
+                  label={t.compare.emptySearchLabel}
+                  inputId="compare-empty-search"
+                  inputClassName="h-12 bg-background text-base shadow-xs"
+                />
+                <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                  {t.compare.emptySearchHint}
+                </p>
+              </div>
+            </div>
+
+            <aside className="border-t border-border/70 bg-muted/25 p-6 sm:p-8 lg:border-l lg:border-t-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                {t.compare.emptyGuideTitle}
+              </p>
+              <ol className="mt-6 space-y-6">
+                {t.compare.emptySteps.map((step, index) => (
+                  <li key={step.title} className="flex gap-4">
+                    <span
+                      className={cn(
+                        "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                        index === 0 && "bg-chart-2 text-background",
+                        index === 1 && "bg-chart-1 text-background",
+                        index === 2 && "bg-chart-3 text-background",
+                      )}
+                    >
+                      {index + 1}
+                    </span>
+                    <div className="min-w-0 pt-0.5">
+                      <p className="text-sm font-medium text-foreground">{step.title}</p>
+                      <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                        {step.description}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </aside>
+          </section>
+        )}
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Page header */}
-      <section className="flex flex-col gap-4 border-b border-border/70 pb-5 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card text-muted-foreground">
-            <GitCompareArrows className="size-5" />
-          </span>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-tight">{t.compare.title}</h1>
-              <Badge variant="secondary">{t.compare.selectedCount(models.length)}</Badge>
-            </div>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              {t.compare.description}
-            </p>
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Button variant="outline" size="sm" asChild className="touch-target">
-            <Link href="/" aria-label={t.compare.backToList}>
-              <ChevronLeft data-icon="inline-start" />
-              <span className="hidden sm:inline">{t.compare.backToList}</span>
-            </Link>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="touch-target"
-            onClick={() => {
-              navigateToCompare([]);
-            }}
-          >
-            {t.compare.clear}
-          </Button>
-        </div>
-      </section>
+      <ComparePageHeader modelCount={models.length} onClear={() => navigateToCompare([])} />
 
       {/* ── MOBILE VIEW ─────────────────────────────────────────────────── */}
       <div
@@ -1069,29 +1159,13 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
       >
         {/* Add model search */}
         {!compareIsFull && (
-          <div className="relative max-w-xl">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-            <Input
-              type="search"
-              placeholder={`${t.compare.addModel}…`}
-              aria-label={t.compare.addModel}
-              autoComplete="off"
-              value={addSearch}
-              onChange={(e) => setAddSearch(e.target.value)}
-              className="pl-9 pr-9"
-            />
-            {addSearch && (
-              <button
-                type="button"
-                onClick={() => setAddSearch("")}
-                aria-label={t.compare.clear}
-                className="touch-target absolute right-0 top-1/2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <X className="size-4" />
-              </button>
-            )}
-            <SearchDropdown results={searchResults} onAdd={addModel} query={addSearch} />
-          </div>
+          <CompareModelSearch
+            query={addSearch}
+            results={searchResults}
+            onQueryChange={setAddSearch}
+            onAdd={addModel}
+            className="max-w-xl"
+          />
         )}
 
         {models.length > 1 && <ComparisonLegend />}
@@ -1213,7 +1287,9 @@ export function CompareTable({ models, allModels }: { models: LLMModel[]; allMod
                   <MetricRow label={t.benchmarks.ifbench}           values={models.map(m => textMetricValue(m, "ifbench"))}            dir="higher" format={fmtPct} />
                   <MetricRow label={t.benchmarks.lcr}               values={models.map(m => textMetricValue(m, "lcr"))}                dir="higher" format={fmtPct} />
                   <MetricRow label={t.benchmarks.terminalbench_hard} values={models.map(m => textMetricValue(m, "terminalbench_hard"))} dir="higher" format={fmtPct} />
+                  <MetricRow label={t.benchmarks.terminalbench_v2_1} values={models.map(m => textMetricValue(m, "terminalbench_v2_1"))} dir="higher" format={fmtPct} />
                   <MetricRow label={t.benchmarks.tau2}              values={models.map(m => textMetricValue(m, "tau2"))}               dir="higher" format={fmtPct} />
+                  <MetricRow label={t.benchmarks.tau_banking}       values={models.map(m => textMetricValue(m, "tau_banking"))}        dir="higher" format={fmtPct} />
                   <MetricRow label={t.benchmarks.gdpval_normalized} values={models.map(m => textMetricValue(m, "gdpval_normalized"))} dir="higher" format={fmtPct} />
                   <MetricRow label={t.benchmarks.itbench_aa}        values={models.map(m => textMetricValue(m, "itbench_aa"))}        dir="higher" format={fmtPct} />
                 </>

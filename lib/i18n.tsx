@@ -87,6 +87,10 @@ export interface Translations {
   catalog: {
     title: string;
     description: string;
+    sortedBy: string;
+    explore: string;
+    directoryLabel: string;
+    model: string;
     page: (page: number, totalPages: number) => string;
     pagination: string;
     previous: string;
@@ -205,6 +209,12 @@ export interface Translations {
     loading: string;
     backToList: string;
     noModels: string;
+    emptyTitle: string;
+    emptyDescription: string;
+    emptySearchLabel: string;
+    emptySearchHint: string;
+    emptyGuideTitle: string;
+    emptySteps: Array<{ title: string; description: string }>;
     legend: {
       label: string;
       best: string;
@@ -329,7 +339,9 @@ export interface Translations {
     ifbench: string;
     lcr: string;
     terminalbench_hard: string;
+    terminalbench_v2_1: string;
     tau2: string;
+    tau_banking: string;
     humaneval: string;
     omniscience: string;
     multilingual: string;
@@ -428,8 +440,12 @@ const T: Record<Lang, Translations> = {
       },
     },
     catalog: {
-      title: "Catalogue des modèles",
-      description: "Parcourez toutes les fiches de modèles indexables, page par page, sans modifier les filtres et tris de l'accueil.",
+      title: "Répertoire des modèles",
+      description: "Retrouvez toutes les fiches BenchSift dans un répertoire léger et complet, puis ouvrez chaque modèle pour explorer ses benchmarks, prix et capacités.",
+      sortedBy: "classé par fournisseur et par nom",
+      explore: "Explorer avec les filtres",
+      directoryLabel: "Répertoire alphabétique des modèles",
+      model: "Modèle",
       page: (page, totalPages) => `Page ${page} sur ${totalPages}`,
       pagination: "Pagination du catalogue de modèles",
       previous: "Précédent",
@@ -548,6 +564,16 @@ const T: Record<Lang, Translations> = {
       loading: "Chargement de la comparaison…",
       backToList: "Retour à la liste",
       noModels: "Aucun modèle sélectionné",
+      emptyTitle: "Construisez votre comparaison",
+      emptyDescription: "Commencez par un modèle, puis ajoutez-en jusqu'à quatre pour voir où chaque configuration prend l'avantage.",
+      emptySearchLabel: "Rechercher le premier modèle",
+      emptySearchHint: "Essayez GPT, Claude, Gemini, Qwen ou le nom d'un fournisseur.",
+      emptyGuideTitle: "Du premier choix au verdict",
+      emptySteps: [
+        { title: "Choisissez une configuration", description: "Les niveaux de réflexion restent distincts pour comparer les bons scores." },
+        { title: "Lisez les écarts utiles", description: "Benchmarks, vitesse, prix et capacités sont réunis dans une seule vue." },
+        { title: "Partagez le résultat", description: "Votre sélection reste dans l'URL pour être retrouvée ou envoyée." },
+      ],
       legend: {
         label: "Position relative",
         best: "Meilleur",
@@ -681,7 +707,9 @@ const T: Record<Lang, Translations> = {
       ifbench: "IFBench",
       lcr: "AA-LCR",
       terminalbench_hard: "TerminalBench Hard",
+      terminalbench_v2_1: "Terminal-Bench 2.1",
       tau2: "τ²-Bench",
+      tau_banking: "τ-Bench Banking",
       humaneval: "HumanEval",
       omniscience: "AA-Omniscience",
       multilingual: "Multilingual AA",
@@ -778,8 +806,12 @@ const T: Record<Lang, Translations> = {
       },
     },
     catalog: {
-      title: "Model catalog",
-      description: "Browse every indexable model page by page, without changing the filters and sorting on the homepage.",
+      title: "Model directory",
+      description: "Find every BenchSift model page in one lightweight directory, then open a model to explore its benchmarks, pricing, and capabilities.",
+      sortedBy: "sorted by provider and name",
+      explore: "Explore with filters",
+      directoryLabel: "Alphabetical model directory",
+      model: "Model",
       page: (page, totalPages) => `Page ${page} of ${totalPages}`,
       pagination: "Model catalog pagination",
       previous: "Previous",
@@ -898,6 +930,16 @@ const T: Record<Lang, Translations> = {
       loading: "Loading comparison…",
       backToList: "Back to list",
       noModels: "No models selected",
+      emptyTitle: "Build your comparison",
+      emptyDescription: "Start with one model, then add up to four to see where each configuration has an advantage.",
+      emptySearchLabel: "Find the first model",
+      emptySearchHint: "Try GPT, Claude, Gemini, Qwen, or a provider name.",
+      emptyGuideTitle: "From first choice to verdict",
+      emptySteps: [
+        { title: "Choose a configuration", description: "Reasoning levels stay separate so you compare the right scores." },
+        { title: "Read meaningful gaps", description: "Benchmarks, speed, pricing, and capabilities share one view." },
+        { title: "Share the result", description: "Your selection stays in the URL so it can be revisited or sent." },
+      ],
       legend: {
         label: "Relative position",
         best: "Best",
@@ -1031,7 +1073,9 @@ const T: Record<Lang, Translations> = {
       ifbench: "IFBench",
       lcr: "AA-LCR",
       terminalbench_hard: "TerminalBench Hard",
+      terminalbench_v2_1: "Terminal-Bench 2.1",
       tau2: "τ²-Bench",
+      tau_banking: "τ-Bench Banking",
       humaneval: "HumanEval",
       omniscience: "AA-Omniscience",
       multilingual: "Multilingual AA",

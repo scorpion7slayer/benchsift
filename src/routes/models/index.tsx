@@ -11,7 +11,7 @@ export const Route = createFileRoute("/models/")({
     const models = await fetchModels();
     return getModelCatalogPage(models, 1)!;
   },
-  head: () =>
+  head: ({ loaderData }) =>
     seo({
       title: "All AI Models - BenchSift",
       description:
@@ -22,6 +22,17 @@ export const Route = createFileRoute("/models/")({
         "@type": "CollectionPage",
         name: "All AI Models",
         url: absoluteUrl("/models"),
+        mainEntity: {
+          "@type": "ItemList",
+          numberOfItems: loaderData?.totalModels,
+          itemListOrder: "https://schema.org/ItemListOrderAscending",
+          itemListElement: loaderData?.models.map((model, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            name: model.name,
+            url: absoluteUrl(`/models/${encodeURIComponent(model.slug)}`),
+          })),
+        },
       },
     }),
   component: ModelsIndexPage,

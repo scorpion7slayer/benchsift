@@ -33,7 +33,9 @@ export const TEXT_BENCHMARK_KEYS = new Set([
   "ifbench",
   "lcr",
   "terminalbench_hard",
+  "terminalbench_v2_1",
   "tau2",
+  "tau_banking",
   "humaneval",
   "omniscience",
   "multilingual_aa",
@@ -100,7 +102,9 @@ export function createEmptyEvaluations(): Evaluations {
     ifbench: null,
     lcr: null,
     terminalbench_hard: null,
+    terminalbench_v2_1: null,
     tau2: null,
+    tau_banking: null,
   };
 }
 
