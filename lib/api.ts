@@ -18,7 +18,7 @@ import { fetchAAMediaModels, mergeAAMediaModels } from "@/lib/aa-media";
 import { extractAAAvailabilityStatus, type ModelAvailabilityStatus } from "@/lib/model-availability";
 import type { CodingAgent } from "@/lib/coding-agents";
 import { mergeModelHistory } from "@/lib/model-history";
-import { isOpenRouterNonModelId } from "@/lib/openrouter-model-filter";
+import { isExcludedOpenRouterModelId } from "@/lib/openrouter-model-filter";
 
 const BASE_URL = "https://artificialanalysis.ai/api/v2";
 const API_FETCH_TIMEOUT_MS = 8_000;
@@ -833,7 +833,10 @@ function removeExcludedOpenRouterModels(models: LLMModel[]): LLMModel[] {
   return models.filter(
     (model) =>
       !isOpenRouterOnlyMovingAliasModel(model) &&
-      !isOpenRouterNonModelId(model.id),
+      !(
+        model.id.startsWith("openrouter:") &&
+        isExcludedOpenRouterModelId(model.id)
+      ),
   );
 }
 

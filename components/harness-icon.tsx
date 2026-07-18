@@ -1,7 +1,7 @@
 import {
   ClaudeCode, Cursor, OpenCode, Codex, OpenHands, Cline, Amp,
   Antigravity, Junie, Trae, Windsurf, GithubCopilot, Copilot,
-  GeminiCLI, KiloCode, RooCode,
+  GeminiCLI, KiloCode, RooCode, Grok, Kimi,
 } from "@lobehub/icons";
 import { Terminal } from "lucide-react";
 
@@ -52,6 +52,13 @@ export function HarnessIcon({ slug, size = 20 }: { slug: string; size?: number }
     case "roocode":
     case "roo-code":
       return <RooCode.Avatar size={size} />;
+    case "grok":
+    case "grok-build":
+      return <Grok.Avatar size={size} />;
+    case "kimi":
+    case "kimi-code":
+    case "kimi-code-cli":
+      return <Kimi.Avatar size={size} />;
     default:
       return <Terminal size={size} className="text-muted-foreground" />;
   }
