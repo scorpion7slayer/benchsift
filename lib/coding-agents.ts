@@ -51,4 +51,6 @@ export const CODING_AGENT_HARNESSES: Record<string, { name: string; icon: string
   "gemini-cli":    { name: "Gemini CLI",    icon: "geminicli" },
   "kilo-code":     { name: "KiloCode",      icon: "kilocode" },
   "roo-code":      { name: "RooCode",       icon: "roocode" },
+  "grok-build":    { name: "Grok Build",    icon: "grok" },
+  "kimi-code-cli": { name: "Kimi Code CLI", icon: "kimi" },
 };

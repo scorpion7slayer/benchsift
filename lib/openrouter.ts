@@ -1,7 +1,7 @@
 import type { LLMModel } from "@/lib/api";
 import { createEmptyEvaluations } from "@/lib/model-metrics";
 import { getCanonicalCreatorSlug } from "@/lib/provider-map";
-import { isOpenRouterNonModelId } from "@/lib/openrouter-model-filter";
+import { filterOpenRouterCatalogEntries } from "@/lib/openrouter-model-filter";
 
 const OR_BASE = "https://openrouter.ai/api/v1";
 const OPENROUTER_APP_REFERER = "https://benchsift.nxtaigen.com";
@@ -129,9 +129,7 @@ export async function getOpenRouterModels(
     );
     if (!res.ok) return [];
     const json = (await res.json()) as { data?: OpenRouterModel[] };
-    const models = (json.data ?? []).filter(
-      (model) => !isOpenRouterNonModelId(model.id),
-    );
+    const models = filterOpenRouterCatalogEntries(json.data ?? []);
     await enrichOpenRouterDisplayPricing(models);
     return models;
   } catch {
@@ -301,10 +299,11 @@ async function getOpenRouterUsageRankings(apiKey?: string): Promise<OpenRouterRa
     );
     if (!res.ok) return [];
     const json = (await res.json()) as { data?: OpenRouterModel[] };
-    return (json.data ?? []).map((model) => ({
-      model_permaslug: model.id,
-      variant_permaslug: model.canonical_slug,
-    }));
+    return filterOpenRouterCatalogEntries(json.data ?? [])
+      .map((model) => ({
+        model_permaslug: model.id,
+        variant_permaslug: model.canonical_slug,
+      }));
   } catch {
     return [];
   }
