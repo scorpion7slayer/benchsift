@@ -120,6 +120,53 @@ const CREATOR_CANONICAL_SLUG: Record<string, string> = {
   zhipu: "zai",
 };
 
+interface ModelProviderOverride {
+  modelSlugPattern: RegExp;
+  provider: string;
+}
+
+const QWEN_PROVIDER_OVERRIDE: ModelProviderOverride = {
+  modelSlugPattern: /^(?:qwen|qwq|qvq)/,
+  provider: "qwen",
+};
+const KIMI_PROVIDER_OVERRIDE: ModelProviderOverride = {
+  modelSlugPattern: /^kimi/,
+  provider: "kimi",
+};
+const LONGCAT_PROVIDER_OVERRIDE: ModelProviderOverride = {
+  modelSlugPattern: /^longcat/,
+  provider: "longcat",
+};
+
+const MODEL_PROVIDER_OVERRIDE_BY_CREATOR: Readonly<Record<string, ModelProviderOverride>> = {
+  alibaba: QWEN_PROVIDER_OVERRIDE,
+  qwen: QWEN_PROVIDER_OVERRIDE,
+  kimi: KIMI_PROVIDER_OVERRIDE,
+  moonshot: KIMI_PROVIDER_OVERRIDE,
+  moonshotai: KIMI_PROVIDER_OVERRIDE,
+  meituan: LONGCAT_PROVIDER_OVERRIDE,
+};
+
+interface CreatorPrefixRule {
+  creator: string;
+  modelSlugPattern: RegExp;
+}
+
+const CREATOR_FROM_MODEL_PREFIXES: readonly CreatorPrefixRule[] = [
+  { modelSlugPattern: /^glm/, creator: "zai" },
+  { modelSlugPattern: /^composer/, creator: "cursor" },
+  { modelSlugPattern: /^claude/, creator: "anthropic" },
+  { modelSlugPattern: /^(?:gpt|o1|o3|o4)/, creator: "openai" },
+  { modelSlugPattern: /^gemini/, creator: "google" },
+  { modelSlugPattern: /^kimi/, creator: "moonshot" },
+  { modelSlugPattern: /^deepseek/, creator: "deepseek" },
+  { modelSlugPattern: /^(?:qwen|qwq|qvq)/, creator: "qwen" },
+  { modelSlugPattern: /^llama/, creator: "meta" },
+  { modelSlugPattern: /^(?:mistral|mixtral|codestral)/, creator: "mistral" },
+  { modelSlugPattern: /^grok/, creator: "xai" },
+  { modelSlugPattern: /^mimo/, creator: "xiaomi" },
+];
+
 export function getCanonicalCreatorSlug(creatorSlug: string): string {
   const slug = creatorSlug.toLowerCase();
   return CREATOR_CANONICAL_SLUG[slug] ?? slug;
@@ -140,22 +187,10 @@ export function getProviderKey(creatorSlug: string): string {
 export function getModelProviderKey(modelSlug: string, creatorSlug: string): string {
   const slug = modelSlug.toLowerCase();
   const creator = getCanonicalCreatorSlug(creatorSlug);
-  if (
-    (creator === "alibaba" || creator === "qwen") &&
-    (slug.startsWith("qwen") || slug.startsWith("qwq") || slug.startsWith("qvq"))
-  ) {
-    return "qwen";
-  }
-  if (
-    (creator === "kimi" || creator === "moonshot" || creator === "moonshotai") &&
-    slug.startsWith("kimi")
-  ) {
-    return "kimi";
-  }
-  if (creator === "meituan" && slug.startsWith("longcat")) {
-    return "longcat";
-  }
-  return getProviderKey(creator);
+  const override = MODEL_PROVIDER_OVERRIDE_BY_CREATOR[creator];
+  return override?.modelSlugPattern.test(slug)
+    ? override.provider
+    : getProviderKey(creator);
 }
 
 /**
@@ -196,17 +231,6 @@ export function getCreatorDisplayName(slug: string, apiName: string): string {
  */
 export function resolveCreatorFromModelSlug(modelSlug: string, hostFallback: string): string {
   const slug = modelSlug.toLowerCase();
-  if (slug.startsWith("glm")) return "zai";
-  if (slug.startsWith("composer")) return "cursor";
-  if (slug.startsWith("claude")) return "anthropic";
-  if (slug.startsWith("gpt") || slug.startsWith("o1") || slug.startsWith("o3") || slug.startsWith("o4")) return "openai";
-  if (slug.startsWith("gemini")) return "google";
-  if (slug.startsWith("kimi")) return "moonshot";
-  if (slug.startsWith("deepseek")) return "deepseek";
-  if (slug.startsWith("qwen") || slug.startsWith("qwq") || slug.startsWith("qvq")) return "qwen";
-  if (slug.startsWith("llama")) return "meta";
-  if (slug.startsWith("mistral") || slug.startsWith("mixtral") || slug.startsWith("codestral")) return "mistral";
-  if (slug.startsWith("grok")) return "xai";
-  if (slug.startsWith("mimo")) return "xiaomi";
-  return hostFallback.toLowerCase();
+  const match = CREATOR_FROM_MODEL_PREFIXES.find((rule) => rule.modelSlugPattern.test(slug));
+  return match?.creator ?? hostFallback.toLowerCase();
 }

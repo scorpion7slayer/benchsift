@@ -10,7 +10,7 @@
     "serve": "vite preview",
     "preview": "npm run build && npm run start",
     "refresh-cache": "node scripts/refresh-cache.mjs",
-    "test": "node --experimental-strip-types --test lib/openrouter-model-filter.test.mjs lib/coding-agents.test.mjs",
+    "test": "node --experimental-strip-types --test lib/openrouter-model-filter.test.mjs lib/coding-agents.test.mjs lib/provider-map.test.mjs lib/aa-capabilities.test.mjs lib/http-cookie.test.mjs lib/model-availability.test.mjs lib/model-grid-logic.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

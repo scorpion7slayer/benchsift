@@ -71,7 +71,10 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
         setState({ selected, lastChange: null });
         persistSelected(selected);
       }
-    } catch {}
+    } catch {
+      // Remove malformed persisted JSON; storage failures remain best-effort.
+      persistSelected([]);
+    }
   }, []);
 
   const toggle = useCallback((slug: string) => {

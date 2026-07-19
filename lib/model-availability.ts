@@ -3,8 +3,29 @@ export type ModelAvailabilityStatus = "not_currently_available";
 export const ANTHROPIC_FABLE_ACCESS_ARTICLE =
   "https://www.anthropic.com/news/fable-mythos-access";
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const CHECKERED_PATTERN_MARKERS = [
+  '"pattern":"checkered"',
+  '\\"pattern\\":\\"checkered\\"',
+] as const;
+
+function hasCheckeredPatternAfterUrl(html: string, urlMarker: string): boolean {
+  let searchFrom = 0;
+  while (searchFrom < html.length) {
+    const urlIndex = html.indexOf(urlMarker, searchFrom);
+    if (urlIndex < 0) return false;
+
+    const valueEnd = urlIndex + urlMarker.length;
+    const nextObjectBoundary = html.slice(valueEnd).search(/[{}]/);
+    const objectRemainder = html.slice(
+      valueEnd,
+      nextObjectBoundary < 0 ? html.length : valueEnd + nextObjectBoundary,
+    );
+    if (CHECKERED_PATTERN_MARKERS.some((marker) => objectRemainder.includes(marker))) {
+      return true;
+    }
+    searchFrom = valueEnd;
+  }
+  return false;
 }
 
 /**
@@ -16,11 +37,14 @@ export function extractAAAvailabilityStatus(
   html: string,
   slug: string,
 ): ModelAvailabilityStatus | null {
-  const escapedSlug = escapeRegExp(slug);
-  const checkeredModelEntry = new RegExp(
-    `\\\\?"url\\\\?":\\\\?"/models/${escapedSlug}\\\\?"[^{}]*\\\\?"pattern\\\\?":\\\\?"checkered\\\\?"`,
-  );
-  return checkeredModelEntry.test(html) ? "not_currently_available" : null;
+  const modelPath = `/models/${slug}`;
+  const urlMarkers = [
+    `"url":"${modelPath}"`,
+    `\\"url\\":\\"${modelPath}\\"`,
+  ];
+  return urlMarkers.some((marker) => hasCheckeredPatternAfterUrl(html, marker))
+    ? "not_currently_available"
+    : null;
 }
 
 export function isModelCurrentlyUnavailable(model: {

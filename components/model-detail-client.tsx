@@ -30,7 +30,6 @@ import { ModelAvailabilityBadge, ModelAvailabilityNotice } from "@/components/mo
 import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
 import { getModelProviderKey } from "@/lib/provider-map";
-import { cn } from "@/lib/utils";
 import { isModelCurrentlyUnavailable } from "@/lib/model-availability";
 import {
   applicableExtraBenchmarkEntries,
@@ -447,22 +446,6 @@ function StatRow({ label, value, tooltip }: { label: string; value: string; tool
       </span>
       <span className="font-mono font-medium tabular-nums">{value}</span>
     </div>
-  );
-}
-
-/** Modality icon chip — active = opaque, inactive = very transparent. / active = opaque, inactive = très transparente. */
-function ModalityChip({ icon, label, active }: { icon: React.ReactNode; label: string; active?: boolean }) {
-  return (
-    <span
-      title={label}
-      className={cn("inline-flex size-7 items-center justify-center rounded-md border transition-colors",
-        active
-          ? "bg-muted text-foreground border-border"
-          : "text-muted-foreground/20 border-border/20"
-      )}
-    >
-      {icon}
-    </span>
   );
 }
 
