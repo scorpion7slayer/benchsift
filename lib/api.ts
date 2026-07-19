@@ -16,6 +16,10 @@ import {
 import { attachOfficialHuggingFaceHints, enrichModelsWithHuggingFace } from "@/lib/huggingface";
 import { fetchAAMediaModels, mergeAAMediaModels } from "@/lib/aa-media";
 import { extractAAAvailabilityStatus, type ModelAvailabilityStatus } from "@/lib/model-availability";
+import {
+  extractAACapabilities,
+  extractAAPartialModelData,
+} from "@/lib/aa-capabilities";
 import type { CodingAgent } from "@/lib/coding-agents";
 import { mergeModelHistory } from "@/lib/model-history";
 import { isExcludedOpenRouterModelId } from "@/lib/openrouter-model-filter";
@@ -253,48 +257,6 @@ async function apiFetch<T>(endpoint: string): Promise<T> {
   );
 }
 
-// ─── HTML extraction helpers ────────────────────────────────────────────────
-
-/** Converts a slug to a readable name (e.g. "nvidia-nemotron-3-nano-30b" → "Nvidia Nemotron 3 Nano 30B") */
-function slugToName(slug: string): string {
-  return slug
-    .split("-")
-    .map((w) => {
-      if (/^\d+$/.test(w)) return w;
-      if (/^\d+[bBmMkKtT]$/.test(w)) return w.slice(0, -1) + w.slice(-1).toUpperCase();
-      return w.charAt(0).toUpperCase() + w.slice(1);
-    })
-    .join(" ");
-}
-
-/**
- * Extracts a numeric value from JSON-like HTML.
- * Handles both regular JSON ("key":123) and escaped JSON (\"key\":123).
- */
-function extractJsonNum(html: string, ...keys: string[]): number | null {
-  for (const key of keys) {
-    let m = html.match(new RegExp(`"${key}"\\s*:\\s*([\\d.]+)`));
-    if (m) return parseFloat(m[1]);
-    m = html.match(new RegExp(`\\\\"${key}\\\\"\\s*:\\s*([\\d.]+)`));
-    if (m) return parseFloat(m[1]);
-  }
-  return null;
-}
-
-/**
- * Extracts a string value from JSON-like HTML.
- * Handles both regular JSON ("key":"val") and escaped JSON (\"key\":\"val\").
- */
-function extractJsonStr(html: string, ...keys: string[]): string | null {
-  for (const key of keys) {
-    let m = html.match(new RegExp(`"${key}"\\s*:\\s*"([^"]+)"`));
-    if (m) return m[1];
-    m = html.match(new RegExp(`\\\\"${key}\\\\"\\s*:\\s*\\\\"([^"\\\\]+)\\\\"`));
-    if (m) return m[1];
-  }
-  return null;
-}
-
 // ─── Scrape all model slugs from the sitemap ────────────────────────────────
 
 /**
@@ -338,8 +300,8 @@ async function scrapeAllModelSlugs(): Promise<string[]> {
     /https:\/\/artificialanalysis\.ai\/models\/([a-z0-9][a-z0-9\-_.]+?)(?:<|\/|$)/g
   )) {
     const s = m[1];
-    // Only keep direct model slugs - skip meta-pages and sub-pages (contain "/").
-    if (s.length > 2 && !SITEMAP_EXCLUDED_SLUGS.has(s) && !s.includes("/")) {
+    // The capture pattern already excludes sub-pages; remove known meta-pages.
+    if (s.length > 2 && !SITEMAP_EXCLUDED_SLUGS.has(s)) {
       slugs.add(s);
     }
   }
@@ -368,114 +330,32 @@ async function buildPartialModel(slug: string, includeCapabilities = true): Prom
     );
     if (!res.ok) return null;
     const html = await res.text();
-
-    // Creator — try structured JSON first, then object pattern
-    const creatorSlug =
-      extractJsonStr(html, "model_creator_slug", "creator_slug") ??
-      html.match(/"model_creators?"\s*:\s*\{[^}]{0,300}"slug"\s*:\s*"([a-z0-9\-]+)"/)?.[1] ??
-      html.match(/\\"model_creators?\\"\s*:\s*\{[^}]{0,300}\\"slug\\"\s*:\s*\\"([a-z0-9\-]+)\\"/)?.[1] ??
-      slug.split("-")[0];
-    const creatorName =
-      extractJsonStr(html, "model_creator_name", "creator_name") ??
-      html.match(/"model_creators?"\s*:\s*\{[^}]{0,300}"name"\s*:\s*"([^"]+)"/)?.[1] ??
-      html.match(/\\"model_creators?\\"\s*:\s*\{[^}]{0,300}\\"name\\"\s*:\s*\\"([^"\\]+)\\"/)?.[1] ??
-      (creatorSlug.charAt(0).toUpperCase() + creatorSlug.slice(1));
-
-    // Model name
-    const name =
-      extractJsonStr(html, "model_name", "modelName", "short_name") ??
-      html.match(/<h1[^>]*>\s*([^<]+)\s*<\/h1>/)?.[1]?.trim() ??
-      html.match(/<title>\s*([^<-]+?)\s*-/)?.[1]?.trim() ??
-      slugToName(slug);
-
-    // Release date
-    const releaseDate =
-      html.match(/"release_date"\s*:\s*"(\d{4}-\d{2}-\d{2})"/)
-        ?.[1] ??
-      html.match(/\\"release_date\\"\s*:\s*\\"(\d{4}-\d{2}-\d{2})\\"/)
-        ?.[1] ??
-      null;
-
-    // Pricing — AA uses both "price_1m_blended_0_3_1" (legacy) and "price_1m_blended_7_2_1" (new)
-    const pricing: Pricing = {
-      price_1m_blended_3_to_1: extractJsonNum(
-        html,
-        "price_1m_blended_3_to_1",
-        "price_1m_blended_0_3_1"
-      ),
-      price_1m_input_tokens:   extractJsonNum(html, "price_1m_input_tokens"),
-      price_1m_output_tokens:  extractJsonNum(html, "price_1m_output_tokens"),
-      // AA's real field name is "cache_hit_price" (without "price_1m" prefix)
-      price_1m_cache_hit_tokens: extractJsonNum(html, "cache_hit_price"),
-      price_1m_blended_7_2_1: extractJsonNum(html, "price_1m_blended_7_2_1"),
+    const parsedModelData = extractAAPartialModelData(html, slug);
+    const creatorSlug = resolveCreatorFromModelSlug(
+      slug,
+      parsedModelData.model_creator.slug,
+    );
+    const modelData = {
+      ...parsedModelData,
+      model_creator: {
+        ...parsedModelData.model_creator,
+        id: creatorSlug,
+        slug: creatorSlug,
+      },
     };
 
-    // Evaluations — AA HTML uses short names (intelligence_index, coding_index, math_index)
-    const evaluations: Evaluations = {
-      artificial_analysis_intelligence_index: extractJsonNum(html, "intelligence_index", "artificial_analysis_intelligence_index"),
-      artificial_analysis_coding_index:       extractJsonNum(html, "coding_index", "artificial_analysis_coding_index"),
-      artificial_analysis_math_index:         extractJsonNum(html, "math_index", "artificial_analysis_math_index"),
-      mmlu_pro:          extractJsonNum(html, "mmlu_pro"),
-      gpqa:              extractJsonNum(html, "gpqa"),
-      hle:               extractJsonNum(html, "hle"),
-      livecodebench:     extractJsonNum(html, "livecodebench"),
-      scicode:           extractJsonNum(html, "scicode"),
-      math_500:          extractJsonNum(html, "math_500"),
-      aime:              extractJsonNum(html, "aime"),
-      aime_25:           extractJsonNum(html, "aime_25"),
-      ifbench:           extractJsonNum(html, "ifbench"),
-      lcr:               extractJsonNum(html, "lcr"),
-      terminalbench_hard: extractJsonNum(html, "terminalbench_hard"),
-      terminalbench_v2_1: extractJsonNum(html, "terminalbench_v2_1"),
-      tau2:              extractJsonNum(html, "tau2"),
-      tau_banking:       extractJsonNum(html, "tau_banking"),
-      agentic_index:     extractJsonNum(html, "agentic_index"),
-      gdpval:            extractJsonNum(html, "gdpval"),
-      gdpval_normalized: extractJsonNum(html, "gdpval_normalized"),
-      omniscience:       extractJsonNum(html, "omniscience"),
-      multilingual_aa:   extractJsonNum(html, "multilingual_aa"),
-      mmmu_pro:          extractJsonNum(html, "mmmu_pro"),
-      critpt:            extractJsonNum(html, "critpt"),
-      apex_agents:       extractJsonNum(html, "apex_agents"),
-      itbench_aa:        extractJsonNum(html, "itbench_aa"),
-      // AA exposes non_hallucination_rate inside omniscience_breakdown totals.
-      // The aggregated value also appears as a top-level "non_hallucination_rate" when
-      // the breakdown is summarized. / Sinon dans omniscience_breakdown.
-      omniscience_non_hallucination: extractJsonNum(html, "non_hallucination_rate"),
-    };
-
-    // Performance
-    const speed = extractJsonNum(html, "median_output_tokens_per_second", "median_output_speed");
-    const ttft  = extractJsonNum(
-      html,
-      "median_time_to_first_token_seconds",
-      "median_time_to_first_token",
-      "median_time_to_first_chunk"
-    );
-    const ttfa  = extractJsonNum(html, "median_time_to_first_answer_token");
-    const e2e   = extractJsonNum(
-      html,
-      "median_end_to_end_response_time_seconds",
-      "end_to_end_response_time_seconds",
-      "median_end_to_end_response_time",
-      "end_to_end_response_time"
-    );
-
-    // Capabilities (context window, parameters, modalities) — from scrapeAA
-    const caps = includeCapabilities ? await scrapeAACapabilities(slug) : {};
+    // Reuse the page already fetched above instead of issuing a second request.
+    const caps = includeCapabilities
+      ? {
+          ...extractAACapabilities(html),
+          availability_status: extractAAAvailabilityStatus(html, slug),
+        }
+      : {};
 
     return {
       id: slug,
-      name,
       slug,
-      release_date: releaseDate,
-      model_creator: { id: creatorSlug, name: creatorName, slug: creatorSlug },
-      evaluations,
-      pricing,
-      median_output_tokens_per_second:    speed,
-      median_time_to_first_token_seconds: ttft,
-      median_time_to_first_answer_token:  ttfa,
-      end_to_end_response_time_seconds:   e2e,
+      ...modelData,
       ...caps,
     };
   } catch {
@@ -502,126 +382,8 @@ export async function scrapeAACapabilities(slug: string): Promise<Partial<LLMMod
     );
     if (!res.ok) return {};
     const html = await res.text();
-
-    function extractBool(snakeKey: string, camelKey?: string): boolean | undefined {
-      let m = html.match(new RegExp(`\\\\?"${snakeKey}\\\\?":(true|false)`));
-      if (!m && camelKey) m = html.match(new RegExp(`\\\\?"${camelKey}\\\\?":(true|false)`));
-      return m ? m[1] === "true" : undefined;
-    }
-
-    function extractContextWindow(): number | null {
-      // JSON field (both naming conventions used by AA)
-      let m = html.match(/"context_window_tokens":(\d+)/);
-      if (m) return parseInt(m[1]);
-      m = html.match(/"context_window":(\d+)/);
-      if (m) return parseInt(m[1]);
-      // Escaped JSON
-      m = html.match(/\\"context_window_tokens\\":(\d+)/);
-      if (m) return parseInt(m[1]);
-      m = html.match(/\\"context_window\\":(\d+)/);
-      if (m) return parseInt(m[1]);
-      // Text patterns
-      m = html.match(/context window of ([\d.]+)\s*M tokens/i);
-      if (m) return Math.round(parseFloat(m[1]) * 1_000_000);
-      m = html.match(/context window of ([\d,]+)\s*tokens/i);
-      if (m) return parseInt(m[1].replace(/,/g, ""));
-      m = html.match(/[Cc]ontext window[\s\S]{0,120}?([\d.]+)\s*([kKmM])\b/);
-      if (m) {
-        const mult = /[mM]/.test(m[2]) ? 1_000_000 : 1_000;
-        return Math.round(parseFloat(m[1]) * mult);
-      }
-      return null;
-    }
-
-    function extractParamsB(label: string, jsonKey: string): number | null {
-      let m = html.match(new RegExp(`\\\\?"${jsonKey}\\\\?":\\\\?"([\\d.]+)([BbMmKkT])`));
-      if (!m) m = html.match(new RegExp(`${label}[\\s\\S]{0,200}?([\\d.]+)\\s*([BbMmKkT])\\b`));
-      if (!m) return null;
-      const val = parseFloat(m[1]);
-      const unit = m[2].toUpperCase();
-      if (unit === "T") return val * 1000;
-      if (unit === "B") return val;
-      if (unit === "M") return val / 1000;
-      if (unit === "K") return val / 1_000_000;
-      return null;
-    }
-
-    // Knowledge cutoff — AA's real field is "knowledge_cutoff_date" (ISO)
-    function extractKnowledgeCutoff(): string | null {
-      const iso =
-        html.match(/\\?"knowledge_cutoff_date\\?"\s*:\s*\\?"(\d{4}-\d{2}-\d{2})\\?"/)?.[1] ??
-        html.match(/\\?"knowledge_cutoff\\?"\s*:\s*\\?"(\d{4}-\d{2}-\d{2})\\?"/)?.[1];
-      if (iso) return iso;
-      const txt = html.match(/[Kk]nowledge cutoff[^\d<]{0,30}((?:[A-Z][a-z]{2,8}\s+\d{1,2},?\s+\d{4})|(?:[A-Z][a-z]{2,8}\s+\d{4}))/)?.[1];
-      return txt ? txt.trim() : null;
-    }
-
-    // Openness index — AA exposes "openness":{ … "opennessIndex": <number> … }
-    function extractOpenness(): number | null {
-      // Match "openness":{ … "opennessIndex": <number> } — non-greedy across the object
-      const m = html.match(/\\?"openness\\?"\s*:\s*\{[\s\S]{0,800}?\\?"opennessIndex\\?"\s*:\s*([\d.-]+)/);
-      if (m) return parseFloat(m[1]);
-      return extractJsonNum(html, "openness_index", "openness_score");
-    }
-
-    // Intelligence Index output tokens (verbosity).
-    // AA exposes "intelligence_index_token_counts":{"input_tokens":…, "answer_tokens":…, "output_tokens":…, "reasoning_tokens":…}
-    function extractIIITokens(): number | null {
-      const m = html.match(/\\?"intelligence_index_token_counts\\?"\s*:\s*\{[\s\S]{0,400}?\\?"output_tokens\\?"\s*:\s*(\d+)/);
-      if (m) return parseInt(m[1], 10);
-      // "When evaluating the Intelligence Index, it generated 76M tokens"
-      const txt = html.match(/Intelligence Index[\s\S]{0,80}?generated\s+([\d.]+)\s*([MK])\b/i);
-      if (txt) {
-        const mult = txt[2].toUpperCase() === "M" ? 1_000_000 : 1_000;
-        return Math.round(parseFloat(txt[1]) * mult);
-      }
-      return null;
-    }
-
-    // Intelligence Index cost — AA exposes "intelligence_index_cost":{"total_cost":<number>, …}
-    function extractIICost(): number | null {
-      const m = html.match(/\\?"intelligence_index_cost\\?"\s*:\s*\{[\s\S]{0,300}?\\?"total_cost\\?"\s*:\s*([\d.]+)/);
-      if (m) return parseFloat(m[1]);
-      // "it cost $910.37 to evaluate"
-      const txt = html.match(/it cost\s+\$([\d,]+(?:\.\d+)?)\s+to evaluate/i);
-      if (txt) return parseFloat(txt[1].replace(/,/g, ""));
-      return null;
-    }
-
-    // End-to-end response time — AA exposes "end_to_end_response_time_metrics":{"total_time":<number>, …}
-    function extractEndToEnd(): number | null {
-      const m = html.match(/\\?"end_to_end_response_time_metrics\\?"\s*:\s*\{[\s\S]{0,500}?\\?"total_time\\?"\s*:\s*([\d.]+)/);
-      if (m) {
-        const v = parseFloat(m[1]);
-        return v > 0 ? v : null;  // AA returns 0 for not-yet-benchmarked models
-      }
-      return extractJsonNum(
-        html,
-        "median_end_to_end_response_time_seconds",
-        "end_to_end_response_time_seconds"
-      );
-    }
-
     return {
-      context_window_tokens: extractContextWindow(),
-      total_parameters_b: extractParamsB("Total parameters", "totalParameters"),
-      active_parameters_b: extractParamsB("Active parameters", "activeParameters"),
-      reasoning_model: extractBool("reasoning_model", "isReasoning"),
-      reasoning_properties: null,
-      is_open_weights: extractBool("is_open_weights", "isOpenWeights"),
-      input_modality_text: extractBool("input_modality_text", "inputModalityText"),
-      input_modality_image: extractBool("input_modality_image", "inputModalityImage"),
-      input_modality_speech: extractBool("input_modality_speech", "inputModalitySpeech"),
-      input_modality_video: extractBool("input_modality_video", "inputModalityVideo"),
-      output_modality_text: extractBool("output_modality_text", "outputModalityText"),
-      output_modality_image: extractBool("output_modality_image", "outputModalityImage"),
-      output_modality_speech: extractBool("output_modality_speech", "outputModalitySpeech"),
-      output_modality_video: extractBool("output_modality_video", "outputModalityVideo"),
-      knowledge_cutoff: extractKnowledgeCutoff(),
-      openness_index: extractOpenness(),
-      intelligence_index_tokens: extractIIITokens(),
-      intelligence_index_cost_usd: extractIICost(),
-      end_to_end_response_time_seconds: extractEndToEnd(),
+      ...extractAACapabilities(html),
       availability_status: extractAAAvailabilityStatus(html, slug),
     };
   } catch {
@@ -898,25 +660,13 @@ export async function getLLMModelBasic(slug: string): Promise<LLMModel | undefin
 /** Enriches models in parallel (chunked to avoid flooding). / Par chunks pour éviter le flood. */
 async function chunkedScrape(
   models: LLMModel[],
+  scrape: (slug: string) => Promise<Partial<LLMModel>> = scrapeModelCapabilities,
   chunkSize = CAPABILITY_CHUNK_SIZE
 ): Promise<Partial<LLMModel>[]> {
   const results: Partial<LLMModel>[] = [];
   for (let i = 0; i < models.length; i += chunkSize) {
     const chunk = models.slice(i, i + chunkSize);
-    const settled = await Promise.allSettled(chunk.map((m) => scrapeModelCapabilities(m.slug)));
-    results.push(...settled.map((r) => (r.status === "fulfilled" ? r.value : {})));
-  }
-  return results;
-}
-
-async function chunkedScrapeAA(
-  models: LLMModel[],
-  chunkSize = CAPABILITY_CHUNK_SIZE
-): Promise<Partial<LLMModel>[]> {
-  const results: Partial<LLMModel>[] = [];
-  for (let i = 0; i < models.length; i += chunkSize) {
-    const chunk = models.slice(i, i + chunkSize);
-    const settled = await Promise.allSettled(chunk.map((m) => scrapeAACapabilities(m.slug)));
+    const settled = await Promise.allSettled(chunk.map((model) => scrape(model.slug)));
     results.push(...settled.map((r) => (r.status === "fulfilled" ? r.value : {})));
   }
   return results;
@@ -982,7 +732,7 @@ export function normaliseUnavailableMetrics(models: LLMModel[]): LLMModel[] {
 
 export async function enrichModelsWithScrapedCapabilities(models: LLMModel[]): Promise<LLMModel[]> {
   const normalised = normaliseUnavailableMetrics(models);
-  const capabilities = await chunkedScrapeAA(normalised);
+  const capabilities = await chunkedScrape(normalised, scrapeAACapabilities);
   return normalised.map((model, i) => mergeDefinedModel(model, capabilities[i]));
 }
 

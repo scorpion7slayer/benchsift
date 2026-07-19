@@ -18,7 +18,17 @@ import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { isOpenWeightsModel, outputModalities, textMetricValue } from "@/lib/model-metrics";
+import { isOpenWeightsModel } from "@/lib/model-metrics";
+import {
+  hasNormalRankingValue,
+  matchesCategory,
+  matchesSearch,
+  sortHomeModels,
+  sortNerdModels,
+  type CategoryFilter,
+  type NormalRankingKey,
+  type SortKey,
+} from "@/lib/model-grid-logic";
 import { getCanonicalCreatorSlug, getCreatorDisplayName } from "@/lib/provider-map";
 import { collapseReasoningVariants } from "@/lib/model-reasoning";
 import { fetchModels } from "@/lib/server-fns";
@@ -31,15 +41,6 @@ const ModelCard = lazy(() =>
   })),
 );
 
-type SortKey =
-  | "intelligence" | "coding" | "math"
-  | "gpqa" | "mmlu_pro" | "hle" | "livecodebench" | "math_500" | "aime_25"
-  | "speed" | "ttft"
-  | "openrouter_popular"
-  | "open_weights"
-  | "price_asc" | "price_desc"
-  | "newest" | "name";
-
 type ViewMode = "normal" | "nerd";
 
 const NORMAL_RANKING_OPTIONS = [
@@ -49,20 +50,6 @@ const NORMAL_RANKING_OPTIONS = [
   { value: "speed", label: "speed" },
   { value: "price_asc", label: "price" },
 ] as const;
-
-type NormalRankingKey = (typeof NORMAL_RANKING_OPTIONS)[number]["value"];
-
-type CategoryFilter =
-  | "all"
-  | "new"
-  | "text"
-  | "image"
-  | "embeddings"
-  | "audio"
-  | "video"
-  | "rerank"
-  | "speech"
-  | "transcription";
 
 type SortGroup =
   | "indices"
@@ -110,147 +97,6 @@ const CATEGORY_OPTIONS: Array<{ value: CategoryFilter; icon: LucideIcon }> = [
   { value: "speech", icon: Mic },
   { value: "transcription", icon: Captions },
 ];
-
-function sortablePrice(model: LLMModel): number | null {
-  if (model.pricing.price_1m_blended_3_to_1 != null) {
-    return model.pricing.price_1m_blended_3_to_1;
-  }
-  const prices = (model.pricing.openrouter_display_prices ?? [])
-    .map((row) => row.price)
-    .filter((price): price is number => Number.isFinite(price));
-  return prices.length > 0 ? Math.min(...prices) : null;
-}
-
-function sortNerdModels(models: LLMModel[], key: SortKey): LLMModel[] {
-  return [...models].sort((a, b) => {
-    switch (key) {
-      case "intelligence":
-        return (textMetricValue(b, "artificial_analysis_intelligence_index") ?? -1) - (textMetricValue(a, "artificial_analysis_intelligence_index") ?? -1);
-      case "coding":
-        return (textMetricValue(b, "artificial_analysis_coding_index") ?? -1) - (textMetricValue(a, "artificial_analysis_coding_index") ?? -1);
-      case "math":
-        return (textMetricValue(b, "artificial_analysis_math_index") ?? -1) - (textMetricValue(a, "artificial_analysis_math_index") ?? -1);
-      case "gpqa":
-        return (textMetricValue(b, "gpqa") ?? -1) - (textMetricValue(a, "gpqa") ?? -1);
-      case "mmlu_pro":
-        return (textMetricValue(b, "mmlu_pro") ?? -1) - (textMetricValue(a, "mmlu_pro") ?? -1);
-      case "hle":
-        return (textMetricValue(b, "hle") ?? -1) - (textMetricValue(a, "hle") ?? -1);
-      case "livecodebench":
-        return (textMetricValue(b, "livecodebench") ?? -1) - (textMetricValue(a, "livecodebench") ?? -1);
-      case "math_500":
-        return (textMetricValue(b, "math_500") ?? -1) - (textMetricValue(a, "math_500") ?? -1);
-      case "aime_25":
-        return (textMetricValue(b, "aime_25") ?? -1) - (textMetricValue(a, "aime_25") ?? -1);
-      case "speed":
-        return (b.median_output_tokens_per_second ?? -1) - (a.median_output_tokens_per_second ?? -1);
-      case "ttft":
-        return (a.median_time_to_first_token_seconds ?? Infinity) - (b.median_time_to_first_token_seconds ?? Infinity);
-      case "openrouter_popular":
-        return (a.openrouter_weekly_rank ?? Infinity) - (b.openrouter_weekly_rank ?? Infinity);
-      case "open_weights":
-        return (textMetricValue(b, "artificial_analysis_intelligence_index") ?? -1) - (textMetricValue(a, "artificial_analysis_intelligence_index") ?? -1);
-      case "price_asc":
-        return (sortablePrice(a) ?? Infinity) - (sortablePrice(b) ?? Infinity);
-      case "price_desc":
-        return (sortablePrice(b) ?? -1) - (sortablePrice(a) ?? -1);
-      case "newest":
-        if (!a.release_date && !b.release_date) return 0;
-        if (!a.release_date) return 1;
-        if (!b.release_date) return -1;
-        return b.release_date.localeCompare(a.release_date);
-      case "name":
-        return a.name.localeCompare(b.name);
-    }
-  });
-}
-
-function homeMetric(
-  model: HomeCatalogModel,
-  key:
-    | "artificial_analysis_intelligence_index"
-    | "artificial_analysis_coding_index"
-    | "artificial_analysis_math_index",
-): number | null {
-  return model.evaluations[key] ?? null;
-}
-
-function sortHomeModels(
-  models: HomeCatalogModel[],
-  key: NormalRankingKey,
-): HomeCatalogModel[] {
-  return [...models].sort((a, b) => {
-    switch (key) {
-      case "intelligence":
-        return (homeMetric(b, "artificial_analysis_intelligence_index") ?? -1)
-          - (homeMetric(a, "artificial_analysis_intelligence_index") ?? -1);
-      case "coding":
-        return (homeMetric(b, "artificial_analysis_coding_index") ?? -1)
-          - (homeMetric(a, "artificial_analysis_coding_index") ?? -1);
-      case "math":
-        return (homeMetric(b, "artificial_analysis_math_index") ?? -1)
-          - (homeMetric(a, "artificial_analysis_math_index") ?? -1);
-      case "speed":
-        return (b.median_output_tokens_per_second ?? -1)
-          - (a.median_output_tokens_per_second ?? -1);
-      case "price_asc":
-        return (a.pricing.price_1m_blended_3_to_1 ?? Infinity)
-          - (b.pricing.price_1m_blended_3_to_1 ?? Infinity);
-    }
-  });
-}
-
-function hasNormalRankingValue(model: HomeCatalogModel, key: NormalRankingKey): boolean {
-  switch (key) {
-    case "intelligence":
-      return homeMetric(model, "artificial_analysis_intelligence_index") != null;
-    case "coding":
-      return homeMetric(model, "artificial_analysis_coding_index") != null;
-    case "math":
-      return homeMetric(model, "artificial_analysis_math_index") != null;
-    case "speed":
-      return model.median_output_tokens_per_second != null && Number.isFinite(model.median_output_tokens_per_second);
-    case "price_asc":
-      return model.pricing.price_1m_blended_3_to_1 != null;
-  }
-}
-
-function matchesSearch(
-  model: Pick<HomeCatalogModel, "name" | "slug" | "model_creator">,
-  query: string,
-): boolean {
-  if (!query) return true;
-  const tokens = query.split(/\s+/).filter(Boolean);
-  const haystack = [
-    model.name.toLowerCase(),
-    model.model_creator.name.toLowerCase(),
-    model.slug.toLowerCase().replace(/-/g, " "),
-  ].join(" ");
-  return tokens.every((token) => haystack.includes(token));
-}
-
-function hasOutputModality(model: LLMModel, modality: string): boolean {
-  const out = outputModalities(model);
-  return out.has(modality);
-}
-
-function matchesCategory(model: LLMModel, category: CategoryFilter): boolean {
-  if (category === "all") return true;
-  if (category === "new") {
-    if (!model.release_date) return false;
-    // eslint-disable-next-line react-hooks/purity
-    return new Date(model.release_date) >= new Date(Date.now() - NEW_MODELS_DAYS * 24 * 60 * 60 * 1000);
-  }
-  if (category === "text") return hasOutputModality(model, "text");
-  if (category === "image") return hasOutputModality(model, "image");
-  if (category === "audio") return outputModalities(model).has("audio") || outputModalities(model).has("speech");
-  if (category === "video") return hasOutputModality(model, "video");
-  if (category === "embeddings") return outputModalities(model).has("embeddings");
-  if (category === "rerank") return outputModalities(model).has("rerank");
-  if (category === "speech") return outputModalities(model).has("speech");
-  if (category === "transcription") return outputModalities(model).has("transcription");
-  return true;
-}
 
 // Generic combobox / Combobox générique
 
@@ -407,7 +253,6 @@ function Combobox({
 
 const BATCH = 32;
 
-const NEW_MODELS_DAYS = 30;
 const SEARCH_DEBOUNCE_MS = 120;
 const VIEW_MODE_STORAGE_KEY = "benchsift-model-view-mode";
 type GridMotion = "filter" | "search-in";

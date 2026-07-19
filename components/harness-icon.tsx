@@ -5,61 +5,46 @@ import {
 } from "@lobehub/icons";
 import { Terminal } from "lucide-react";
 
+const HARNESS_AVATARS = {
+  claudecode: ClaudeCode.Avatar,
+  "claude-code": ClaudeCode.Avatar,
+  cursor: Cursor.Avatar,
+  "cursor-cli": Cursor.Avatar,
+  cursorcli: Cursor.Avatar,
+  opencode: OpenCode.Avatar,
+  codex: Codex.Avatar,
+  "codex-cli": Codex.Avatar,
+  openhands: OpenHands.Avatar,
+  cline: Cline.Avatar,
+  amp: Amp.Avatar,
+  antigravity: Antigravity.Avatar,
+  junie: Junie.Avatar,
+  trae: Trae.Avatar,
+  windsurf: Windsurf.Avatar,
+  githubcopilot: GithubCopilot.Avatar,
+  "github-copilot": GithubCopilot.Avatar,
+  copilot: Copilot.Avatar,
+  geminicli: GeminiCLI.Avatar,
+  "gemini-cli": GeminiCLI.Avatar,
+  kilocode: KiloCode.Avatar,
+  "kilo-code": KiloCode.Avatar,
+  roocode: RooCode.Avatar,
+  "roo-code": RooCode.Avatar,
+  grok: Grok.Avatar,
+  "grok-build": Grok.Avatar,
+  kimi: Kimi.Avatar,
+  "kimi-code": Kimi.Avatar,
+  "kimi-code-cli": Kimi.Avatar,
+} as const;
+
 /**
  * Icon for coding-agent harnesses (Claude Code, Cursor CLI, OpenCode, …).
  * Falls back to a Terminal icon for unknown harnesses.
  */
 export function HarnessIcon({ slug, size = 20 }: { slug: string; size?: number }) {
   const key = slug.toLowerCase();
-  switch (key) {
-    case "claudecode":
-    case "claude-code":
-      return <ClaudeCode.Avatar size={size} />;
-    case "cursor":
-    case "cursor-cli":
-    case "cursorcli":
-      return <Cursor.Avatar size={size} />;
-    case "opencode":
-      return <OpenCode.Avatar size={size} />;
-    case "codex":
-    case "codex-cli":
-      return <Codex.Avatar size={size} />;
-    case "openhands":
-      return <OpenHands.Avatar size={size} />;
-    case "cline":
-      return <Cline.Avatar size={size} />;
-    case "amp":
-      return <Amp.Avatar size={size} />;
-    case "antigravity":
-      return <Antigravity.Avatar size={size} />;
-    case "junie":
-      return <Junie.Avatar size={size} />;
-    case "trae":
-      return <Trae.Avatar size={size} />;
-    case "windsurf":
-      return <Windsurf.Avatar size={size} />;
-    case "githubcopilot":
-    case "github-copilot":
-      return <GithubCopilot.Avatar size={size} />;
-    case "copilot":
-      return <Copilot.Avatar size={size} />;
-    case "geminicli":
-    case "gemini-cli":
-      return <GeminiCLI.Avatar size={size} />;
-    case "kilocode":
-    case "kilo-code":
-      return <KiloCode.Avatar size={size} />;
-    case "roocode":
-    case "roo-code":
-      return <RooCode.Avatar size={size} />;
-    case "grok":
-    case "grok-build":
-      return <Grok.Avatar size={size} />;
-    case "kimi":
-    case "kimi-code":
-    case "kimi-code-cli":
-      return <Kimi.Avatar size={size} />;
-    default:
-      return <Terminal size={size} className="text-muted-foreground" />;
-  }
+  const Avatar = HARNESS_AVATARS[key as keyof typeof HARNESS_AVATARS];
+  return Avatar
+    ? <Avatar size={size} />
+    : <Terminal size={size} className="text-muted-foreground" />;
 }

@@ -22,6 +22,7 @@ import {
   buildHomeCatalogData,
   type HomeCatalogData,
 } from "@/lib/home-catalog";
+import { readCookieValue } from "@/lib/http-cookie";
 
 function setPublicResponseCache(): void {
   try {
@@ -126,7 +127,7 @@ export const fetchPreferences = createServerFn({ method: "GET" }).handler(
   async (): Promise<Preferences> => {
     const cookie = getRequestHeader("cookie") ?? "";
     const read = (name: string): string | undefined =>
-      cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))?.[1];
+      readCookieValue(cookie, name);
 
     const lang: Lang = read("benchsift_lang") === "fr" ? "fr" : "en";
     const storedTheme = read("benchsift_theme");
