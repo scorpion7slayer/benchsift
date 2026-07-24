@@ -14,6 +14,7 @@ import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as CompareRouteImport } from './routes/compare'
 import { Route as AuthDotmdRouteImport } from './routes/auth[.]md'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ModelsIndexRouteImport } from './routes/models/index'
 import { Route as ModelsSlugRouteImport } from './routes/models/$slug'
@@ -54,6 +55,11 @@ const CompareRoute = CompareRouteImport.update({
 const AuthDotmdRoute = AuthDotmdRouteImport.update({
   id: '/auth.md',
   path: '/auth.md',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -145,6 +151,7 @@ const DotwellKnownAgentSkillsCodingBenchmarksDotmdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/auth.md': typeof AuthDotmdRoute
   '/compare': typeof CompareRoute
   '/health': typeof HealthRoute
@@ -168,6 +175,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/auth.md': typeof AuthDotmdRoute
   '/compare': typeof CompareRoute
   '/health': typeof HealthRoute
@@ -192,6 +200,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/auth.md': typeof AuthDotmdRoute
   '/compare': typeof CompareRoute
   '/health': typeof HealthRoute
@@ -217,6 +226,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/auth.md'
     | '/compare'
     | '/health'
@@ -240,6 +250,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/auth.md'
     | '/compare'
     | '/health'
@@ -263,6 +274,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about'
     | '/auth.md'
     | '/compare'
     | '/health'
@@ -287,6 +299,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   AuthDotmdRoute: typeof AuthDotmdRoute
   CompareRoute: typeof CompareRoute
   HealthRoute: typeof HealthRoute
@@ -344,6 +357,13 @@ declare module '@tanstack/react-router' {
       path: '/auth.md'
       fullPath: '/auth.md'
       preLoaderRoute: typeof AuthDotmdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -463,6 +483,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   AuthDotmdRoute: AuthDotmdRoute,
   CompareRoute: CompareRoute,
   HealthRoute: HealthRoute,

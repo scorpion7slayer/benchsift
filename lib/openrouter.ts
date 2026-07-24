@@ -1,4 +1,5 @@
 import type { LLMModel } from "@/lib/api";
+import { fetchWithRetry } from "@/lib/fetch-with-retry";
 import { createEmptyEvaluations } from "@/lib/model-metrics";
 import { getCanonicalCreatorSlug } from "@/lib/provider-map";
 import { filterOpenRouterCatalogEntries } from "@/lib/openrouter-model-filter";
@@ -104,9 +105,8 @@ function fetchWithTimeout(
   init: RequestInit = {},
   timeoutMs = OPENROUTER_API_TIMEOUT_MS,
 ): Promise<Response> {
-  return fetch(input, {
-    ...init,
-    signal: init.signal ?? AbortSignal.timeout(timeoutMs),
+  return fetchWithRetry(input, init, {
+    timeoutMs,
   });
 }
 

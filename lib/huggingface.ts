@@ -1,4 +1,5 @@
 import type { LLMModel } from "@/lib/api";
+import { fetchWithRetry } from "@/lib/fetch-with-retry";
 
 const HF_BASE = "https://huggingface.co";
 const HF_API_BASE = `${HF_BASE}/api/models`;
@@ -59,9 +60,8 @@ function fetchWithTimeout(
   init: RequestInit = {},
   timeoutMs = HF_API_TIMEOUT_MS,
 ): Promise<Response> {
-  return fetch(input, {
-    ...init,
-    signal: init.signal ?? AbortSignal.timeout(timeoutMs),
+  return fetchWithRetry(input, init, {
+    timeoutMs,
   });
 }
 

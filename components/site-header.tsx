@@ -1,8 +1,28 @@
 import { useEffect, useState } from "react";
 import { Link } from "@/components/link";
-import { Activity, ExternalLink, ChevronLeft, List, MessageSquarePlus, Menu, X, Terminal } from "lucide-react";
+import {
+  Activity,
+  ChevronDown,
+  ChevronLeft,
+  ExternalLink,
+  Info,
+  List,
+  Menu,
+  MessageSquarePlus,
+  PanelsTopLeft,
+  Terminal,
+  X,
+} from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useI18n, type Lang } from "@/lib/i18n";
 
@@ -82,38 +102,78 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
               {t.nav.models}
             </Link>
             <Link
-              href="/agents/coding"
+              href="/about"
               className="flex min-h-8 items-center gap-1 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             >
-              <Terminal className="size-3" />
-              {t.nav.codingAgents}
+              <Info className="size-3" />
+              {t.nav.about}
             </Link>
-            <Link
-              href="/benchmarks/deepswe"
-              className="flex min-h-8 items-center gap-1 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-            >
-              <Activity className="size-3" />
-              {t.nav.deepSwe}
-            </Link>
-            <div className="w-px h-4 bg-border mx-1" />
-            <a
-              href="https://artificialanalysis.ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex min-h-8 items-center gap-1 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-            >
-              <ExternalLink className="size-3" />
-              {t.nav.source}
-            </a>
-            <a
-              href="https://openrouter.ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex min-h-8 items-center gap-1 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-            >
-              <ExternalLink className="size-3" />
-              OpenRouter
-            </a>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-1.5 text-xs font-normal text-muted-foreground"
+                >
+                  <PanelsTopLeft data-icon="inline-start" />
+                  {t.nav.otherBenchmarks}
+                  <ChevronDown data-icon="inline-end" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" sideOffset={8} className="w-56">
+                <DropdownMenuGroup>
+                  <DropdownMenuItem asChild>
+                    <Link href="/agents/coding">
+                      <Terminal />
+                      {t.nav.codingAgents}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/benchmarks/deepswe">
+                      <Activity />
+                      {t.nav.deepSwe}
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-1.5 text-xs font-normal text-muted-foreground"
+                >
+                  {t.nav.dataSources}
+                  <ChevronDown data-icon="inline-end" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" sideOffset={8} className="w-56">
+                <DropdownMenuGroup>
+                  <DropdownMenuItem asChild>
+                    <a href="https://artificialanalysis.ai" target="_blank" rel="noopener noreferrer">
+                      <ExternalLink />
+                      {t.nav.source}
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href="https://openrouter.ai" target="_blank" rel="noopener noreferrer">
+                      <ExternalLink />
+                      OpenRouter
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href="https://huggingface.co" target="_blank" rel="noopener noreferrer">
+                      <ExternalLink />
+                      {t.nav.huggingFace}
+                    </a>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <div className="w-px h-4 bg-border mx-1" />
             <a
               href="https://github.com/scorpion7slayer/benchsift/issues"
@@ -172,6 +232,19 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
             {t.nav.models}
           </Link>
           <Link
+            href="/about"
+            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            onClick={() => setMenuOpen(false)}
+          >
+            <Info className="size-4 shrink-0" />
+            {t.nav.about}
+          </Link>
+
+          <Separator className="my-1" />
+          <p className="px-2 pt-1 text-xs font-medium text-muted-foreground">
+            {t.nav.otherBenchmarks}
+          </p>
+          <Link
             href="/agents/coding"
             className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             onClick={() => setMenuOpen(false)}
@@ -187,6 +260,11 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
             <Activity className="size-4 shrink-0" />
             {t.nav.deepSwe}
           </Link>
+
+          <Separator className="my-1" />
+          <p className="px-2 pt-1 text-xs font-medium text-muted-foreground">
+            {t.nav.dataSources}
+          </p>
           <a
             href="https://artificialanalysis.ai"
             target="_blank"
@@ -207,6 +285,18 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
             <ExternalLink className="size-4 shrink-0" />
             OpenRouter
           </a>
+          <a
+            href="https://huggingface.co"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            onClick={() => setMenuOpen(false)}
+          >
+            <ExternalLink className="size-4 shrink-0" />
+            {t.nav.huggingFace}
+          </a>
+
+          <Separator className="my-1" />
           <a
             href="https://github.com/scorpion7slayer/benchsift/issues"
             target="_blank"

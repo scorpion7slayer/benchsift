@@ -1,4 +1,5 @@
 import type { Evaluations, LLMModel, ModelCreator, Pricing } from "@/lib/api";
+import { isOpenWeightsModel } from "@/lib/model-metrics";
 import { modelReleaseTime } from "@/lib/model-release";
 import { collapseReasoningVariants } from "@/lib/model-reasoning";
 
@@ -14,6 +15,7 @@ export interface HomeCatalogModel {
   >;
   pricing: Pick<Pricing, "price_1m_blended_3_to_1">;
   median_output_tokens_per_second: number | null;
+  is_open_weights: boolean;
   provider_icon_url?: string | null;
 }
 
@@ -84,6 +86,7 @@ export function buildHomeCatalogData(models: LLMModel[]): HomeCatalogData {
           price_1m_blended_3_to_1: model.pricing.price_1m_blended_3_to_1,
         },
         median_output_tokens_per_second: model.median_output_tokens_per_second,
+        is_open_weights: isOpenWeightsModel(model),
         provider_icon_url: model.provider_icon_url,
       };
     }),

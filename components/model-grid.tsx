@@ -23,11 +23,13 @@ import {
   hasNormalRankingValue,
   matchesCategory,
   matchesSearch,
+  matchesWeightAccess,
   sortHomeModels,
   sortNerdModels,
   type CategoryFilter,
   type NormalRankingKey,
   type SortKey,
+  type WeightAccessFilter,
 } from "@/lib/model-grid-logic";
 import { getCanonicalCreatorSlug, getCreatorDisplayName } from "@/lib/provider-map";
 import { collapseReasoningVariants } from "@/lib/model-reasoning";
@@ -56,7 +58,6 @@ type SortGroup =
   | "benchmarks"
   | "performance"
   | "openrouter"
-  | "filters"
   | "pricing"
   | "general";
 
@@ -78,7 +79,6 @@ const SORT_OPTIONS: SortOption[] = [
   { value: "speed",         group: "performance" },
   { value: "ttft",          group: "performance" },
   { value: "openrouter_popular", group: "openrouter" },
-  { value: "open_weights",  group: "filters" },
   { value: "price_asc",     group: "pricing" },
   { value: "price_desc",    group: "pricing" },
   { value: "newest",        group: "general" },
@@ -266,6 +266,7 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
   const [viewMode, setViewMode] = useState<ViewMode>("normal");
   const [normalRanking, setNormalRanking] = useState<NormalRankingKey>("intelligence");
   const [providerFilter, setProviderFilter] = useState("all");
+  const [weightAccessFilter, setWeightAccessFilter] = useState<WeightAccessFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [visibleCount, setVisibleCount] = useState(BATCH);
   const [gridKey, setGridKey] = useState(0);
@@ -285,6 +286,7 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
     viewMode: "normal" as ViewMode,
     normalRanking: "intelligence" as NormalRankingKey,
     providerFilter: "all",
+    weightAccessFilter: "all" as WeightAccessFilter,
     categoryFilter: "all" as CategoryFilter,
   });
 
@@ -351,6 +353,7 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
       viewMode,
       normalRanking,
       providerFilter,
+      weightAccessFilter,
       categoryFilter,
     };
 
@@ -364,7 +367,15 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
     setVisibleCount(BATCH);
     setGridMotion(searchChanged ? "search-in" : "filter");
     setGridKey((k) => k + 1);
-  }, [debouncedQuery, sort, viewMode, normalRanking, providerFilter, categoryFilter]);
+  }, [
+    debouncedQuery,
+    sort,
+    viewMode,
+    normalRanking,
+    providerFilter,
+    weightAccessFilter,
+    categoryFilter,
+  ]);
 
   const providers = useMemo(() => {
     const unique = new Map<string, string>();
@@ -383,6 +394,15 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
       ...providers.map(([slug, name]) => ({ value: slug, label: name })),
     ],
     [providers, t.grid.allProviders]
+  );
+
+  const weightAccessItems = useMemo<ComboboxItem[]>(
+    () => [
+      { value: "all", label: t.grid.weightAccess.all },
+      { value: "open", label: t.grid.weightAccess.open },
+      { value: "closed", label: t.grid.weightAccess.closed },
+    ],
+    [t.grid.weightAccess],
   );
 
   const categoryCounts = useMemo(
@@ -449,14 +469,21 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
     if (categoryFilter !== "all") {
       base = base.filter((m) => matchesCategory(m, categoryFilter));
     }
-    if (sort === "open_weights") {
-      base = base.filter(isOpenWeightsModel);
-    }
+    base = base.filter((model) =>
+      matchesWeightAccess(isOpenWeightsModel(model), weightAccessFilter),
+    );
     if (q) {
       base = base.filter((model) => matchesSearch(model, q));
     }
     return sortNerdModels(base, sort);
-  }, [nerdModels, appliedQuery, sort, providerFilter, categoryFilter]);
+  }, [
+    nerdModels,
+    appliedQuery,
+    sort,
+    providerFilter,
+    weightAccessFilter,
+    categoryFilter,
+  ]);
 
   const normalRanked = useMemo(
     () =>
@@ -476,9 +503,12 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
       ) {
         return false;
       }
+      if (!matchesWeightAccess(model.is_open_weights, weightAccessFilter)) {
+        return false;
+      }
       return matchesSearch(model, q);
     });
-  }, [normalRanked, appliedQuery, providerFilter]);
+  }, [normalRanked, appliedQuery, providerFilter, weightAccessFilter]);
 
   const activeLength = viewMode === "normal" ? normalFiltered.length : nerdFiltered.length;
   const activeTotal = viewMode === "normal" ? normalRanked.length : (nerdModels?.length ?? models.length);
@@ -637,7 +667,7 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
       )}
 
       {/* Toolbar */}
-      <div className={cn("grid gap-2 sm:flex sm:flex-row sm:gap-3", viewMode === "normal" ? "grid-cols-1" : "grid-cols-2")}>
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:gap-3">
         <div className="col-span-full flex h-11 flex-1 items-center gap-2 rounded-lg border border-input bg-card px-3 text-sm transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 sm:h-9 dark:bg-input/30">
           <Search className="size-4 text-muted-foreground shrink-0 pointer-events-none" />
           <input
@@ -677,6 +707,13 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
             width="w-full sm:w-56"
           />
         )}
+        <Combobox
+          items={weightAccessItems}
+          value={weightAccessFilter}
+          onChange={(value) => setWeightAccessFilter(value as WeightAccessFilter)}
+          placeholder={t.grid.weightAccess.label}
+          width={viewMode === "nerd" ? "col-span-full w-full sm:w-52" : "w-full sm:w-52"}
+        />
       </div>
 
       {viewMode === "nerd" && !nerdModels ? (

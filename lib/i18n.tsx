@@ -4,13 +4,51 @@ export type Lang = "fr" | "en";
 
 export interface Translations {
   brand: string;
-  nav: { back: string; source: string; feedback: string; codingAgents: string; deepSwe: string; models: string };
+  nav: {
+    back: string;
+    source: string;
+    feedback: string;
+    codingAgents: string;
+    deepSwe: string;
+    models: string;
+    about: string;
+    otherBenchmarks: string;
+    dataSources: string;
+    huggingFace: string;
+  };
   hero: {
     title: string;
     description: string;
     latestModels: string;
     previousModel: string;
     nextModel: string;
+  };
+  about: {
+    title: string;
+    lead: string;
+    browseModels: string;
+    compareModels: string;
+    definitionTitle: string;
+    definitionBody: string;
+    whyTitle: string;
+    whyBody: string;
+    differences: Array<{ title: string; description: string }>;
+    sourcesTitle: string;
+    sourcesLead: string;
+    sources: {
+      artificialAnalysis: string;
+      openRouter: string;
+      huggingFace: string;
+    };
+    visitSource: string;
+    limitsTitle: string;
+    limitsBody: string;
+    openWeightsBody: string;
+    relationshipTitle: string;
+    relationshipBody: string;
+    gratitudeBody: string;
+    alternativeToLead: string;
+    alternativeToCta: string;
   };
   grid: {
     search: string;
@@ -45,7 +83,6 @@ export interface Translations {
       speed: string;
       ttft: string;
       openrouter_popular: string;
-      open_weights: string;
       price_asc: string;
       price_desc: string;
       newest: string;
@@ -56,9 +93,14 @@ export interface Translations {
       benchmarks: string;
       performance: string;
       openrouter: string;
-      filters: string;
       pricing: string;
       general: string;
+    };
+    weightAccess: {
+      label: string;
+      all: string;
+      open: string;
+      closed: string;
     };
     results: (n: number, total: number) => string;
     noResults: string;
@@ -367,13 +409,68 @@ export interface Translations {
 const T: Record<Lang, Translations> = {
   fr: {
     brand: "BenchSift",
-    nav: { back: "Retour", source: "Artificial Analysis", feedback: "Feedback", codingAgents: "Coding Agents", deepSwe: "DeepSWE", models: "Modèles" },
+    nav: {
+      back: "Retour",
+      source: "Artificial Analysis",
+      feedback: "Feedback",
+      codingAgents: "Coding Agents",
+      deepSwe: "DeepSWE",
+      models: "Modèles",
+      about: "À propos",
+      otherBenchmarks: "Autres benchmarks",
+      dataSources: "Sources de données",
+      huggingFace: "Hugging Face",
+    },
     hero: {
       title: "Modèles d'IA",
       description: "Benchmarks texte et média, performances, prix, liens Hugging Face officiels et popularité OpenRouter — données via Artificial Analysis, OpenRouter et Hugging Face.",
       latestModels: "Derniers modèles",
       previousModel: "Modèle précédent",
       nextModel: "Modèle suivant",
+    },
+    about: {
+      title: "À propos de BenchSift",
+      lead: "BenchSift est un projet indépendant qui rassemble des données dispersées sur les modèles d’IA dans une interface plus simple à parcourir, en français comme en anglais.",
+      browseModels: "Parcourir les modèles",
+      compareModels: "Comparer des modèles",
+      definitionTitle: "Ce qu’est BenchSift",
+      definitionBody: "BenchSift réunit des scores de benchmarks, des mesures de performance, des prix, des capacités, des tendances d’usage et des liens vers les modèles. Le but est de faciliter une première comparaison sans devoir recouper plusieurs sites et tableaux.",
+      whyTitle: "Pourquoi une autre interface",
+      whyBody: "BenchSift ne cherche pas à inventer un nouvel indice. Il organise des données existantes pour répondre plus vite à une question concrète : quels modèles méritent d’être examinés selon mon usage ?",
+      differences: [
+        {
+          title: "Une première lecture plus simple",
+          description: "Le mode Normal privilégie le classement et les informations essentielles, sans imposer tous les scores.",
+        },
+        {
+          title: "Le détail reste disponible",
+          description: "Le mode Nerd conserve les benchmarks, prix, vitesses et capacités pour celles et ceux qui veulent vérifier plus loin.",
+        },
+        {
+          title: "Plusieurs sources, une seule fiche",
+          description: "Les informations complémentaires sont réunies sans effacer leur provenance.",
+        },
+        {
+          title: "Des absences visibles",
+          description: "Quand une donnée n’existe pas, BenchSift préfère l’indiquer plutôt que de fabriquer une estimation.",
+        },
+      ],
+      sourcesTitle: "D’où viennent les données",
+      sourcesLead: "BenchSift agrège et présente des données produites ou publiées par d’autres services. Il ne prétend pas avoir exécuté les benchmarks affichés.",
+      sources: {
+        artificialAnalysis: "Source essentielle pour les indices, benchmarks et nombreuses mesures de performance. BenchSift réorganise ces données sans se les attribuer.",
+        openRouter: "Complète les fiches avec des informations comme les prix, le contexte, les modalités et les tendances d’usage disponibles.",
+        huggingFace: "Aide à relier les modèles open weight à leurs dépôts officiels et à présenter des informations utiles sur leur disponibilité.",
+      },
+      visitSource: "Visiter la source",
+      limitsTitle: "Pourquoi BenchSift n’exécute pas ses propres benchmarks",
+      limitsBody: "Je développe BenchSift comme un projet indépendant. Un benchmark sérieux entraîne des coûts d’API, de calcul, de stockage et de maintenance que je ne peux pas financer aujourd’hui.",
+      openWeightsBody: "Pour les modèles open weight, il faut en plus posséder ou louer le matériel adapté — notamment des GPU et suffisamment de mémoire — parfois à très grande échelle. Je ne dispose pas de cette infrastructure.",
+      relationshipTitle: "Une alternative, pas un concurrent",
+      relationshipBody: "BenchSift ne se présente pas comme un concurrent d’Artificial Analysis. J’admire leur travail et leur site ; j’ai simplement voulu proposer une porte d’entrée plus simplifiée pour un autre niveau de lecture.",
+      gratitudeBody: "Sans le travail d’Artificial Analysis, BenchSift n’aurait pas pu exister sous cette forme. Pour la méthodologie détaillée et les données à leur source, leur site reste la référence à consulter.",
+      alternativeToLead: "BenchSift est également référencé comme alternative sur AlternativeTo, où le projet et ses principales caractéristiques sont présentés.",
+      alternativeToCta: "Voir la fiche BenchSift sur AlternativeTo",
     },
     grid: {
       search: "Rechercher un modèle ou un fournisseur…",
@@ -408,7 +505,6 @@ const T: Record<Lang, Translations> = {
         speed: "Vitesse (plus rapide)",
         ttft: "TTFT (plus rapide)",
         openrouter_popular: "Plus populaires OpenRouter",
-        open_weights: "Poids ouverts uniquement",
         price_asc: "Prix (moins cher)",
         price_desc: "Prix (plus cher)",
         newest: "Date (plus récent)",
@@ -419,9 +515,14 @@ const T: Record<Lang, Translations> = {
         benchmarks: "Benchmarks",
         performance: "Performance",
         openrouter: "OpenRouter",
-        filters: "Filtres",
         pricing: "Prix",
         general: "Général",
+      },
+      weightAccess: {
+        label: "Accès aux poids",
+        all: "Poids : tous",
+        open: "Poids ouverts",
+        closed: "Poids fermés",
       },
       results: (n, total) =>
         n === total ? `${n} modèle${n !== 1 ? "s" : ""}` : `${n} résultat${n !== 1 ? "s" : ""} sur ${total}`,
@@ -742,13 +843,68 @@ const T: Record<Lang, Translations> = {
   },
   en: {
     brand: "BenchSift",
-    nav: { back: "Back", source: "Artificial Analysis", feedback: "Feedback", codingAgents: "Coding Agents", deepSwe: "DeepSWE", models: "Models" },
+    nav: {
+      back: "Back",
+      source: "Artificial Analysis",
+      feedback: "Feedback",
+      codingAgents: "Coding Agents",
+      deepSwe: "DeepSWE",
+      models: "Models",
+      about: "About",
+      otherBenchmarks: "Other benchmarks",
+      dataSources: "Data sources",
+      huggingFace: "Hugging Face",
+    },
     hero: {
       title: "AI Models",
       description: "Text and media benchmarks, performance, pricing, official Hugging Face links and OpenRouter popularity — data via Artificial Analysis, OpenRouter and Hugging Face.",
       latestModels: "Latest models",
       previousModel: "Previous model",
       nextModel: "Next model",
+    },
+    about: {
+      title: "About BenchSift",
+      lead: "BenchSift is an independent project that brings scattered AI model data into an interface that is easier to browse, in both English and French.",
+      browseModels: "Browse models",
+      compareModels: "Compare models",
+      definitionTitle: "What BenchSift is",
+      definitionBody: "BenchSift brings together benchmark scores, performance measurements, pricing, capabilities, usage trends, and model links. Its purpose is to make an initial comparison easier without requiring you to cross-reference several websites and tables.",
+      whyTitle: "Why another interface",
+      whyBody: "BenchSift does not try to invent a new index. It organizes existing data to answer a practical question more quickly: which models are worth examining for my use case?",
+      differences: [
+        {
+          title: "A simpler first read",
+          description: "Normal mode prioritizes rankings and essential information without forcing every score into view.",
+        },
+        {
+          title: "The detail remains available",
+          description: "Nerd mode keeps benchmarks, pricing, speed, and capabilities for people who want to investigate further.",
+        },
+        {
+          title: "Several sources, one profile",
+          description: "Complementary information is brought together without hiding where it came from.",
+        },
+        {
+          title: "Missing data stays visible",
+          description: "When a value does not exist, BenchSift would rather say so than manufacture an estimate.",
+        },
+      ],
+      sourcesTitle: "Where the data comes from",
+      sourcesLead: "BenchSift aggregates and presents data produced or published by other services. It does not claim to have run the benchmarks it displays.",
+      sources: {
+        artificialAnalysis: "An essential source for indices, benchmarks, and many performance measurements. BenchSift reorganizes this data without claiming it as its own.",
+        openRouter: "Complements model profiles with available information such as pricing, context, modalities, and usage trends.",
+        huggingFace: "Helps connect open-weight models to their official repositories and surface useful information about their availability.",
+      },
+      visitSource: "Visit source",
+      limitsTitle: "Why BenchSift does not run its own benchmarks",
+      limitsBody: "I build BenchSift as an independent project. Serious benchmarking carries API, compute, storage, and maintenance costs that I cannot fund today.",
+      openWeightsBody: "Open-weight models also require owning or renting suitable hardware — especially GPUs with enough memory — sometimes at a very large scale. I do not have that infrastructure.",
+      relationshipTitle: "An alternative, not a competitor",
+      relationshipBody: "BenchSift does not position itself as a competitor to Artificial Analysis. I admire their work and their website; I simply wanted to offer a more streamlined entry point for a different level of reading.",
+      gratitudeBody: "Without the work of Artificial Analysis, BenchSift could not have existed in this form. For detailed methodology and data at its source, their website remains the reference to consult.",
+      alternativeToLead: "BenchSift is also listed as an alternative on AlternativeTo, where the project and its main characteristics are presented.",
+      alternativeToCta: "View the BenchSift listing on AlternativeTo",
     },
     grid: {
       search: "Search a model or provider…",
@@ -783,7 +939,6 @@ const T: Record<Lang, Translations> = {
         speed: "Speed (fastest)",
         ttft: "TTFT (fastest)",
         openrouter_popular: "Most popular on OpenRouter",
-        open_weights: "Open weights only",
         price_asc: "Price (cheapest)",
         price_desc: "Price (most expensive)",
         newest: "Date (newest)",
@@ -794,9 +949,14 @@ const T: Record<Lang, Translations> = {
         benchmarks: "Benchmarks",
         performance: "Performance",
         openrouter: "OpenRouter",
-        filters: "Filters",
         pricing: "Pricing",
         general: "General",
+      },
+      weightAccess: {
+        label: "Weight access",
+        all: "Weights: all",
+        open: "Open weights",
+        closed: "Closed weights",
       },
       results: (n, total) =>
         n === total ? `${n} model${n !== 1 ? "s" : ""}` : `${n} result${n !== 1 ? "s" : ""} of ${total}`,

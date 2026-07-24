@@ -19,8 +19,13 @@ import { extractAAAvailabilityStatus, type ModelAvailabilityStatus } from "@/lib
 import {
   extractAACapabilities,
   extractAAPartialModelData,
+  parseAAHtmlDocument,
 } from "@/lib/aa-capabilities";
 import type { CodingAgent } from "@/lib/coding-agents";
+import {
+  fetchWithRetry,
+  getFetchRetryCount,
+} from "@/lib/fetch-with-retry";
 import { mergeModelHistory } from "@/lib/model-history";
 import { isExcludedOpenRouterModelId } from "@/lib/openrouter-model-filter";
 
@@ -49,9 +54,8 @@ function fetchWithTimeout(
   init: RequestInit = {},
   timeoutMs = API_FETCH_TIMEOUT_MS
 ): Promise<Response> {
-  return fetch(input, {
-    ...init,
-    signal: init.signal ?? AbortSignal.timeout(timeoutMs),
+  return fetchWithRetry(input, init, {
+    timeoutMs,
   });
 }
 
@@ -330,7 +334,8 @@ async function buildPartialModel(slug: string, includeCapabilities = true): Prom
     );
     if (!res.ok) return null;
     const html = await res.text();
-    const parsedModelData = extractAAPartialModelData(html, slug);
+    const document = parseAAHtmlDocument(html);
+    const parsedModelData = extractAAPartialModelData(document, slug);
     const creatorSlug = resolveCreatorFromModelSlug(
       slug,
       parsedModelData.model_creator.slug,
@@ -347,7 +352,7 @@ async function buildPartialModel(slug: string, includeCapabilities = true): Prom
     // Reuse the page already fetched above instead of issuing a second request.
     const caps = includeCapabilities
       ? {
-          ...extractAACapabilities(html),
+          ...extractAACapabilities(document),
           availability_status: extractAAAvailabilityStatus(html, slug),
         }
       : {};
@@ -482,7 +487,7 @@ async function enrichCronModelsWithSources(models: LLMModel[]): Promise<LLMModel
 
 /**
  * Full model list, including partial scrapes for slugs missing from the AA API.
- * CPU-heavy (regex on dozens of HTML pages) — only call from the Cron Trigger.
+ * CPU-heavy (HTML parsing on dozens of pages) — only call from the Cron Trigger.
  */
 interface CronSourceStats extends Record<string, number> {
   apiModels: number;
@@ -492,11 +497,16 @@ interface CronSourceStats extends Record<string, number> {
   apiModelsNotInSitemap: number;
   missingSitemapSlugs: number;
   builtPartialModels: number;
+  transientRetries: number;
 }
 
 interface CronFetchStats extends CronSourceStats {
   previousModels: number;
   retainedHistoricalModels: number;
+  openRouterEnrichedModels: number;
+  huggingFaceEnrichedModels: number;
+  openWeightModels: number;
+  parameterizedModels: number;
 }
 
 interface CronFetchResult {
@@ -505,6 +515,7 @@ interface CronFetchResult {
 }
 
 export async function fetchModelsForCron(): Promise<CronFetchResult> {
+  const retriesBefore = getFetchRetryCount();
   const [apiModels, validSlugs, mediaModels] = await Promise.all([
     apiFetch<LLMModel[]>("/data/llms/models"),
     scrapeAllModelSlugs(),
@@ -527,9 +538,14 @@ export async function fetchModelsForCron(): Promise<CronFetchResult> {
   };
 
   if (missingSlugs.length === 0) {
+    const models = await enrichCronModelsWithSources(apiAndMediaModels);
     return {
-      models: await enrichCronModelsWithSources(apiAndMediaModels),
-      stats: { ...statsBase, builtPartialModels: 0 },
+      models,
+      stats: {
+        ...statsBase,
+        builtPartialModels: 0,
+        transientRetries: getFetchRetryCount() - retriesBefore,
+      },
     };
   }
 
@@ -548,9 +564,39 @@ export async function fetchModelsForCron(): Promise<CronFetchResult> {
     );
   }
 
+  const models = await enrichCronModelsWithSources([
+    ...apiAndMediaModels,
+    ...extraModels,
+  ]);
   return {
-    models: await enrichCronModelsWithSources([...apiAndMediaModels, ...extraModels]),
-    stats: { ...statsBase, builtPartialModels: extraModels.length },
+    models,
+    stats: {
+      ...statsBase,
+      builtPartialModels: extraModels.length,
+      transientRetries: getFetchRetryCount() - retriesBefore,
+    },
+  };
+}
+
+function sourceCoverageStats(models: LLMModel[]) {
+  return {
+    openRouterEnrichedModels: models.filter(
+      (model) =>
+        model.id.startsWith("openrouter:") ||
+        model.openrouter_supported_parameters !== undefined ||
+        model.openrouter_weekly_rank != null,
+    ).length,
+    huggingFaceEnrichedModels: models.filter(
+      (model) => Boolean(model.huggingface_id || model.huggingface_url),
+    ).length,
+    openWeightModels: models.filter(
+      (model) => model.is_open_weights === true,
+    ).length,
+    parameterizedModels: models.filter(
+      (model) =>
+        model.total_parameters_b != null ||
+        model.active_parameters_b != null,
+    ).length,
   };
 }
 
@@ -571,6 +617,7 @@ export async function refreshModelsCache(): Promise<{ count: number; stats: Cron
     ...stats,
     previousModels: previousModels.length,
     retainedHistoricalModels: mergedCatalog.retainedCount,
+    ...sourceCoverageStats(models),
   };
   await writeModelsCache(models, completeStats);
   if (models.length > 0) lastSuccessfulModels = models;

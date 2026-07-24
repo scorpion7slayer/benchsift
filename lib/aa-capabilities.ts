@@ -1,3 +1,74 @@
+import * as cheerio from "cheerio/slim";
+
+export interface AAHtmlDocument {
+  structuredSources: string[];
+  visibleText: string;
+  metaDescription: string | null;
+  title: string | null;
+  heading: string | null;
+}
+
+type AAHtmlInput = string | AAHtmlDocument;
+
+function normaliseVisibleText(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Parses the stable HTML structure once, then isolates embedded scripts from
+ * visible copy. Raw HTML remains the final fallback for historical RSC shapes.
+ */
+export function parseAAHtmlDocument(html: string): AAHtmlDocument {
+  const $ = cheerio.load(html);
+  const scripts = $("script")
+    .toArray()
+    .map((element) => $(element).text().trim())
+    .filter(Boolean);
+  const body = $("body").first();
+  let visibleText: string;
+  if (body.length > 0) {
+    const innerText = body.prop("innerText");
+    const preferredText =
+      typeof innerText === "string" ? normaliseVisibleText(innerText) : "";
+    visibleText = preferredText || normaliseVisibleText(body.text());
+  } else {
+    visibleText = normaliseVisibleText($.root().text());
+  }
+  const clean = (value: string): string | null => {
+    const normalised = normaliseVisibleText(value);
+    return normalised || null;
+  };
+
+  return {
+    structuredSources: scripts.length > 0 ? [...scripts, html] : [html],
+    visibleText,
+    metaDescription: clean(
+      $('meta[name="description"]').first().attr("content") ?? "",
+    ),
+    title: clean($("title").first().text()),
+    heading: clean($("h1").first().text()),
+  };
+}
+
+function structuredSources(input: AAHtmlInput): string[] {
+  return typeof input === "string" ? [input] : input.structuredSources;
+}
+
+function visibleText(input: AAHtmlInput): string {
+  return typeof input === "string" ? input : input.visibleText;
+}
+
+function firstStructuredMatch(
+  input: AAHtmlInput,
+  pattern: RegExp,
+): RegExpMatchArray | null {
+  for (const source of structuredSources(input)) {
+    const match = source.match(pattern);
+    if (match) return match;
+  }
+  return null;
+}
+
 function* findJsonValueStarts(
   html: string,
   key: string,
@@ -22,15 +93,17 @@ function* findJsonValueStarts(
 }
 
 /** Extracts a finite number from regular or backslash-escaped JSON in HTML. */
-export function extractJsonNumber(html: string, ...keys: string[]): number | null {
-  for (const key of keys) {
-    for (const escaped of [false, true]) {
-      for (const start of findJsonValueStarts(html, key, escaped)) {
-        const match = html.slice(start, start + 64).match(/^([\d.]+)/);
-        if (!match) continue;
+export function extractJsonNumber(input: AAHtmlInput, ...keys: string[]): number | null {
+  for (const html of structuredSources(input)) {
+    for (const key of keys) {
+      for (const escaped of [false, true]) {
+        for (const start of findJsonValueStarts(html, key, escaped)) {
+          const match = html.slice(start, start + 64).match(/^(-?[\d.]+)/);
+          if (!match) continue;
 
-        const value = Number.parseFloat(match[1]);
-        if (Number.isFinite(value)) return value;
+          const value = Number.parseFloat(match[1]);
+          if (Number.isFinite(value)) return value;
+        }
       }
     }
   }
@@ -38,15 +111,17 @@ export function extractJsonNumber(html: string, ...keys: string[]): number | nul
 }
 
 /** Extracts a string from regular or backslash-escaped JSON in HTML. */
-export function extractJsonString(html: string, ...keys: string[]): string | null {
-  for (const key of keys) {
-    for (const escaped of [false, true]) {
-      for (const start of findJsonValueStarts(html, key, escaped)) {
-        const quote = escaped ? '\\"' : '"';
-        if (!html.startsWith(quote, start)) continue;
-        const valueStart = start + quote.length;
-        const valueEnd = html.indexOf(quote, valueStart);
-        if (valueEnd > valueStart) return html.slice(valueStart, valueEnd);
+export function extractJsonString(input: AAHtmlInput, ...keys: string[]): string | null {
+  for (const html of structuredSources(input)) {
+    for (const key of keys) {
+      for (const escaped of [false, true]) {
+        for (const start of findJsonValueStarts(html, key, escaped)) {
+          const quote = escaped ? '\\"' : '"';
+          if (!html.startsWith(quote, start)) continue;
+          const valueStart = start + quote.length;
+          const valueEnd = html.indexOf(quote, valueStart);
+          if (valueEnd > valueStart) return html.slice(valueStart, valueEnd);
+        }
       }
     }
   }
@@ -66,28 +141,34 @@ function slugToName(slug: string): string {
     .join(" ");
 }
 
-function extractModelCreator(html: string, slug: string) {
+function extractModelCreator(input: AAHtmlInput, slug: string) {
   const structuredSlug =
-    extractJsonString(html, "model_creator_slug", "creator_slug") ??
-    html.match(
+    extractJsonString(input, "model_creator_slug", "creator_slug") ??
+    firstStructuredMatch(
+      input,
       /"model_creators?"\s*:\s*\{[^}]{0,300}"slug"\s*:\s*"([a-z0-9-]+)"/,
     )?.[1] ??
-    html.match(
+    firstStructuredMatch(
+      input,
       /\\"model_creators?\\"\s*:\s*\{[^}]{0,300}\\"slug\\"\s*:\s*\\"([a-z0-9-]+)\\"/,
     )?.[1];
-  const metaCreatorName = html.match(
-    /<meta\s+name="description"\s+content="Analysis of ([^"<&]{1,80})(?:&#x27;|&apos;|')s\b/i,
+  const metaDescription =
+    typeof input === "string" ? null : input.metaDescription;
+  const metaCreatorName = metaDescription?.match(
+    /Analysis of (.{1,80}?)(?:'s|’s)\b/i,
   )?.[1];
   const creatorSlug =
     structuredSlug ??
     metaCreatorName?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") ??
     slug.split("-")[0];
   const creatorName =
-    extractJsonString(html, "model_creator_name", "creator_name") ??
-    html.match(
+    extractJsonString(input, "model_creator_name", "creator_name") ??
+    firstStructuredMatch(
+      input,
       /"model_creators?"\s*:\s*\{[^}]{0,300}"name"\s*:\s*"([^"]+)"/,
     )?.[1] ??
-    html.match(
+    firstStructuredMatch(
+      input,
       /\\"model_creators?\\"\s*:\s*\{[^}]{0,300}\\"name\\"\s*:\s*\\"([^"\\]+)\\"/,
     )?.[1] ??
     metaCreatorName ??
@@ -96,106 +177,108 @@ function extractModelCreator(html: string, slug: string) {
   return { id: creatorSlug, name: creatorName, slug: creatorSlug };
 }
 
-function extractModelName(html: string, slug: string): string {
+function extractModelName(input: AAHtmlInput, slug: string): string {
+  const heading = typeof input === "string" ? null : input.heading;
+  const title = typeof input === "string" ? null : input.title;
+  const cleanHeading = heading
+    ?.replace(/\s+Intelligence,\s*Performance\s*&\s*Price Analysis$/i, "")
+    .trim();
   return (
-    extractJsonString(html, "model_name", "modelName", "short_name") ??
-    html.match(/<h1[^>]*>\s*([^<]+)\s*<\/h1>/)?.[1]?.trim() ??
-    html.match(/<title>\s*([^<-]+?)\s*-/)?.[1]?.trim() ??
+    extractJsonString(input, "model_name", "modelName", "short_name") ??
+    cleanHeading ??
+    title?.split(/\s+-\s+/)[0]?.trim() ??
     slugToName(slug)
   );
 }
 
-function extractReleaseDate(html: string): string | null {
-  return (
-    html.match(/"release_date"\s*:\s*"(\d{4}-\d{2}-\d{2})"/)?.[1] ??
-    html.match(/\\"release_date\\"\s*:\s*\\"(\d{4}-\d{2}-\d{2})\\"/)?.[1] ??
-    null
-  );
+function extractReleaseDate(input: AAHtmlInput): string | null {
+  const value = extractJsonString(input, "release_date", "releaseDate");
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
 }
 
-function extractPricing(html: string) {
+function extractPricing(input: AAHtmlInput) {
   return {
     price_1m_blended_3_to_1: extractJsonNumber(
-      html,
+      input,
       "price_1m_blended_3_to_1",
       "price_1m_blended_0_3_1",
     ),
-    price_1m_input_tokens: extractJsonNumber(html, "price_1m_input_tokens"),
-    price_1m_output_tokens: extractJsonNumber(html, "price_1m_output_tokens"),
-    price_1m_cache_hit_tokens: extractJsonNumber(html, "cache_hit_price"),
+    price_1m_input_tokens: extractJsonNumber(input, "price_1m_input_tokens"),
+    price_1m_output_tokens: extractJsonNumber(input, "price_1m_output_tokens"),
+    price_1m_cache_hit_tokens: extractJsonNumber(input, "cache_hit_price"),
     price_1m_blended_7_2_1: extractJsonNumber(
-      html,
+      input,
       "price_1m_blended_7_2_1",
     ),
   };
 }
 
-function extractEvaluations(html: string) {
+function extractEvaluations(input: AAHtmlInput) {
   return {
     artificial_analysis_intelligence_index: extractJsonNumber(
-      html,
+      input,
       "intelligence_index",
       "artificial_analysis_intelligence_index",
     ),
     artificial_analysis_coding_index: extractJsonNumber(
-      html,
+      input,
       "coding_index",
       "artificial_analysis_coding_index",
     ),
     artificial_analysis_math_index: extractJsonNumber(
-      html,
+      input,
       "math_index",
       "artificial_analysis_math_index",
     ),
-    mmlu_pro: extractJsonNumber(html, "mmlu_pro"),
-    gpqa: extractJsonNumber(html, "gpqa"),
-    hle: extractJsonNumber(html, "hle"),
-    livecodebench: extractJsonNumber(html, "livecodebench"),
-    scicode: extractJsonNumber(html, "scicode"),
-    math_500: extractJsonNumber(html, "math_500"),
-    aime: extractJsonNumber(html, "aime"),
-    aime_25: extractJsonNumber(html, "aime_25"),
-    ifbench: extractJsonNumber(html, "ifbench"),
-    lcr: extractJsonNumber(html, "lcr"),
-    terminalbench_hard: extractJsonNumber(html, "terminalbench_hard"),
-    terminalbench_v2_1: extractJsonNumber(html, "terminalbench_v2_1"),
-    tau2: extractJsonNumber(html, "tau2"),
-    tau_banking: extractJsonNumber(html, "tau_banking"),
-    agentic_index: extractJsonNumber(html, "agentic_index"),
-    gdpval: extractJsonNumber(html, "gdpval"),
-    gdpval_normalized: extractJsonNumber(html, "gdpval_normalized"),
-    omniscience: extractJsonNumber(html, "omniscience"),
-    multilingual_aa: extractJsonNumber(html, "multilingual_aa"),
-    mmmu_pro: extractJsonNumber(html, "mmmu_pro"),
-    critpt: extractJsonNumber(html, "critpt"),
-    apex_agents: extractJsonNumber(html, "apex_agents"),
-    itbench_aa: extractJsonNumber(html, "itbench_aa"),
+    mmlu_pro: extractJsonNumber(input, "mmlu_pro"),
+    gpqa: extractJsonNumber(input, "gpqa"),
+    hle: extractJsonNumber(input, "hle"),
+    livecodebench: extractJsonNumber(input, "livecodebench"),
+    scicode: extractJsonNumber(input, "scicode"),
+    math_500: extractJsonNumber(input, "math_500"),
+    aime: extractJsonNumber(input, "aime"),
+    aime_25: extractJsonNumber(input, "aime_25"),
+    ifbench: extractJsonNumber(input, "ifbench"),
+    lcr: extractJsonNumber(input, "lcr"),
+    terminalbench_hard: extractJsonNumber(input, "terminalbench_hard"),
+    terminalbench_v2_1: extractJsonNumber(input, "terminalbench_v2_1"),
+    tau2: extractJsonNumber(input, "tau2"),
+    tau_banking: extractJsonNumber(input, "tau_banking"),
+    agentic_index: extractJsonNumber(input, "agentic_index"),
+    gdpval: extractJsonNumber(input, "gdpval"),
+    gdpval_normalized: extractJsonNumber(input, "gdpval_normalized"),
+    omniscience: extractJsonNumber(input, "omniscience"),
+    multilingual_aa: extractJsonNumber(input, "multilingual_aa"),
+    mmmu_pro: extractJsonNumber(input, "mmmu_pro"),
+    critpt: extractJsonNumber(input, "critpt"),
+    apex_agents: extractJsonNumber(input, "apex_agents"),
+    itbench_aa: extractJsonNumber(input, "itbench_aa"),
     omniscience_non_hallucination: extractJsonNumber(
-      html,
+      input,
       "non_hallucination_rate",
     ),
   };
 }
 
-function extractPerformance(html: string) {
+function extractPerformance(input: AAHtmlInput) {
   return {
     median_output_tokens_per_second: extractJsonNumber(
-      html,
+      input,
       "median_output_tokens_per_second",
       "median_output_speed",
     ),
     median_time_to_first_token_seconds: extractJsonNumber(
-      html,
+      input,
       "median_time_to_first_token_seconds",
       "median_time_to_first_token",
       "median_time_to_first_chunk",
     ),
     median_time_to_first_answer_token: extractJsonNumber(
-      html,
+      input,
       "median_time_to_first_answer_token",
     ),
     end_to_end_response_time_seconds: extractJsonNumber(
-      html,
+      input,
       "median_end_to_end_response_time_seconds",
       "end_to_end_response_time_seconds",
       "median_end_to_end_response_time",
@@ -205,47 +288,52 @@ function extractPerformance(html: string) {
 }
 
 /** Parses the base model record embedded in an Artificial Analysis page. */
-export function extractAAPartialModelData(html: string, slug: string) {
+export function extractAAPartialModelData(input: AAHtmlInput, slug: string) {
+  const document =
+    typeof input === "string" ? parseAAHtmlDocument(input) : input;
   return {
-    name: extractModelName(html, slug),
-    release_date: extractReleaseDate(html),
-    model_creator: extractModelCreator(html, slug),
-    evaluations: extractEvaluations(html),
-    pricing: extractPricing(html),
-    ...extractPerformance(html),
+    name: extractModelName(document, slug),
+    release_date: extractReleaseDate(document),
+    model_creator: extractModelCreator(document, slug),
+    evaluations: extractEvaluations(document),
+    pricing: extractPricing(document),
+    ...extractPerformance(document),
   };
 }
 
 function extractJsonBoolean(
-  html: string,
+  input: AAHtmlInput,
   ...keys: string[]
 ): boolean | undefined {
-  for (const key of keys) {
-    for (const escaped of [false, true]) {
-      for (const start of findJsonValueStarts(html, key, escaped)) {
-        if (html.startsWith("true", start)) return true;
-        if (html.startsWith("false", start)) return false;
+  for (const html of structuredSources(input)) {
+    for (const key of keys) {
+      for (const escaped of [false, true]) {
+        for (const start of findJsonValueStarts(html, key, escaped)) {
+          if (html.startsWith("true", start)) return true;
+          if (html.startsWith("false", start)) return false;
+        }
       }
     }
   }
   return undefined;
 }
 
-function extractContextWindow(html: string): number | null {
+function extractContextWindow(input: AAHtmlInput): number | null {
   const jsonValue = extractJsonNumber(
-    html,
+    input,
     "context_window_tokens",
     "context_window",
   );
   if (jsonValue !== null) return jsonValue;
 
-  let match = html.match(/context window of ([\d.]+)\s*M tokens/i);
+  const text = visibleText(input);
+  let match = text.match(/context window of ([\d.]+)\s*M tokens/i);
   if (match) return Math.round(Number.parseFloat(match[1]) * 1_000_000);
 
-  match = html.match(/context window of ([\d,]+)\s*tokens/i);
+  match = text.match(/context window of ([\d,]+)\s*tokens/i);
   if (match) return Number.parseInt(match[1].replace(/,/g, ""), 10);
 
-  match = html.match(/[Cc]ontext window[\s\S]{0,120}?([\d.]+)\s*([kKmM])\b/);
+  match = text.match(/[Cc]ontext window[\s\S]{0,120}?([\d.]+)\s*([kKmM])\b/);
   if (!match) return null;
 
   const multiplier = /[mM]/.test(match[2]) ? 1_000_000 : 1_000;
@@ -268,56 +356,63 @@ function toBillions(value: number, unit: string): number | null {
 }
 
 function extractParameterBillions(
-  html: string,
+  input: AAHtmlInput,
   label: string,
   jsonKey: string,
 ): number | null {
-  for (const escaped of [false, true]) {
-    for (const valueStart of findJsonValueStarts(html, jsonKey, escaped)) {
-      const quote = escaped ? '\\"' : '"';
-      if (!html.startsWith(quote, valueStart)) continue;
-      const start = valueStart + quote.length;
+  for (const html of structuredSources(input)) {
+    for (const escaped of [false, true]) {
+      for (const valueStart of findJsonValueStarts(html, jsonKey, escaped)) {
+        const quote = escaped ? '\\"' : '"';
+        if (!html.startsWith(quote, valueStart)) continue;
+        const start = valueStart + quote.length;
 
-      const match = html.slice(start, start + 64).match(/^([\d.]+)([BbMmKkT])/);
-      if (match) return toBillions(Number.parseFloat(match[1]), match[2]);
+        const match = html.slice(start, start + 64).match(/^([\d.]+)([BbMmKkT])/);
+        if (match) return toBillions(Number.parseFloat(match[1]), match[2]);
+      }
     }
   }
 
-  const labelIndex = html.indexOf(label);
+  const text = visibleText(input);
+  const labelIndex = text.indexOf(label);
   if (labelIndex < 0) return null;
-  const nearbyText = html.slice(labelIndex + label.length, labelIndex + label.length + 200);
+  const nearbyText = text.slice(labelIndex + label.length, labelIndex + label.length + 200);
   const match = nearbyText.match(/[\s\S]*?([\d.]+)\s*([BbMmKkT])\b/);
   return match ? toBillions(Number.parseFloat(match[1]), match[2]) : null;
 }
 
-function extractKnowledgeCutoff(html: string): string | null {
-  const iso =
-    html.match(/\\?"knowledge_cutoff_date\\?"\s*:\s*\\?"(\d{4}-\d{2}-\d{2})\\?"/)?.[1] ??
-    html.match(/\\?"knowledge_cutoff\\?"\s*:\s*\\?"(\d{4}-\d{2}-\d{2})\\?"/)?.[1];
-  if (iso) return iso;
+function extractKnowledgeCutoff(input: AAHtmlInput): string | null {
+  const iso = extractJsonString(
+    input,
+    "knowledge_cutoff_date",
+    "knowledge_cutoff",
+  );
+  if (iso && /^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
 
   const textPattern =
-    /[Kk]nowledge cutoff[^\d<]{0,30}((?:[A-Z][a-z]{2,8}\s+\d{1,2},?\s+\d{4})|(?:[A-Z][a-z]{2,8}\s+\d{4}))/;
-  const text = html.match(textPattern)?.[1];
+    /[Kk]nowledge cutoff[^\d]{0,30}((?:[A-Z][a-z]{2,8}\s+\d{1,2},?\s+\d{4})|(?:[A-Z][a-z]{2,8}\s+\d{4}))/;
+  const text = visibleText(input).match(textPattern)?.[1];
   return text?.trim() ?? null;
 }
 
-function extractOpenness(html: string): number | null {
-  const match = html.match(
+function extractOpenness(input: AAHtmlInput): number | null {
+  const match = firstStructuredMatch(
+    input,
     /\\?"openness\\?"\s*:\s*\{[\s\S]{0,800}?\\?"opennessIndex\\?"\s*:\s*([\d.-]+)/,
   );
   return match
     ? Number.parseFloat(match[1])
-    : extractJsonNumber(html, "openness_index", "openness_score");
+    : extractJsonNumber(input, "openness_index", "openness_score");
 }
 
-function extractIntelligenceIndexTokens(html: string): number | null {
-  const jsonMatch = html.match(
+function extractIntelligenceIndexTokens(input: AAHtmlInput): number | null {
+  const jsonMatch = firstStructuredMatch(
+    input,
     /\\?"intelligence_index_token_counts\\?"\s*:\s*\{[\s\S]{0,400}?\\?"output_tokens\\?"\s*:\s*(\d+)/,
   );
   if (jsonMatch) return Number.parseInt(jsonMatch[1], 10);
 
-  const textMatch = html.match(
+  const textMatch = visibleText(input).match(
     /Intelligence Index[\s\S]{0,80}?generated\s+([\d.]+)\s*([MK])\b/i,
   );
   if (!textMatch) return null;
@@ -325,18 +420,22 @@ function extractIntelligenceIndexTokens(html: string): number | null {
   return Math.round(Number.parseFloat(textMatch[1]) * multiplier);
 }
 
-function extractIntelligenceIndexCost(html: string): number | null {
-  const jsonMatch = html.match(
+function extractIntelligenceIndexCost(input: AAHtmlInput): number | null {
+  const jsonMatch = firstStructuredMatch(
+    input,
     /\\?"intelligence_index_cost\\?"\s*:\s*\{[\s\S]{0,300}?\\?"total_cost\\?"\s*:\s*([\d.]+)/,
   );
   if (jsonMatch) return Number.parseFloat(jsonMatch[1]);
 
-  const textMatch = html.match(/it cost\s+\$([\d,]+(?:\.\d+)?)\s+to evaluate/i);
+  const textMatch = visibleText(input).match(
+    /it cost\s+\$([\d,]+(?:\.\d+)?)\s+to evaluate/i,
+  );
   return textMatch ? Number.parseFloat(textMatch[1].replace(/,/g, "")) : null;
 }
 
-function extractEndToEndResponseTime(html: string): number | null {
-  const match = html.match(
+function extractEndToEndResponseTime(input: AAHtmlInput): number | null {
+  const match = firstStructuredMatch(
+    input,
     /\\?"end_to_end_response_time_metrics\\?"\s*:\s*\{[\s\S]{0,500}?\\?"total_time\\?"\s*:\s*([\d.]+)/,
   );
   if (match) {
@@ -344,73 +443,75 @@ function extractEndToEndResponseTime(html: string): number | null {
     return value > 0 ? value : null;
   }
   return extractJsonNumber(
-    html,
+    input,
     "median_end_to_end_response_time_seconds",
     "end_to_end_response_time_seconds",
   );
 }
 
 /** Parses the capability fields embedded in an Artificial Analysis model page. */
-export function extractAACapabilities(html: string) {
+export function extractAACapabilities(input: AAHtmlInput) {
+  const document =
+    typeof input === "string" ? parseAAHtmlDocument(input) : input;
   return {
-    context_window_tokens: extractContextWindow(html),
+    context_window_tokens: extractContextWindow(document),
     total_parameters_b: extractParameterBillions(
-      html,
+      document,
       "Total parameters",
       "totalParameters",
     ),
     active_parameters_b: extractParameterBillions(
-      html,
+      document,
       "Active parameters",
       "activeParameters",
     ),
-    reasoning_model: extractJsonBoolean(html, "reasoning_model", "isReasoning"),
+    reasoning_model: extractJsonBoolean(document, "reasoning_model", "isReasoning"),
     reasoning_properties: null,
-    is_open_weights: extractJsonBoolean(html, "is_open_weights", "isOpenWeights"),
+    is_open_weights: extractJsonBoolean(document, "is_open_weights", "isOpenWeights"),
     input_modality_text: extractJsonBoolean(
-      html,
+      document,
       "input_modality_text",
       "inputModalityText",
     ),
     input_modality_image: extractJsonBoolean(
-      html,
+      document,
       "input_modality_image",
       "inputModalityImage",
     ),
     input_modality_speech: extractJsonBoolean(
-      html,
+      document,
       "input_modality_speech",
       "inputModalitySpeech",
     ),
     input_modality_video: extractJsonBoolean(
-      html,
+      document,
       "input_modality_video",
       "inputModalityVideo",
     ),
     output_modality_text: extractJsonBoolean(
-      html,
+      document,
       "output_modality_text",
       "outputModalityText",
     ),
     output_modality_image: extractJsonBoolean(
-      html,
+      document,
       "output_modality_image",
       "outputModalityImage",
     ),
     output_modality_speech: extractJsonBoolean(
-      html,
+      document,
       "output_modality_speech",
       "outputModalitySpeech",
     ),
     output_modality_video: extractJsonBoolean(
-      html,
+      document,
       "output_modality_video",
       "outputModalityVideo",
     ),
-    knowledge_cutoff: extractKnowledgeCutoff(html),
-    openness_index: extractOpenness(html),
-    intelligence_index_tokens: extractIntelligenceIndexTokens(html),
-    intelligence_index_cost_usd: extractIntelligenceIndexCost(html),
-    end_to_end_response_time_seconds: extractEndToEndResponseTime(html),
+    knowledge_cutoff: extractKnowledgeCutoff(document),
+    openness_index: extractOpenness(document),
+    intelligence_index_tokens: extractIntelligenceIndexTokens(document),
+    intelligence_index_cost_usd: extractIntelligenceIndexCost(document),
+    end_to_end_response_time_seconds: extractEndToEndResponseTime(document),
   };
 }

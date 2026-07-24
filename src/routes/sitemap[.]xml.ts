@@ -74,6 +74,12 @@ export const Route = createFileRoute("/sitemap.xml")({
             changeFrequency: "daily",
             priority: 0.9,
           },
+          {
+            url: absoluteUrl("/about"),
+            lastModified: today,
+            changeFrequency: "monthly",
+            priority: 0.7,
+          },
           ...Array.from({ length: catalogPages - 1 }, (_, index) => ({
             url: absoluteUrl(`/models/page/${index + 2}`),
             lastModified: today,

@@ -129,13 +129,41 @@ export function openApiDocument() {
           summary: "Check service health",
           responses: {
             "200": {
-              description: "The service is healthy.",
+              description:
+                "The service is live. Catalog status can be healthy or degraded.",
               content: {
                 "application/json": {
                   schema: {
                     type: "object",
-                    properties: { ok: { type: "boolean", const: true } },
-                    required: ["ok"],
+                    properties: {
+                      ok: { type: "boolean", const: true },
+                      status: {
+                        type: "string",
+                        enum: ["healthy", "degraded"],
+                      },
+                      service: { type: "string", const: "benchsift" },
+                      observedAt: { type: "string", format: "date-time" },
+                      catalog: {
+                        type: "object",
+                        properties: {
+                          status: {
+                            type: "string",
+                            enum: ["ready", "stale", "unavailable"],
+                          },
+                          models: { type: "integer", minimum: 0 },
+                          refreshedAt: {
+                            type: ["string", "null"],
+                            format: "date-time",
+                          },
+                          ageSeconds: {
+                            type: ["integer", "null"],
+                            minimum: 0,
+                          },
+                        },
+                        required: ["status", "models", "refreshedAt", "ageSeconds"],
+                      },
+                    },
+                    required: ["ok", "status", "service", "observedAt", "catalog"],
                   },
                 },
               },
@@ -238,8 +266,21 @@ ${DEFAULT_DESCRIPTION}
 Returns service health:
 
 \`\`\`json
-{"ok": true}
+{
+  "ok": true,
+  "status": "healthy",
+  "catalog": {
+    "status": "ready",
+    "models": 1024,
+    "refreshedAt": "2026-07-24T08:00:00.000Z",
+    "ageSeconds": 3600
+  }
+}
 \`\`\`
+
+The endpoint remains a liveness probe with HTTP 200. A stale or unavailable
+catalog is reported as \`status: "degraded"\` without exposing private cache
+paths, credentials, or internal error messages.
 
 ## Private operational endpoints
 

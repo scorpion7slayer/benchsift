@@ -15,7 +15,6 @@ export type SortKey =
   | "speed"
   | "ttft"
   | "openrouter_popular"
-  | "open_weights"
   | "price_asc"
   | "price_desc"
   | "newest"
@@ -27,6 +26,8 @@ export type NormalRankingKey =
   | "math"
   | "speed"
   | "price_asc";
+
+export type WeightAccessFilter = "all" | "open" | "closed";
 
 export type CategoryFilter =
   | "all"
@@ -76,7 +77,6 @@ const NERD_EVALUATION_SORT_KEYS = {
   livecodebench: "livecodebench",
   math_500: "math_500",
   aime_25: "aime_25",
-  open_weights: "artificial_analysis_intelligence_index",
 } as const satisfies Partial<Record<SortKey, string>>;
 
 const NERD_MODEL_COMPARATORS: Partial<Record<SortKey, ModelComparator<LLMModel>>> = {
@@ -164,6 +164,14 @@ export function matchesSearch(
     model.slug.toLowerCase().replace(/-/g, " "),
   ].join(" ");
   return tokens.every((token) => haystack.includes(token));
+}
+
+export function matchesWeightAccess(
+  isOpenWeights: boolean,
+  filter: WeightAccessFilter,
+): boolean {
+  if (filter === "all") return true;
+  return filter === "open" ? isOpenWeights : !isOpenWeights;
 }
 
 const NEW_MODELS_DAYS = 30;
