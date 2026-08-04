@@ -26,7 +26,7 @@ npm run dev
 
 Then open [http://localhost:3000](http://localhost:3000)
 
-You'll need an Artificial Analysis API key — grab one at [artificialanalysis.ai](https://artificialanalysis.ai) and add it to `.env`:
+You'll need an Artificial Analysis API key — create one from the [Data API](https://artificialanalysis.ai/data-api) and add it to `.env`:
 
 ```env
 ARTIFICIAL_ANALYSIS_API_KEY=your_key_here
@@ -37,6 +37,9 @@ OpenRouter is used for model metadata, weekly usage rankings and benchmark enric
 `OPENROUTER_API_KEY` is optional, but enables authenticated `/api/v1/models` requests
 instead of relying on the unauthenticated public path.
 Hugging Face is used only for official model repository metadata and links.
+The Artificial Analysis integration uses the supported V2 endpoints, paginates the
+complete language-model catalogue, and automatically uses the richer Pro or
+Commercial response when the configured key grants access.
 
 ## Project structure
 
