@@ -648,6 +648,16 @@ function mergeDefined<T extends object>(base: T, patch: Partial<T>): T {
   return next;
 }
 
+function mergeCatalogDuplicate(primary: LLMModel, duplicate: LLMModel): LLMModel {
+  // Keep fresh first-party values and use the historical OpenRouter row only
+  // to fill fields that are still absent, including nested metrics and prices.
+  return {
+    ...mergeDefined(duplicate, primary),
+    evaluations: mergeDefined(duplicate.evaluations, primary.evaluations),
+    pricing: mergeDefined(duplicate.pricing, primary.pricing),
+  };
+}
+
 function pricePerMillion(price: string | undefined): number | null {
   if (!price) return null;
   const value = Number(price);
@@ -937,27 +947,50 @@ function addOpenRouterOnlyModels(
 }
 
 export function dedupeOpenRouterVariantModels(models: LLMModel[]): LLMModel[] {
-  const firstPartyKeys = models
-    .filter((model) => !model.id.startsWith("openrouter:"))
-    .map((model) => catalogDedupeKey(model))
-    .filter((key): key is string => key != null);
-  const seenOpenRouterKeys: string[] = [];
-
-  return models.filter((model) => {
-    if (!model.id.startsWith("openrouter:")) return true;
+  const mergedModels = [...models];
+  const removedIndexes = new Set<number>();
+  const firstPartyEntries = models.flatMap((model, index) => {
+    if (model.id.startsWith("openrouter:")) return [];
     const key = catalogDedupeKey(model);
-    if (!key) return true;
+    return key ? [{ key, index }] : [];
+  });
+  const seenOpenRouterEntries: Array<{ key: string; index: number }> = [];
+
+  for (const [index, model] of models.entries()) {
+    if (!model.id.startsWith("openrouter:")) continue;
+    const key = catalogDedupeKey(model);
+    if (!key) continue;
     const allowVariantMatch =
       isFreeCatalogVariant(model) || isLowInformationCatalogVariant(model);
-    if (
-      dedupeKeyMatchesAny(key, firstPartyKeys, allowVariantMatch) ||
-      dedupeKeyMatchesAny(key, seenOpenRouterKeys, allowVariantMatch)
-    ) {
-      return false;
+
+    const firstPartyMatch = firstPartyEntries.find((entry) =>
+      dedupeKeyMatches(entry.key, key, allowVariantMatch),
+    );
+    if (firstPartyMatch) {
+      mergedModels[firstPartyMatch.index] = mergeCatalogDuplicate(
+        mergedModels[firstPartyMatch.index],
+        model,
+      );
+      removedIndexes.add(index);
+      continue;
     }
-    seenOpenRouterKeys.push(key);
-    return true;
-  });
+
+    const openRouterMatch = seenOpenRouterEntries.find((entry) =>
+      dedupeKeyMatches(entry.key, key, allowVariantMatch),
+    );
+    if (openRouterMatch) {
+      mergedModels[openRouterMatch.index] = mergeCatalogDuplicate(
+        mergedModels[openRouterMatch.index],
+        model,
+      );
+      removedIndexes.add(index);
+      continue;
+    }
+
+    seenOpenRouterEntries.push({ key, index });
+  }
+
+  return mergedModels.filter((_, index) => !removedIndexes.has(index));
 }
 
 export async function enrichModelsWithOpenRouter(
