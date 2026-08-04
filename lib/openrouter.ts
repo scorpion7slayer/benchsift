@@ -1,7 +1,10 @@
 import type { LLMModel } from "@/lib/api";
 import { fetchWithRetry } from "@/lib/fetch-with-retry";
 import { createEmptyEvaluations } from "@/lib/model-metrics";
-import { getCanonicalCreatorSlug } from "@/lib/provider-map";
+import {
+  getCanonicalCreatorSlug,
+  getModelProviderKey,
+} from "@/lib/provider-map";
 import { filterOpenRouterCatalogEntries } from "@/lib/openrouter-model-filter";
 
 const OR_BASE = "https://openrouter.ai/api/v1";
@@ -391,8 +394,10 @@ function providerSlug(or: OpenRouterModel): string {
   return aliases[slug] ?? slug;
 }
 
-function catalogProviderSlug(model: Pick<LLMModel, "model_creator">): string {
-  return getCanonicalCreatorSlug(model.model_creator.slug);
+function catalogProviderSlug(
+  model: Pick<LLMModel, "slug" | "model_creator">,
+): string {
+  return getModelProviderKey(model.slug, model.model_creator.slug);
 }
 
 function openRouterNameKey(or: OpenRouterModel): string | null {
@@ -412,7 +417,10 @@ function catalogDedupeKey(model: Pick<LLMModel, "slug" | "name" | "model_creator
 }
 
 function openRouterDedupeKey(or: OpenRouterModel): string | null {
-  return dedupeKey(providerSlug(or), openRouterNameKey(or));
+  return dedupeKey(
+    getModelProviderKey(openRouterModelPart(or), providerSlug(or)),
+    openRouterNameKey(or),
+  );
 }
 
 function isFreeOpenRouterVariant(or: OpenRouterModel): boolean {
