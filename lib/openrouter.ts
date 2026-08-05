@@ -653,13 +653,78 @@ function mergeDefined<T extends object>(base: T, patch: Partial<T>): T {
   return next;
 }
 
-function mergeCatalogDuplicate(primary: LLMModel, duplicate: LLMModel): LLMModel {
-  // Keep fresh first-party values and use the historical OpenRouter row only
-  // to fill fields that are still absent, including nested metrics and prices.
+const OPENROUTER_OWNED_MODEL_FIELDS = [
+  "release_timestamp",
+  "context_window_tokens",
+  "reasoning_model",
+  "input_modality_text",
+  "input_modality_image",
+  "input_modality_speech",
+  "input_modality_video",
+  "output_modality_text",
+  "output_modality_image",
+  "output_modality_speech",
+  "output_modality_video",
+  "openrouter_input_modalities",
+  "openrouter_output_modalities",
+  "openrouter_supported_voices",
+  "openrouter_supported_parameters",
+  "openrouter_max_completion_tokens",
+  "openrouter_expiration_date",
+  "openrouter_weekly_rank",
+  "openrouter_weekly_tokens",
+  "openrouter_weekly_requests",
+  "openrouter_weekly_tool_calls",
+  "openrouter_weekly_images",
+  "openrouter_weekly_audio_inputs",
+  "openrouter_variant",
+] as const satisfies ReadonlyArray<keyof LLMModel>;
+
+function mergeMissingCatalogData(primary: LLMModel, fallback: LLMModel): LLMModel {
   return {
-    ...mergeDefined(duplicate, primary),
-    evaluations: mergeDefined(duplicate.evaluations, primary.evaluations),
-    pricing: mergeDefined(duplicate.pricing, primary.pricing),
+    ...mergeDefined(fallback, primary),
+    evaluations: mergeDefined(fallback.evaluations, primary.evaluations),
+    pricing: mergeDefined(fallback.pricing, primary.pricing),
+  };
+}
+
+function mergeOpenRouterIntoFirstParty(
+  primary: LLMModel,
+  openRouterModel: LLMModel,
+): LLMModel {
+  const merged = mergeMissingCatalogData(primary, openRouterModel);
+  const target = merged as unknown as Record<string, unknown>;
+
+  for (const key of OPENROUTER_OWNED_MODEL_FIELDS) {
+    const value = openRouterModel[key];
+    if (value !== undefined && value !== null) {
+      target[key] = value;
+    }
+  }
+
+  const evaluations = { ...merged.evaluations };
+  for (const [key, value] of Object.entries(openRouterModel.evaluations)) {
+    if (
+      (key === "agentic_index" || key.startsWith("openrouter_")) &&
+      value !== undefined &&
+      value !== null
+    ) {
+      evaluations[key] = value;
+    }
+  }
+
+  return {
+    ...merged,
+    evaluations,
+    pricing: {
+      ...merged.pricing,
+      ...(openRouterModel.pricing.openrouter_display_prices
+        ? {
+            openrouter_display_prices:
+              openRouterModel.pricing.openrouter_display_prices,
+          }
+        : {}),
+    },
   };
 }
 
@@ -972,7 +1037,7 @@ export function dedupeOpenRouterVariantModels(models: LLMModel[]): LLMModel[] {
       dedupeKeyMatches(entry.key, key, allowVariantMatch),
     );
     if (firstPartyMatch) {
-      mergedModels[firstPartyMatch.index] = mergeCatalogDuplicate(
+      mergedModels[firstPartyMatch.index] = mergeOpenRouterIntoFirstParty(
         mergedModels[firstPartyMatch.index],
         model,
       );
@@ -984,7 +1049,7 @@ export function dedupeOpenRouterVariantModels(models: LLMModel[]): LLMModel[] {
       dedupeKeyMatches(entry.key, key, allowVariantMatch),
     );
     if (openRouterMatch) {
-      mergedModels[openRouterMatch.index] = mergeCatalogDuplicate(
+      mergedModels[openRouterMatch.index] = mergeMissingCatalogData(
         mergedModels[openRouterMatch.index],
         model,
       );

@@ -85,9 +85,10 @@ the source of truth when older prose documentation disagrees.
 - A creator is not always a host or product brand. Reuse `lib/provider-map.ts`
   for canonical creator/provider logic; do not infer ownership from a model
   family alone.
-- Source duplicates must be merged, not merely hidden. Keep the primary
-  first-party identity and fresh values, fill only missing fields from the
-  secondary entry, then remove the redundant catalogue row.
+- Source duplicates must be merged, not merely hidden. Keep the first-party
+  identity and Artificial Analysis measurements, refresh OpenRouter-owned
+  capabilities, rankings, and pricing details from the matching OpenRouter
+  entry, fill any other missing fields, then remove the redundant row.
 - Apply exclusions and normalization both during fresh ingestion and while
   reading historical caches. The catalogue is cumulative, so fixing only the
   live fetch path lets stale entries return.
