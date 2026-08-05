@@ -1,7 +1,7 @@
 /**
  * Mapping des slugs créateurs renvoyés par Artificial Analysis
  * vers les clés provider de @lobehub/icons.
- * Slugs réels récupérés via l'API : /data/llms/models
+ * Slugs réels normalisés depuis l'API : /language/models/free
  */
 const CREATOR_TO_PROVIDER: Record<string, string> = {
   // Big Labs

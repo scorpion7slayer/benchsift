@@ -244,6 +244,11 @@ function findOpenRouterModelForCatalogModel(
   model: LLMModel,
   orModels: OpenRouterModel[],
 ): OpenRouterModel | undefined {
+  if (model.openrouter_api_id) {
+    const exactMatch = orModels.find((or) => or.id === model.openrouter_api_id);
+    if (exactMatch) return exactMatch;
+  }
+
   const bySlug = findOpenRouterModel(model.slug, orModels);
   if (bySlug) return bySlug;
 

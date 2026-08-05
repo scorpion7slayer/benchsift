@@ -1,5 +1,9 @@
 import type { LLMModel, ModelCreator, Pricing } from "@/lib/api";
 import { createEmptyEvaluations } from "@/lib/model-metrics";
+import {
+  getCanonicalCreatorSlug,
+  getCreatorDisplayName,
+} from "@/lib/provider-map";
 
 type AAMediaKind =
   | "text_to_image"
@@ -8,7 +12,7 @@ type AAMediaKind =
   | "image_to_video"
   | "text_to_speech";
 
-type AAFetcher = <T>(endpoint: string) => Promise<T>;
+type AAFetcher = <T>(freeEndpoint: string, proEndpoint: string) => Promise<T>;
 
 interface AAMediaCreator {
   id?: string;
@@ -23,33 +27,41 @@ interface AAMediaRow {
   model_creator?: AAMediaCreator;
   elo?: number;
   rank?: number;
-  ci95?: string;
+  ci_95?: number | null;
+  samples?: number;
   appearances?: number;
   release_date?: string | null;
+  open_weights_url?: string | null;
 }
 
 const MEDIA_ENDPOINTS: Array<{
-  endpoint: string;
+  freeEndpoint: string;
+  proEndpoint: string;
   kind: AAMediaKind;
 }> = [
   {
-    endpoint: "/data/media/text-to-image?include_categories=true",
+    freeEndpoint: "/media/text-to-image/models/free",
+    proEndpoint: "/media/text-to-image/models",
     kind: "text_to_image",
   },
   {
-    endpoint: "/data/media/image-editing",
+    freeEndpoint: "/media/image-editing/models/free",
+    proEndpoint: "/media/image-editing/models",
     kind: "image_editing",
   },
   {
-    endpoint: "/data/media/text-to-video?include_categories=true",
+    freeEndpoint: "/media/text-to-video/models/free",
+    proEndpoint: "/media/text-to-video/models",
     kind: "text_to_video",
   },
   {
-    endpoint: "/data/media/image-to-video?include_categories=true",
+    freeEndpoint: "/media/image-to-video/models/free",
+    proEndpoint: "/media/image-to-video/models",
     kind: "image_to_video",
   },
   {
-    endpoint: "/data/media/text-to-speech",
+    freeEndpoint: "/media/text-to-speech/models/free",
+    proEndpoint: "/media/text-to-speech/models",
     kind: "text_to_speech",
   },
 ];
@@ -87,10 +99,10 @@ function creatorFromRow(row: AAMediaRow): ModelCreator {
     slugify(name) ||
     row.slug?.split(/[-_]/)[0] ||
     "unknown";
-  const slug = slugify(rawSlug) || "unknown";
+  const slug = getCanonicalCreatorSlug(slugify(rawSlug) || "unknown");
   return {
     id: row.model_creator?.id || slug,
-    name,
+    name: getCreatorDisplayName(slug, name),
     slug,
   };
 }
@@ -156,8 +168,9 @@ function mediaEvaluations(row: AAMediaRow, kind: AAMediaKind) {
   if (typeof row.rank === "number") {
     evaluations[metricKey(kind, "rank")] = row.rank;
   }
-  if (typeof row.appearances === "number") {
-    evaluations[metricKey(kind, "appearances")] = row.appearances;
+  const samples = row.samples ?? row.appearances;
+  if (typeof samples === "number") {
+    evaluations[metricKey(kind, "appearances")] = samples;
   }
   return evaluations;
 }
@@ -165,6 +178,7 @@ function mediaEvaluations(row: AAMediaRow, kind: AAMediaKind) {
 function mediaModelFromRow(row: AAMediaRow, kind: AAMediaKind): LLMModel | null {
   if (!row.slug || !row.name) return null;
   const creator = creatorFromRow(row);
+  const openWeightsUrl = row.open_weights_url?.trim();
   return {
     id: row.id || `aa-media:${kind}:${row.slug}`,
     name: row.name,
@@ -176,6 +190,17 @@ function mediaModelFromRow(row: AAMediaRow, kind: AAMediaKind): LLMModel | null 
     median_output_tokens_per_second: null,
     median_time_to_first_token_seconds: null,
     median_time_to_first_answer_token: null,
+    ...(openWeightsUrl
+      ? {
+          is_open_weights: true,
+          ...(openWeightsUrl.startsWith("https://huggingface.co/")
+            ? {
+                huggingface_url: openWeightsUrl,
+                huggingface_source: "artificial-analysis",
+              }
+            : {}),
+        }
+      : {}),
     ...mediaCapabilities(kind),
   };
 }
@@ -233,8 +258,8 @@ export function mergeAAMediaModels(
 
 export async function fetchAAMediaModels(fetcher: AAFetcher): Promise<LLMModel[]> {
   const responses = await Promise.allSettled(
-    MEDIA_ENDPOINTS.map(async ({ endpoint, kind }) => {
-      const rows = await fetcher<AAMediaRow[]>(endpoint);
+    MEDIA_ENDPOINTS.map(async ({ freeEndpoint, proEndpoint, kind }) => {
+      const rows = await fetcher<AAMediaRow[]>(freeEndpoint, proEndpoint);
       return rows
         .map((row) => mediaModelFromRow(row, kind))
         .filter((model): model is LLMModel => model !== null);

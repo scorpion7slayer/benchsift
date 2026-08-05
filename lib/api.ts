@@ -28,6 +28,14 @@ import {
 } from "@/lib/fetch-with-retry";
 import { mergeModelHistory } from "@/lib/model-history";
 import { isExcludedOpenRouterModelId } from "@/lib/openrouter-model-filter";
+import {
+  AA_LANGUAGE_MODELS_ENDPOINT,
+  AA_LANGUAGE_MODELS_PRO_ENDPOINT,
+  collectAAPaginatedData,
+  normaliseAAV2LanguageModels,
+  type AAApiEnvelope,
+  type AAV2LanguageModel,
+} from "@/lib/aa-v2";
 
 const BASE_URL = "https://artificialanalysis.ai/api/v2";
 const API_FETCH_TIMEOUT_MS = 8_000;
@@ -179,6 +187,7 @@ export interface LLMModel {
   openrouter_weekly_images?: number | null;     // OpenRouter weekly image prompt/completion count
   openrouter_weekly_audio_inputs?: number | null; // OpenRouter weekly audio input count
   openrouter_variant?: string | null;           // OpenRouter ranking variant (free/standard)
+  openrouter_api_id?: string | null;             // Structured AA V2 link to OpenRouter
   huggingface_id?: string | null;
   huggingface_url?: string | null;
   huggingface_official?: boolean | null;
@@ -200,11 +209,6 @@ export interface LLMModel {
 
 let lastSuccessfulModels: LLMModel[] | null = null;
 
-interface ApiResponse<T> {
-  status: number;
-  data: T;
-}
-
 async function responseErrorSnippet(response: Response): Promise<string> {
   try {
     return (await response.text()).replace(/\s+/g, " ").trim().slice(0, 500);
@@ -218,7 +222,7 @@ function errorMessage(error: unknown): string {
 }
 
 /** Tries every key in order, continues on any error (429 or other). */
-async function apiFetch<T>(endpoint: string): Promise<T> {
+async function apiFetchPage<T>(endpoint: string): Promise<AAApiEnvelope<T>> {
   const keys = getApiKeys();
 
   if (keys.length === 0) throw new Error("No ARTIFICIAL_ANALYSIS_API_KEY set");
@@ -243,8 +247,14 @@ async function apiFetch<T>(endpoint: string): Promise<T> {
         continue;
       }
 
-      const json: ApiResponse<T> = await res.json();
-      return json.data;
+      const json = await res.json() as AAApiEnvelope<T>;
+      if (!json || typeof json !== "object" || !("data" in json)) {
+        lastError = new Error(
+          `Artificial Analysis ${endpoint} returned an invalid response envelope`,
+        );
+        continue;
+      }
+      return json;
     } catch (e) {
       lastError = new Error(
         `Artificial Analysis ${endpoint} failed with key ${i + 1}/${keys.length}: ${errorMessage(e)}`,
@@ -259,6 +269,38 @@ async function apiFetch<T>(endpoint: string): Promise<T> {
     + (lastError ? `. Last error: ${lastError.message}` : ""),
     { cause: lastError },
   );
+}
+
+async function apiDataFromFirstPage<T>(
+  endpoint: string,
+  firstPage: AAApiEnvelope<T>,
+): Promise<T> {
+  if (!Array.isArray(firstPage.data) || !firstPage.pagination) {
+    return firstPage.data;
+  }
+
+  return await collectAAPaginatedData(
+    endpoint,
+    firstPage as AAApiEnvelope<unknown[]>,
+    (pageEndpoint) => apiFetchPage<unknown[]>(pageEndpoint),
+  ) as T;
+}
+
+async function apiFetch<T>(endpoint: string): Promise<T> {
+  const firstPage = await apiFetchPage<T>(endpoint);
+  return apiDataFromFirstPage(endpoint, firstPage);
+}
+
+async function apiFetchPreferred<T>(
+  freeEndpoint: string,
+  proEndpoint: string,
+): Promise<T> {
+  const freePage = await apiFetchPage<T>(freeEndpoint);
+  if (freePage.tier === "pro" || freePage.tier === "commercial") {
+    const proPage = await apiFetchPage<T>(proEndpoint);
+    return apiDataFromFirstPage(proEndpoint, proPage);
+  }
+  return apiDataFromFirstPage(freeEndpoint, freePage);
 }
 
 // ─── Scrape all model slugs from the sitemap ────────────────────────────────
@@ -445,6 +487,14 @@ const scrapeModelCapabilities = cached(
   { revalidate: CACHE_SCRAPE_SECONDS }
 );
 
+async function fetchAALanguageModels(): Promise<LLMModel[]> {
+  const rows = await apiFetchPreferred<AAV2LanguageModel[]>(
+    AA_LANGUAGE_MODELS_ENDPOINT,
+    AA_LANGUAGE_MODELS_PRO_ENDPOINT,
+  );
+  return normaliseAAV2LanguageModels(rows);
+}
+
 /**
  * Minimal request-path fetch: AA API only - NO sitemap scrape, NO HTML regex.
  * The sitemap filter (which removes a handful of meta-models) is cosmetic and
@@ -453,8 +503,8 @@ const scrapeModelCapabilities = cached(
  */
 async function fetchLightModels(): Promise<LLMModel[]> {
   const [models, mediaModels] = await Promise.all([
-    apiFetch<LLMModel[]>("/data/llms/models"),
-    fetchAAMediaModels(apiFetch),
+    fetchAALanguageModels(),
+    fetchAAMediaModels(apiFetchPreferred),
   ]);
   const aaModels = mergeAAMediaModels(models, mediaModels);
   const enriched = await enrichModelsWithOpenRouter(aaModels, {
@@ -517,9 +567,9 @@ interface CronFetchResult {
 export async function fetchModelsForCron(): Promise<CronFetchResult> {
   const retriesBefore = getFetchRetryCount();
   const [apiModels, validSlugs, mediaModels] = await Promise.all([
-    apiFetch<LLMModel[]>("/data/llms/models"),
+    fetchAALanguageModels(),
     scrapeAllModelSlugs(),
-    fetchAAMediaModels(apiFetch),
+    fetchAAMediaModels(apiFetchPreferred),
   ]);
 
   const validSlugSet = new Set(validSlugs);
