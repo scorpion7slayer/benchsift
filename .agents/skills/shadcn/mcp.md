@@ -6,9 +6,13 @@ The CLI includes an MCP server that lets AI assistants search, browse, view, and
 
 ## Setup
 
+Use this section when MCP setup is requested. An ordinary component edit does
+not require installing or configuring a server. Available tool schemas take
+precedence over the examples below.
+
 ```bash
-shadcn mcp        # start the MCP server (stdio)
-shadcn mcp init   # write config for your editor
+bunx --bun shadcn@latest mcp        # start the MCP server (stdio)
+bunx --bun shadcn@latest mcp init   # write config for your editor
 ```
 
 Editor config files:
@@ -25,7 +29,7 @@ Editor config files:
 
 ## Tools
 
-> **Tip:** MCP tools handle registry operations (search, view, install). For project configuration (aliases, framework, Tailwind version), use `npx shadcn@latest info` — there is no MCP equivalent.
+> **Tip:** MCP tools handle registry operations (search, view, install). For project configuration (aliases, framework, Tailwind version), use `bunx --bun shadcn@latest info` — there is no MCP equivalent.
 
 ### `shadcn:get_project_registries`
 

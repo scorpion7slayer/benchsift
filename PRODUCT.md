@@ -1,8 +1,4 @@
-# Product
-
-## Register
-
-product
+# BenchSift product direction
 
 ## Users
 

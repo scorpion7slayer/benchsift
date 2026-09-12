@@ -1,7 +1,7 @@
 # Dokploy Deployment Notes
 
-This branch removes the Cloudflare Worker/Wrangler runtime and targets Dokploy
-as a single-container Bun application.
+BenchSift runs as a single-container Bun application. The included `Dockerfile`
+builds Nitro output and starts `.output/server/index.mjs`.
 
 ## Recommended Service Type
 
@@ -35,7 +35,8 @@ REFRESH_CACHE_TIMEOUT_MS=1800000
 
 ## Persistent Cache
 
-The former Cloudflare KV cache is now a JSON file. Add a Dokploy volume mount:
+The catalogue persists in a JSON file. To retain it across redeploys, add a
+Dokploy volume mount:
 
 - Mount Path: `/app/.data`
 - Type: Docker named volume if you want Dokploy volume backups
@@ -52,8 +53,9 @@ the next version.
 
 After a deployment, check `/health`: `catalog.models` should remain populated
 immediately and `catalog.refreshedAt` should predate the new container when no
-scheduled refresh has run yet. A reset timestamp or a temporarily smaller count
-indicates that `/app/.data` is not reusing the intended volume.
+scheduled refresh has run yet. An unexpected timestamp reset or smaller count
+warrants checking the volume attachment and refresh logs; it does not alone
+prove a volume failure.
 
 ## Schedule Job
 
@@ -64,8 +66,8 @@ bun run refresh-cache
 ```
 
 The command calls `POST /api/cron/refresh` locally with `CRON_SECRET`, so no
-public scheduler URL is required. A 30-minute cadence matches the old Worker
-cron behavior:
+public scheduler URL is required. Configure the cadence explicitly; for example,
+to refresh every 30 minutes:
 
 ```cron
 */30 * * * *
@@ -77,21 +79,18 @@ the running container through `bash -c`. The `refresh-cache` script uses the
 Node-compatible HTTP client provided by Bun with a configurable timeout because
 the full upstream refresh can take longer than the default request timeout.
 
-A complete refresh should report a JSON response with source counters, for
-example:
+The command prints the refresh response (`ok`, `count`, and `stats`), then the
+result of `GET /api/cron/status`. Both endpoints require the bearer secret.
+Compare counters and `refreshedAt` with the previous cache; counts depend on
+upstream coverage and are not fixed deployment targets.
 
-```json
-{"ok":true,"count":1105,"stats":{"apiModels":527,"apiModelsNotInSitemap":156,"sitemapSlugs":371,"missingSitemapSlugs":0}}
-```
-
-If the Artificial Analysis sitemap cannot be fetched, the job now fails instead
+If the Artificial Analysis sitemap cannot be fetched, the job fails instead
 of writing the smaller cold-start cache. The sitemap is used only to add missing
 models; API models that are not present in the sitemap are still kept.
 
 ## Production Settings
 
-For zero-downtime deploys and automatic rollback, configure Dokploy's Advanced
-Swarm health check with:
+For a Swarm liveness check, configure Dokploy's Advanced health check with:
 
 ```json
 {
@@ -105,3 +104,9 @@ Swarm health check with:
 
 If builds are too heavy for the Dokploy server, build and push the Docker image
 from CI, then configure the Dokploy Application source as Docker image.
+
+A successful `/health` HTTP response proves liveness, not catalogue freshness or
+zero-downtime rollout. Inspect `status`, `catalog.status`, `catalog.models`, and
+`catalog.refreshedAt` as well. Stale or unavailable data returns a degraded state
+with HTTP 200. Deployment update and rollback policies must be configured
+separately from this check.

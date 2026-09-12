@@ -1,8 +1,12 @@
 # Component Composition
 
+Use the relevant examples for the component being changed. Local component APIs
+and repository requirements take precedence; these examples do not require
+unrelated UI rewrites or installation of additional components.
+
 ## Contents
 
-- Items always inside their Group component
+- Group related items
 - Callouts use Alert
 - Empty states use Empty component
 - Toast notifications use sonner
@@ -18,9 +22,10 @@
 
 ---
 
-## Items always inside their Group component
+## Group related items
 
-Never render items directly inside the content container.
+Use groups for related or labelled items and wherever the local primitive
+requires them. Do not add empty groups just to satisfy an example.
 
 **Incorrect:**
 
@@ -82,7 +87,9 @@ This applies to all group-based components:
 
 ---
 
-## Toast notifications use sonner
+## Toast notifications with sonner
+
+Use this pattern if sonner is installed and notifications are part of the task.
 
 ```tsx
 import { toast } from "sonner"
@@ -127,7 +134,8 @@ toast("File deleted.", {
 
 ## Card structure
 
-Use full composition — don't dump everything into `CardContent`:
+Use the Card sections the content needs; a card without actions does not
+need an empty footer:
 
 ```tsx
 <Card>
