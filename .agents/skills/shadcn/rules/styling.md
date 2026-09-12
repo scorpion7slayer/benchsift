@@ -1,18 +1,22 @@
 # Styling & Customization
 
+Use the relevant examples for the component being changed. Local component APIs
+and repository requirements take precedence; these examples do not require
+unrelated UI rewrites or installation of additional components.
+
 See [customization.md](../customization.md) for theming, CSS variables, and adding custom colors.
 
 ## Contents
 
 - Semantic colors
 - Built-in variants first
-- className for layout only
-- No space-x-* / space-y-*
+- className and shared variants
+- Prefer gap for flex and grid spacing
 - Prefer size-* over w-* h-* when equal
 - Prefer truncate shorthand
 - No manual dark: color overrides
 - Use cn() for conditional classes
-- No manual z-index on overlay components
+- Overlay stacking
 
 ---
 
@@ -56,7 +60,8 @@ For positive, negative, or status indicators, use Badge variants, semantic token
 <span className="text-destructive">-3.2%</span>
 ```
 
-If you need a success/positive color that doesn't exist as a semantic token, use a Badge variant or ask the user about adding a custom CSS variable to the theme (see [customization.md](../customization.md)).
+If a requested state needs a new color, define a semantic token in the existing
+theme and check both themes; see [customization.md](../customization.md).
 
 ---
 
@@ -78,9 +83,11 @@ If you need a success/positive color that doesn't exist as a semantic token, use
 
 ---
 
-## className for layout only
+## className and shared variants
 
-Use `className` for layout (e.g. `max-w-md`, `mx-auto`, `mt-4`), **not** for overriding component colors or typography. To change colors, use semantic tokens, built-in variants, or CSS variables.
+Use `className` for layout and focused adjustments. Prefer built-in variants
+and semantic tokens for appearance; put repeated style changes in a shared
+variant instead of duplicating overrides.
 
 **Incorrect:**
 
@@ -105,7 +112,7 @@ To customize a component's appearance, prefer these approaches in order:
 
 ---
 
-## No space-x-* / space-y-*
+## Prefer gap for flex and grid spacing
 
 Use `gap-*` instead. `space-y-4` → `flex flex-col gap-4`. `space-x-2` → `flex gap-2`.
 
@@ -157,6 +164,6 @@ import { cn } from "@/lib/utils"
 
 ---
 
-## No manual z-index on overlay components
+## Overlay stacking
 
-`Dialog`, `Sheet`, `Drawer`, `AlertDialog`, `DropdownMenu`, `Popover`, `Tooltip`, `HoverCard` handle their own stacking. Never add `z-50` or `z-[999]`.
+`Dialog`, `Sheet`, `Drawer`, `AlertDialog`, `DropdownMenu`, `Popover`, `Tooltip`, `HoverCard` handle their own stacking. Avoid arbitrary stacking overrides; inspect portal and stacking contexts when fixing an actual overlay conflict.

@@ -1,6 +1,10 @@
 # Base vs Radix
 
-API differences between `base` and `radix`. Check the `base` field from `npx shadcn@latest info`.
+Use the relevant examples for the component being changed. Local component APIs
+and repository requirements take precedence; these examples do not require
+unrelated UI rewrites or installation of additional components.
+
+API differences between `base` and `radix`. Check the `base` field from `bunx --bun shadcn@latest info`.
 
 ## Contents
 

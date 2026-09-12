@@ -49,7 +49,8 @@ Colors use OKLCH: `--primary: oklch(0.205 0 0)` where values are lightness (0–
 
 ## Dark Mode
 
-Class-based toggle via `.dark` on the root element. In Next.js, use `next-themes`:
+BenchSift already uses `next-themes` with a class-based toggle. Preserve the
+existing provider in `src/routes/__root.tsx`; this illustrates the configuration:
 
 ```tsx
 import { ThemeProvider } from "next-themes"
@@ -63,16 +64,20 @@ import { ThemeProvider } from "next-themes"
 
 ## Changing the Theme
 
+Use preset commands only for a requested preset change; they can replace
+configuration or component styles. See [preset handling](cli.md#switching-presets).
+For ordinary visual adjustments, edit the existing semantic tokens.
+
 ```bash
 # Apply a preset code from ui.shadcn.com.
-npx shadcn@latest init --preset a2r6bw --force
+bunx --bun shadcn@latest init --preset a2r6bw --force
 
 # Switch to a named preset.
-npx shadcn@latest init --preset radix-nova --force
-npx shadcn@latest init --reinstall  # update existing components to match
+bunx --bun shadcn@latest init --preset radix-nova --force
+bunx --bun shadcn@latest init --reinstall  # update existing components to match
 
 # Use a custom theme URL.
-npx shadcn@latest init --preset "https://ui.shadcn.com/init?base=radix&style=nova&theme=blue&..." --force
+bunx --bun shadcn@latest init --preset "https://ui.shadcn.com/init?base=radix&style=nova&theme=blue&..." --force
 ```
 
 Or edit CSS variables directly in `globals.css`.
@@ -81,7 +86,7 @@ Or edit CSS variables directly in `globals.css`.
 
 ## Adding Custom Colors
 
-Add variables to the file at `tailwindCssFile` from `npx shadcn@latest info` (typically `globals.css`). Never create a new CSS file for this.
+Add variables to the file at `tailwindCssFile` from `bunx --bun shadcn@latest info` (typically `globals.css`). Never create a new CSS file for this.
 
 ```css
 /* 1. Define in the global CSS file. */
@@ -100,23 +105,6 @@ Add variables to the file at `tailwindCssFile` from `npx shadcn@latest info` (ty
 @theme inline {
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
-}
-```
-
-When `tailwindVersion` is `"v3"` (check via `npx shadcn@latest info`), register in `tailwind.config.js` instead:
-
-```js
-// 2b. Register with Tailwind v3 (tailwind.config.js).
-module.exports = {
-  theme: {
-    extend: {
-      colors: {
-        warning: "oklch(var(--warning) / <alpha-value>)",
-        "warning-foreground":
-          "oklch(var(--warning-foreground) / <alpha-value>)",
-      },
-    },
-  },
 }
 ```
 
@@ -189,14 +177,14 @@ export function ConfirmDialog({ title, description, onConfirm, children }) {
 ## Checking for Updates
 
 ```bash
-npx shadcn@latest add button --diff
+bunx --bun shadcn@latest add button --diff
 ```
 
 To preview exactly what would change before updating, use `--dry-run` and `--diff`:
 
 ```bash
-npx shadcn@latest add button --dry-run        # see all affected files
-npx shadcn@latest add button --diff button.tsx # see the diff for a specific file
+bunx --bun shadcn@latest add button --dry-run        # see all affected files
+bunx --bun shadcn@latest add button --diff button.tsx # see the diff for a specific file
 ```
 
 See [Updating Components in SKILL.md](./SKILL.md#updating-components) for the full smart merge workflow.

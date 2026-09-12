@@ -1,179 +1,96 @@
 # BenchSift repository guide
 
-These instructions apply to the entire repository. `CLAUDE.md` imports this
-file, so keep this document self-contained and do not add a circular include.
+BenchSift is an evidence-first AI model catalogue. These instructions apply to
+this repository; `CLAUDE.md` imports this file.
 
-## Product invariants
+## Working context
 
-- BenchSift is an evidence-first catalogue for comparing AI models. Never add
-  fake, seeded, guessed, or hard-coded operational data to make the catalogue
-  appear more complete.
-- Preserve data provenance. Artificial Analysis, OpenRouter, and Hugging Face
-  enrich one catalogue but remain distinct sources with different authority.
-- Missing data is a valid state. Display it honestly instead of replacing it
-  with zero, `Unknown`, or a fabricated fallback.
-- Keep French and English user-facing content in parity through `lib/i18n.tsx`.
-- Preserve the restrained warm-neutral visual identity defined in `PRODUCT.md`.
-  Reuse semantic tokens and existing components instead of introducing a
-  parallel visual system.
-- Target WCAG 2.2 AA: keyboard access, visible focus, sufficient contrast,
-  meaningful accessible names, reduced-motion support, and 44 px touch targets
-  on coarse pointers.
+Use **Bun**, including `bun install`, `bun test`, and `bun run <script>`.
+The app uses TanStack Start/Router, React, TypeScript, Tailwind v4 and Radix-based
+shadcn/ui. Nitro builds the `node-server` output that Bun runs in Docker/Dokploy.
+`package.json`, `vite.config.ts`, `Dockerfile`, and source code define the current
+stack and commands.
 
-## Current stack
+Consult references when the task needs them:
 
-- TanStack Start and TanStack Router with file-based routes in `src/routes/`.
-- React 19, TypeScript in strict mode, and the `@/*` path alias.
-- Vite 8, Tailwind CSS v4, shadcn/ui, Radix UI, and Lucide icons.
-- Nitro's `node-server` preset, packaged with Docker and deployed through
-  Dokploy. This is not a Next.js, Cloudflare Worker, or Wrangler application.
-- Bun 1.3 in the production image. The built server entry point is
-  `.output/server/index.mjs`.
+- [README.md](README.md): local setup and repository map.
+- [PRODUCT.md](PRODUCT.md): UI decisions, language, accessibility, and interaction goals.
+- [DOKPLOY.md](DOKPLOY.md): deployment, cache persistence, refresh, and health checks.
+- [SECURITY.md](SECURITY.md): vulnerability reporting and security review scope.
+- [.agents/skills/shadcn/SKILL.md](.agents/skills/shadcn/SKILL.md): adding, updating,
+  or composing shadcn components and changing registry or preset configuration.
 
-Treat `package.json`, `vite.config.ts`, `Dockerfile`, and the running code as
-the source of truth when older prose documentation disagrees.
+## Data contracts
 
-## Repository map
+- Use real source data. Keep unavailable metrics as `null`, not zero, `Unknown`,
+  or a guessed fallback; zero is data unless a source contract says otherwise.
+- Artificial Analysis owns model identity, benchmark measurements, speed,
+  latency, and its published pricing. OpenRouter enriches capabilities, pricing
+  detail, rankings, and models absent from AA. Hugging Face supplies official
+  repository metadata and open-weight evidence.
+- Merge duplicates by source authority: keep first-party identity and AA
+  measurements, refresh OpenRouter-owned fields from the matching entry, fill
+  missing fields, then remove the redundant row. Hiding a row loses data.
+- Apply normalization and exclusions to fresh ingestion **and historical cache
+  reads**. The catalogue is cumulative; a live-fetch-only fix lets stale entries return.
+- Reuse `lib/provider-map.ts` for creators/providers and
+  `lib/openrouter-model-filter.ts` for routers, services, moving `*-latest`
+  aliases, and `:free` endpoints. A host or family name does not establish ownership.
+- Trace external-data bugs to the actual source objects and cache path.
+  Preserve the source-count and partial-build safeguards in `lib/api.ts` so a
+  refresh cannot silently replace a healthy cache with incomplete results.
+- Validate and encode external slugs; reuse bounded retry/timeout helpers for
+  idempotent upstream requests.
 
-- `src/routes/__root.tsx`: document shell, global metadata, providers, scripts,
-  preferences, and the shared error boundary.
-- `src/routes/`: pages and HTTP endpoints. Literal dots in route filenames use
-  TanStack's `[.]` escape, for example `robots[.]txt.ts`.
-- `lib/server-fns.ts`: `createServerFn` wrappers called by route loaders.
-- `lib/api.ts`: server-side catalogue ingestion and orchestration.
-- `lib/openrouter.ts`, `lib/huggingface.ts`, `lib/aa-*.ts`: source-specific
-  parsing, matching, filtering, and enrichment.
-- `lib/cron-cache.ts`: persisted JSON catalogue cache.
-- `lib/home-catalog.ts`: lightweight homepage payload.
-- `lib/model-reasoning.ts`: reasoning-family grouping and Normal-mode collapse.
-- `components/`: product components; `components/ui/` contains shared shadcn
-  primitives.
-- `src/styles/globals.css`: Tailwind entry point, semantic tokens, and global
-  motion/theme styles.
-- `scripts/refresh-cache.mjs`: authenticated local refresh command used by the
-  Dokploy schedule job.
-- `src/routeTree.gen.ts` and `.output/`: generated files; do not edit them by
-  hand.
+## Runtime boundaries
 
-## Server and client boundaries
+- Route loaders call server functions in `lib/server-fns.ts`. Keep Node APIs,
+  secrets, filesystem state, and upstream fetching on the server; retain
+  `@tanstack/react-start/server-only` guards on dedicated server modules.
+  Client code may import their types, but not their runtime values.
+- Read server configuration from `process.env`. Public payloads must omit keys,
+  `CRON_SECRET`, cache paths, schema keys, and internal errors.
+- Keep initial SSR and client renders structurally identical. Access browser
+  globals after hydration or in effects/event handlers.
+- Both cron endpoints require `Authorization: Bearer <CRON_SECRET>`.
+  `/health` is public liveness with sanitized catalogue state; a degraded
+  catalogue does not by itself make the HTTP check fail.
+- `.data/` is uncommitted runtime state. `src/routeTree.gen.ts` and `.output/`
+  are generated; edit their sources instead.
 
-- Fetch sensitive or upstream data on the server. Route loaders should call a
-  `createServerFn` from `lib/server-fns.ts` rather than importing server modules
-  into client components.
-- Files that use Node APIs, secrets, or filesystem state are server-only. Keep
-  `import "@tanstack/react-start/server-only"` on dedicated server modules such
-  as `lib/cron-cache.ts` and `lib/deepswe.ts`.
-- Client code may use `import type` from a server-owned module because the
-  import is erased. Never value-import `lib/api.ts`, `lib/cron-cache.ts`, or
-  another server-only dependency into the client graph.
-- Read production configuration from `process.env` inside server execution.
-  Never expose API keys, `CRON_SECRET`, cache paths, schema keys, or internal
-  error details in public payloads.
-- Browser globals (`window`, `document`, `localStorage`) must only be accessed
-  after hydration or inside effects/event handlers. Keep the initial server and
-  client render structurally identical.
-- Use the local `components/link.tsx` wrapper for internal navigation unless a
-  TanStack Router API requires the native component directly.
+## Product contracts
 
-## Catalogue and source rules
+- Keep French and English copy in parity in `lib/i18n.tsx`. Reuse semantic
+  tokens in `src/styles/globals.css`, `components/ui/`, and `cn()`.
+- Normal mode is the compact ranking and collapses reasoning variants;
+  Advanced and detail flows can expose the full family. Keep filters and
+  provider selection consistent without renumbering global ranks after filtering.
+- Preserve shareable comparison/selection URL state. Use `components/link.tsx`
+  for internal navigation unless a Router API requires its native component.
+- Preserve the warm-neutral identity and accessibility requirements in
+  [PRODUCT.md](PRODUCT.md), including keyboard use and reduced motion.
 
-- Artificial Analysis is the primary source for model identity, benchmark
-  measurements, speed, latency, and its published pricing fields.
-- OpenRouter enriches capabilities, pricing detail, rankings, and models absent
-  from Artificial Analysis. Hugging Face enriches official repository metadata
-  and open-weight evidence.
-- A creator is not always a host or product brand. Reuse `lib/provider-map.ts`
-  for canonical creator/provider logic; do not infer ownership from a model
-  family alone.
-- Source duplicates must be merged, not merely hidden. Keep the first-party
-  identity and Artificial Analysis measurements, refresh OpenRouter-owned
-  capabilities, rankings, and pricing details from the matching OpenRouter
-  entry, fill any other missing fields, then remove the redundant row.
-- Apply exclusions and normalization both during fresh ingestion and while
-  reading historical caches. The catalogue is cumulative, so fixing only the
-  live fetch path lets stale entries return.
-- Do not treat OpenRouter routers, services, moving `*-latest` aliases, or
-  `:free` endpoints as stable standalone models. Keep filtering centralized in
-  `lib/openrouter-model-filter.ts`.
-- Preserve `null` when a metric is unavailable. A numeric zero is data and must
-  not be used as a generic missing-value sentinel unless the source contract
-  explicitly defines it that way.
-- Validate and encode external slugs before constructing URLs. Reuse the
-  repository's bounded retry/timeout helpers for idempotent upstream requests.
-- Normal catalogue surfaces collapse reasoning variants; Advanced and detail flows
-  may expose the fuller family. Preserve that distinction when changing model
-  counts, routing, comparison, or filtering.
+## Scope and completion
 
-## Cache, refresh, and health
+Start with `git status -sb` and preserve unrelated changes. Complete the requested
+local implementation, relevant verification, and fixes for failures it causes;
+these steps do not require separate approvals. Ask when missing information
+materially changes the result or an action exceeds the authorized scope.
+Commit, push, deployment, production refresh, and external mutations require an
+explicit user request for that action; authorization already given in the task
+remains valid.
 
-- The persisted cache defaults to `.data/models-cache.json` and can be moved
-  with `MODELS_CACHE_FILE`. `.data/` is local runtime state and is not committed.
-- Dokploy should mount `/app/.data` when cache persistence across redeploys is
-  required.
-- The running container refreshes itself through `bun run refresh-cache`, which
-  sends an authenticated request to `POST /api/cron/refresh` and then checks
-  `/api/cron/status`.
-- Keep the refresh endpoint protected by `Authorization: Bearer <CRON_SECRET>`.
-  Do not add a public unauthenticated refresh path.
-- `/health` is liveness and returns a sanitized catalogue state. An unavailable
-  or stale catalogue may make the service degraded without making the endpoint
-  itself fail. Never expose filesystem paths or raw upstream errors there.
-- A successful refresh must not silently replace a healthy cache with a
-  suspiciously incomplete result. Preserve the existing source-count and
-  partial-build safeguards in `lib/api.ts`.
+Use validation that can detect regressions in the affected behavior:
 
-## UI and interaction conventions
+| Change | Evidence |
+| --- | --- |
+| Documentation only | Check commands, links, consistency, and `git diff --check`. |
+| Code or data pipeline | `bun test`, `bun run typecheck`, `bun run build`, `git diff --check`. Add focused `lib/*.test.mjs` coverage for parser, matching, filtering, ranking, cache, or normalization changes. |
+| Routes or server behavior | Also smoke-test the relevant HTTP/SSR path from the production build. |
+| Responsive UI | Browser QA in both themes and languages at mobile (including 390 px), tablet, and desktop widths; keyboard navigation, `scrollWidth`, and critical element bounds. |
+| Dependencies or lockfile | Also run `bun install --frozen-lockfile` with the Bun family used by Docker. |
 
-- Add visible copy to both translation dictionaries in `lib/i18n.tsx`; do not
-  leave runtime UI partially translated.
-- Reuse `components/ui/`, semantic color tokens, and `cn()` for composition.
-  Avoid hard-coded colors when a semantic token already expresses the state.
-- Normal mode is the compact public ranking; Advanced mode is the dense expert
-  catalogue. Filtering and provider selection must remain consistent across
-  both modes without renumbering global ranks after a local filter.
-- Preserve durable URL state for comparisons and other selections users may
-  share or revisit.
-- Test responsive changes at mobile, tablet, and desktop widths. On mobile,
-  check both `scrollWidth` and critical element bounding boxes; decorative
-  transforms can cause overflow even when the page appears clipped.
-- Motion should explain state, remain interruptible, and respect
-  `prefers-reduced-motion`. Do not delay navigation or data display for a
-  decorative animation.
-
-## Implementation workflow
-
-1. Start with `git status -sb` and preserve unrelated user changes. Do not edit
-   generated output or broad unrelated areas.
-2. Trace a bug to the source and cached-data paths before changing the UI. For
-   external-data bugs, inspect the exact source objects and their provenance.
-3. Make the smallest coherent change that fixes the root cause. Add or update a
-   focused regression test for parser, matching, filtering, ranking, cache, or
-   model-normalization changes.
-4. Update docs only when behavior, configuration, or operational requirements
-   changed. Do not copy stale framework instructions forward.
-5. Do not commit, push, deploy, trigger a production refresh, or mutate an
-   external service unless the user explicitly asks for that action.
-
-## Validation
-
-Use the checks proportional to the change, with this full baseline for code or
-data-pipeline work:
-
-```bash
-bun test
-bun run typecheck
-bun run build
-git diff --check
-```
-
-- Keep test files as `*.test.mjs` under `lib/`; `bun test` discovers them there.
-- Route or server changes also require a relevant HTTP/SSR smoke test from the
-  production build. Data-backed UI claims require a real cache or the deployed
-  application; an empty local shell is not proof that production data works.
-- For responsive UI work, perform browser QA in both themes and both languages,
-  including a 390 px mobile viewport and keyboard navigation.
-- When dependencies or the lockfile change, validate `bun install
-  --frozen-lockfile` in the same Bun family used by the Docker build.
-- Report local source validation, GitHub state, deployment state, cache refresh,
-  and public production verification separately. Do not imply a local fix is
-  live before it has been published and deployed.
+A real cache or deployed app is needed to verify data-backed UI; an empty shell
+is insufficient. Once relevant checks pass, repeat them only after changes or
+new evidence. Report changes, validation, and remaining limitations; distinguish
+local results from any GitHub, deployment, refresh, or public-production checks.

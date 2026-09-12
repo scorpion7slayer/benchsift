@@ -1,11 +1,15 @@
 # Forms & Inputs
 
+Use the relevant examples for the component being changed. Local component APIs
+and repository requirements take precedence; these examples do not require
+unrelated UI rewrites or installation of additional components.
+
 ## Contents
 
 - Forms use FieldGroup + Field
 - InputGroup requires InputGroupInput/InputGroupTextarea
 - Buttons inside inputs use InputGroup + InputGroupAddon
-- Option sets (2–7 choices) use ToggleGroup
+- Choose controls by interaction semantics
 - FieldSet + FieldLegend for grouping related fields
 - Field validation and disabled states
 
@@ -13,7 +17,8 @@
 
 ## Forms use FieldGroup + Field
 
-Always use `FieldGroup` + `Field` — never raw `div` with `space-y-*`:
+Prefer `FieldGroup` + `Field` when those components are available and suit the
+form. Existing semantic labels and fieldsets can remain:
 
 ```tsx
 <FieldGroup>
@@ -70,7 +75,7 @@ import { InputGroup, InputGroupInput } from "@/components/ui/input-group"
 
 ## Buttons inside inputs use InputGroup + InputGroupAddon
 
-Never place a `Button` directly inside or adjacent to an `Input` with custom positioning.
+Prefer `InputGroup` for a shared input/addon border and focus treatment.
 
 **Incorrect:**
 
@@ -100,9 +105,11 @@ import { InputGroup, InputGroupInput, InputGroupAddon } from "@/components/ui/in
 
 ---
 
-## Option sets (2–7 choices) use ToggleGroup
+## Choose controls by interaction semantics
 
-Don't manually loop `Button` components with active state.
+Use `ToggleGroup` for related toggle actions; use `RadioGroup` for a labelled
+single choice or `Tabs` for switching content panels. Choice count alone does
+not determine the component.
 
 **Incorrect:**
 
@@ -127,7 +134,7 @@ const [selected, setSelected] = useState("daily")
 ```tsx
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 
-<ToggleGroup spacing={2}>
+<ToggleGroup type="single" spacing={2}>
   <ToggleGroupItem value="daily">Daily</ToggleGroupItem>
   <ToggleGroupItem value="weekly">Weekly</ToggleGroupItem>
   <ToggleGroupItem value="monthly">Monthly</ToggleGroupItem>
@@ -139,7 +146,7 @@ Combine with `Field` for labelled toggle groups:
 ```tsx
 <Field orientation="horizontal">
   <FieldTitle id="theme-label">Theme</FieldTitle>
-  <ToggleGroup aria-labelledby="theme-label" spacing={2}>
+  <ToggleGroup type="single" aria-labelledby="theme-label" spacing={2}>
     <ToggleGroupItem value="light">Light</ToggleGroupItem>
     <ToggleGroupItem value="dark">Dark</ToggleGroupItem>
     <ToggleGroupItem value="system">System</ToggleGroupItem>
