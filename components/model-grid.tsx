@@ -1,18 +1,32 @@
+import { animateContent } from "@/lib/content-motion";
+import { Combobox, type ComboboxItem } from "@/components/catalog-combobox";
 import {
   lazy,
   Suspense,
   useState,
+  useDeferredValue,
   useMemo,
   useEffect,
-  useId,
   useLayoutEffect,
   useRef,
 } from "react";
 import {
-  Search, X, Loader2, ChevronDown, Check, Type, ImageIcon, AudioLines,
-  Video, ArrowUpDown, Mic, Captions, Blocks, Sparkles,
-  type LucideIcon,
-} from "lucide-react";
+  Search,
+  X,
+  Loader2,
+  ChevronDown,
+  Check,
+  Type,
+  ImageIcon,
+  AudioLines,
+  Video,
+  ArrowUpDown,
+  Mic,
+  Captions,
+  Blocks,
+  Sparkles,
+  type RuneIcon,
+} from "@/components/icons";
 import { RankedModelRow } from "@/components/ranked-model-row";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -31,7 +45,10 @@ import {
   type SortKey,
   type WeightAccessFilter,
 } from "@/lib/model-grid-logic";
-import { getCanonicalCreatorSlug, getCreatorDisplayName } from "@/lib/provider-map";
+import {
+  getCanonicalCreatorSlug,
+  getCreatorDisplayName,
+} from "@/lib/provider-map";
 import { collapseReasoningVariants } from "@/lib/model-reasoning";
 import { fetchModels } from "@/lib/server-fns";
 import type { LLMModel } from "@/lib/api";
@@ -67,25 +84,25 @@ interface SortOption {
 }
 
 const SORT_OPTIONS: SortOption[] = [
-  { value: "intelligence",  group: "indices" },
-  { value: "coding",        group: "indices" },
-  { value: "math",          group: "indices" },
-  { value: "gpqa",          group: "benchmarks" },
-  { value: "mmlu_pro",      group: "benchmarks" },
-  { value: "hle",           group: "benchmarks" },
+  { value: "intelligence", group: "indices" },
+  { value: "coding", group: "indices" },
+  { value: "math", group: "indices" },
+  { value: "gpqa", group: "benchmarks" },
+  { value: "mmlu_pro", group: "benchmarks" },
+  { value: "hle", group: "benchmarks" },
   { value: "livecodebench", group: "benchmarks" },
-  { value: "math_500",      group: "benchmarks" },
-  { value: "aime_25",       group: "benchmarks" },
-  { value: "speed",         group: "performance" },
-  { value: "ttft",          group: "performance" },
+  { value: "math_500", group: "benchmarks" },
+  { value: "aime_25", group: "benchmarks" },
+  { value: "speed", group: "performance" },
+  { value: "ttft", group: "performance" },
   { value: "openrouter_popular", group: "openrouter" },
-  { value: "price_asc",     group: "pricing" },
-  { value: "price_desc",    group: "pricing" },
-  { value: "newest",        group: "general" },
-  { value: "name",          group: "general" },
+  { value: "price_asc", group: "pricing" },
+  { value: "price_desc", group: "pricing" },
+  { value: "newest", group: "general" },
+  { value: "name", group: "general" },
 ];
 
-const CATEGORY_OPTIONS: Array<{ value: CategoryFilter; icon: LucideIcon }> = [
+const CATEGORY_OPTIONS: Array<{ value: CategoryFilter; icon: RuneIcon }> = [
   { value: "all", icon: Blocks },
   { value: "new", icon: Sparkles },
   { value: "text", icon: Type },
@@ -98,179 +115,27 @@ const CATEGORY_OPTIONS: Array<{ value: CategoryFilter; icon: LucideIcon }> = [
   { value: "transcription", icon: Captions },
 ];
 
-// Generic combobox / Combobox générique
-
-interface ComboboxItem {
-  value: string;
-  label: string;
-  group?: string;
-}
-
-function Combobox({
-  items,
-  value,
-  onChange,
-  placeholder,
-  withSearch = false,
-  width = "w-full sm:w-52",
-}: {
-  items: ComboboxItem[];
-  value: string;
-  onChange: (v: string) => void;
-  placeholder: string;
-  withSearch?: boolean;
-  width?: string;
-}) {
-  const { t } = useI18n();
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const ref = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const listboxId = useId();
-
-  const filtered = useMemo(
-    () =>
-      search.trim()
-        ? items.filter((item) => item.label.toLowerCase().includes(search.toLowerCase()))
-        : items,
-    [items, search]
-  );
-
-  // Display groups / Groupes pour l'affichage
-  const groups = useMemo(() => {
-    const map = new Map<string, ComboboxItem[]>();
-    filtered.forEach((item) => {
-      const g = item.group ?? "";
-      if (!map.has(g)) map.set(g, []);
-      map.get(g)!.push(item);
-    });
-    return map;
-  }, [filtered]);
-
-  useEffect(() => {
-    function onDown(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-        setSearch("");
-      }
-    }
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setOpen(false);
-        setSearch("");
-      }
-    }
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!open || !withSearch) return;
-    const id = window.setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 10);
-    return () => window.clearTimeout(id);
-  }, [open, withSearch]);
-
-  const selectedLabel = items.find((i) => i.value === value)?.label ?? placeholder;
-
-  return (
-    <div ref={ref} className={`relative ${width}`}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        aria-controls={open ? listboxId : undefined}
-        className="touch-target flex h-10 w-full items-center justify-between gap-2 rounded-md border bg-card px-3 py-2 text-sm shadow-sm transition-colors hover:bg-muted/70 sm:h-9"
-      >
-        <span className="truncate text-left flex-1">{selectedLabel}</span>
-        <ChevronDown
-          className={`size-4 shrink-0 opacity-50 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-        />
-      </button>
-
-      {open && (
-        <div
-          id={listboxId}
-          role="listbox"
-          aria-label={placeholder}
-          className="absolute top-full left-0 right-0 z-50 mt-1 overflow-hidden rounded-lg border bg-popover shadow-lg animate-in fade-in-0 slide-in-from-top-1 duration-150"
-        >
-          {withSearch && (
-            <div className="p-2 border-b">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-                <input
-                  ref={inputRef}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder={placeholder}
-                  aria-label={placeholder}
-                  autoComplete="off"
-                  className="w-full h-8 pl-8 pr-3 text-sm bg-background border rounded-md outline-none focus:ring-1 focus:ring-ring"
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="max-h-64 overflow-y-auto">
-            {[...groups.entries()].map(([group, groupItems]) => (
-              <div key={group}>
-                {group && (
-                  <p className="px-3 pt-2.5 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {group}
-                  </p>
-                )}
-                {groupItems.map((item) => (
-                  <button
-                    key={item.value}
-                    type="button"
-                    role="option"
-                    aria-selected={value === item.value}
-                    onClick={() => { onChange(item.value); setOpen(false); setSearch(""); }}
-                    className={`flex min-h-10 w-full items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-muted/60 ${value === item.value ? "font-medium" : ""}`}
-                  >
-                    <span>{item.label}</span>
-                    {value === item.value && <Check className="size-3.5 text-primary shrink-0" />}
-                  </button>
-                ))}
-              </div>
-            ))}
-            {filtered.length === 0 && (
-              <p className="px-3 py-4 text-center text-sm text-muted-foreground">{t.grid.noOptions}</p>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ModelGrid
 
 const BATCH = 32;
 
-const SEARCH_DEBOUNCE_MS = 120;
 const VIEW_MODE_STORAGE_KEY = "benchsift-model-view-mode";
-type GridMotion = "filter" | "search-in";
 
 export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
   const { t } = useI18n();
   const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [appliedQuery, setAppliedQuery] = useState("");
+  const appliedQuery = useDeferredValue(query);
   const [sort, setSort] = useState<SortKey>("intelligence");
   const [viewMode, setViewMode] = useState<ViewMode>("normal");
-  const [normalRanking, setNormalRanking] = useState<NormalRankingKey>("intelligence");
+  const [normalRanking, setNormalRanking] =
+    useState<NormalRankingKey>("intelligence");
   const [providerFilter, setProviderFilter] = useState("all");
-  const [weightAccessFilter, setWeightAccessFilter] = useState<WeightAccessFilter>("all");
+  const [weightAccessFilter, setWeightAccessFilter] =
+    useState<WeightAccessFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [visibleCount, setVisibleCount] = useState(BATCH);
-  const [gridKey, setGridKey] = useState(0);
-  const [gridMotion, setGridMotion] = useState<GridMotion>("filter");
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const resultsMotion = useRef<Animation | null>(null);
   const [advancedModels, setAdvancedModels] = useState<LLMModel[] | null>(null);
   const [advancedLoading, setAdvancedLoading] = useState(false);
   const [advancedLoadError, setAdvancedLoadError] = useState(false);
@@ -278,17 +143,9 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
   const advancedRequestRef = useRef<Promise<LLMModel[]> | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const categoryBarRef = useRef<HTMLDivElement>(null);
-  const categoryButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const isFirstRender = useRef(true);
-  const previousControlsRef = useRef({
-    debouncedQuery: "",
-    sort: "intelligence" as SortKey,
-    viewMode: "normal" as ViewMode,
-    normalRanking: "intelligence" as NormalRankingKey,
-    providerFilter: "all",
-    weightAccessFilter: "all" as WeightAccessFilter,
-    categoryFilter: "all" as CategoryFilter,
-  });
+  const categoryButtonRefs = useRef<Record<string, HTMLButtonElement | null>>(
+    {},
+  );
 
   useEffect(() => {
     try {
@@ -319,7 +176,8 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
 
     void request
       .then((loadedModels) => {
-        if (!cancelled) setAdvancedModels(collapseReasoningVariants(loadedModels));
+        if (!cancelled)
+          setAdvancedModels(collapseReasoningVariants(loadedModels));
       })
       .catch(() => {
         advancedRequestRef.current = null;
@@ -345,35 +203,13 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
   }
 
   useEffect(() => {
-    const id = setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(id);
-  }, [query]);
-
-  useEffect(() => {
-    const previousControls = previousControlsRef.current;
-    const searchChanged = previousControls.debouncedQuery !== debouncedQuery;
-    previousControlsRef.current = {
-      debouncedQuery,
-      sort,
-      viewMode,
-      normalRanking,
-      providerFilter,
-      weightAccessFilter,
-      categoryFilter,
-    };
-
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      setAppliedQuery(debouncedQuery);
-      return;
-    }
-
-    setAppliedQuery(debouncedQuery);
     setVisibleCount(BATCH);
-    setGridMotion(searchChanged ? "search-in" : "filter");
-    setGridKey((k) => k + 1);
+    resultsMotion.current = animateContent(
+      resultsRef.current,
+      resultsMotion.current,
+    );
   }, [
-    debouncedQuery,
+    appliedQuery,
     sort,
     viewMode,
     normalRanking,
@@ -381,6 +217,7 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
     weightAccessFilter,
     categoryFilter,
   ]);
+  useEffect(() => () => resultsMotion.current?.cancel(), []);
 
   const providers = useMemo(() => {
     const unique = new Map<string, string>();
@@ -398,7 +235,7 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
       { value: "all", label: t.grid.allProviders },
       ...providers.map(([slug, name]) => ({ value: slug, label: name })),
     ],
-    [providers, t.grid.allProviders]
+    [providers, t.grid.allProviders],
   );
 
   const weightAccessItems = useMemo<ComboboxItem[]>(
@@ -412,16 +249,27 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
 
   const categoryCounts = useMemo(
     () =>
-      CATEGORY_OPTIONS.reduce<Record<CategoryFilter, number>>((acc, option) => {
-        acc[option.value] = option.value === "all"
-          ? (advancedModels?.length ?? 0)
-          : (advancedModels?.filter((model) => matchesCategory(model, option.value)).length ?? 0);
-        return acc;
-      }, {} as Record<CategoryFilter, number>),
-    [advancedModels]
+      CATEGORY_OPTIONS.reduce<Record<CategoryFilter, number>>(
+        (acc, option) => {
+          acc[option.value] =
+            option.value === "all"
+              ? (advancedModels?.length ?? 0)
+              : (advancedModels?.filter((model) =>
+                  matchesCategory(model, option.value),
+                ).length ?? 0);
+          return acc;
+        },
+        {} as Record<CategoryFilter, number>,
+      ),
+    [advancedModels],
   );
 
-  const [categoryIndicator, setCategoryIndicator] = useState({ left: 0, top: 0, width: 0, height: 0 });
+  const [categoryIndicator, setCategoryIndicator] = useState({
+    left: 0,
+    top: 0,
+    width: 0,
+    height: 0,
+  });
 
   useLayoutEffect(() => {
     const bar = categoryBarRef.current;
@@ -432,13 +280,16 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
       const barRect = bar.getBoundingClientRect();
       const activeRect = active.getBoundingClientRect();
       const next = {
-        left: activeRect.left - barRect.left - bar.clientLeft,
+        left: activeRect.left - barRect.left - bar.clientLeft + bar.scrollLeft,
         top: activeRect.top - barRect.top - bar.clientTop,
         width: activeRect.width,
         height: activeRect.height,
       };
       setCategoryIndicator((prev) =>
-        prev.left === next.left && prev.top === next.top && prev.width === next.width && prev.height === next.height
+        prev.left === next.left &&
+        prev.top === next.top &&
+        prev.width === next.width &&
+        prev.height === next.height
           ? prev
           : next,
       );
@@ -451,7 +302,7 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
       observer.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [viewMode, categoryFilter, categoryCounts]);
+  }, [viewMode, categoryFilter, categoryCounts, t]);
 
   const sortItems = useMemo<ComboboxItem[]>(
     () =>
@@ -460,7 +311,7 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
         label: t.grid.sorts[opt.value],
         group: t.grid.sortGroups[opt.group],
       })),
-    [t.grid.sortGroups, t.grid.sorts]
+    [t.grid.sortGroups, t.grid.sorts],
   );
 
   const advancedFiltered = useMemo(() => {
@@ -468,7 +319,8 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
     let base =
       providerFilter !== "all"
         ? (advancedModels ?? []).filter(
-            (m) => getCanonicalCreatorSlug(m.model_creator.slug) === providerFilter,
+            (m) =>
+              getCanonicalCreatorSlug(m.model_creator.slug) === providerFilter,
           )
         : (advancedModels ?? []);
     if (categoryFilter !== "all") {
@@ -515,26 +367,30 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
     });
   }, [normalRanked, appliedQuery, providerFilter, weightAccessFilter]);
 
-  const activeLength = viewMode === "normal" ? normalFiltered.length : advancedFiltered.length;
-  const activeTotal = viewMode === "normal" ? normalRanked.length : (advancedModels?.length ?? models.length);
+  const activeLength =
+    viewMode === "normal" ? normalFiltered.length : advancedFiltered.length;
+  const activeTotal =
+    viewMode === "normal"
+      ? normalRanked.length
+      : (advancedModels?.length ?? models.length);
   const visibleModels = advancedFiltered.slice(0, visibleCount);
   const visibleRanked = normalFiltered.slice(0, visibleCount);
   const hasMore = visibleCount < activeLength;
 
   useEffect(() => {
     const el = sentinelRef.current;
-    if (!el) return;
+    if (!el || typeof IntersectionObserver === "undefined") return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore) {
           setVisibleCount((v) => Math.min(v + BATCH, activeLength));
         }
       },
-      { rootMargin: "400px" }
+      { rootMargin: "400px" },
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [hasMore, activeLength]);
+  }, [hasMore, activeLength, visibleCount]);
 
   if (models.length === 0) {
     return (
@@ -545,20 +401,22 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
         <Blocks className="size-8 text-muted-foreground" />
         <div className="flex max-w-md flex-col gap-1">
           <p className="font-medium">{t.grid.unavailableTitle}</p>
-          <p className="text-sm text-muted-foreground">{t.grid.unavailableDescription}</p>
+          <p className="text-sm text-muted-foreground">
+            {t.grid.unavailableDescription}
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-5 sm:gap-6">
+    <div className="flex flex-col gap-4 sm:gap-5">
       <div className="flex flex-col gap-3 border-b border-border/70 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-medium text-muted-foreground">
             {t.grid.viewModes.label}
           </p>
-          <p className="mt-0.5 text-sm">
+          <p className="sr-only sm:mt-0.5 sm:not-sr-only sm:text-sm">
             {viewMode === "normal"
               ? t.grid.viewModes.normalDescription
               : t.grid.viewModes.advancedDescription}
@@ -574,10 +432,16 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
           aria-label={t.grid.viewModes.label}
           className="w-full sm:w-auto"
         >
-          <ToggleGroupItem value="normal" className="touch-target flex-1 px-4 sm:min-w-24 sm:flex-none">
+          <ToggleGroupItem
+            value="normal"
+            className="touch-target flex-1 px-4 sm:min-w-24 sm:flex-none"
+          >
             {t.grid.viewModes.normal}
           </ToggleGroupItem>
-          <ToggleGroupItem value="advanced" className="touch-target flex-1 px-4 sm:min-w-24 sm:flex-none">
+          <ToggleGroupItem
+            value="advanced"
+            className="touch-target flex-1 px-4 sm:min-w-24 sm:flex-none"
+          >
             {t.grid.viewModes.advanced}
           </ToggleGroupItem>
         </ToggleGroup>
@@ -587,7 +451,7 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
         <div className="flex flex-col gap-2">
           <div>
             <p className="text-sm font-medium">{t.grid.ranking.label}</p>
-            <p className="text-xs text-muted-foreground">{t.grid.ranking.description}</p>
+            <p className="sr-only">{t.grid.ranking.description}</p>
           </div>
           <div className="-mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
             <ToggleGroup
@@ -599,13 +463,13 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
               variant="outline"
               size="lg"
               aria-label={t.grid.ranking.label}
-              className="min-w-max"
+              className="w-full flex-wrap justify-start sm:w-auto"
             >
               {NORMAL_RANKING_OPTIONS.map((option) => (
                 <ToggleGroupItem
                   key={option.value}
                   value={option.value}
-                  className="touch-target px-4"
+                  className="touch-target px-2 sm:px-4"
                 >
                   {t.grid.ranking[option.label]}
                 </ToggleGroupItem>
@@ -628,7 +492,10 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
                 transform: `translate3d(${categoryIndicator.left}px, ${categoryIndicator.top}px, 0)`,
               }}
             />
-            {CATEGORY_OPTIONS.filter((option) => option.value === "all" || categoryCounts[option.value] > 0).map((option) => {
+            {CATEGORY_OPTIONS.filter(
+              (option) =>
+                option.value === "all" || categoryCounts[option.value] > 0,
+            ).map((option) => {
               const Icon = option.icon;
               const active = categoryFilter === option.value;
               return (
@@ -644,13 +511,13 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
                     "touch-target relative z-10 inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg border border-transparent px-3 text-sm font-medium transition-colors sm:h-9",
                     active
                       ? "border-border/70 bg-card text-foreground shadow-sm sm:border-transparent sm:bg-transparent sm:shadow-none"
-                      : "text-muted-foreground hover:text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   <Icon
                     className={cn(
                       "size-4 transition-colors",
-                      active ? "text-cyan-500 dark:text-cyan-400" : "text-muted-foreground/80"
+                      active ? "text-foreground" : "text-muted-foreground",
                     )}
                   />
                   <span>{t.grid.categories[option.value]}</span>
@@ -659,7 +526,7 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
                       "ml-0.5 inline-flex min-w-5 items-center justify-center rounded-md px-1 text-[10px] font-medium tabular-nums transition-colors",
                       active
                         ? "bg-foreground/[0.06] text-foreground/70 dark:bg-foreground/10"
-                        : "bg-foreground/[0.04] text-muted-foreground/70 dark:bg-foreground/[0.06]"
+                        : "bg-foreground/[0.04] text-muted-foreground/70 dark:bg-foreground/[0.06]",
                     )}
                   >
                     {categoryCounts[option.value]}
@@ -715,9 +582,15 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
         <Combobox
           items={weightAccessItems}
           value={weightAccessFilter}
-          onChange={(value) => setWeightAccessFilter(value as WeightAccessFilter)}
+          onChange={(value) =>
+            setWeightAccessFilter(value as WeightAccessFilter)
+          }
           placeholder={t.grid.weightAccess.label}
-          width={viewMode === "advanced" ? "col-span-full w-full sm:w-52" : "w-full sm:w-52"}
+          width={
+            viewMode === "advanced"
+              ? "col-span-full w-full sm:w-52"
+              : "w-full sm:w-52"
+          }
         />
       </div>
 
@@ -732,7 +605,9 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
               <Blocks className="size-7 text-muted-foreground" />
               <div className="flex max-w-md flex-col gap-1">
                 <p className="font-medium">{t.grid.unavailableTitle}</p>
-                <p className="text-sm text-muted-foreground">{t.grid.unavailableDescription}</p>
+                <p className="text-sm text-muted-foreground">
+                  {t.grid.unavailableDescription}
+                </p>
               </div>
               <Button
                 type="button"
@@ -748,86 +623,107 @@ export function ModelGrid({ models }: { models: HomeCatalogModel[] }) {
             </>
           ) : (
             <>
-              <Loader2 className={cn("size-5 text-muted-foreground", advancedLoading && "animate-spin")} />
-              <p className="text-sm text-muted-foreground">{t.grid.loadingDetails}</p>
+              <Loader2
+                className={cn(
+                  "size-5 text-muted-foreground",
+                  advancedLoading && "animate-spin",
+                )}
+              />
+              <p className="text-sm text-muted-foreground">
+                {t.grid.loadingDetails}
+              </p>
             </>
           )}
         </div>
       ) : (
         <>
           {/* Compteur */}
-          <div
-            className={cn(
-              "flex items-center justify-between",
-              gridMotion === "search-in" && "model-grid-search-in"
-            )}
-          >
-            <p className="text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p
+              role="status"
+              aria-live="polite"
+              className="text-sm text-muted-foreground"
+            >
               {t.grid.results(activeLength, activeTotal)}
             </p>
+            {(query ||
+              providerFilter !== "all" ||
+              weightAccessFilter !== "all" ||
+              categoryFilter !== "all") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setQuery("");
+                  setProviderFilter("all");
+                  setWeightAccessFilter("all");
+                  setCategoryFilter("all");
+                }}
+              >
+                {t.trust.resetFilters}
+              </Button>
+            )}
           </div>
 
-          {/* Résultats classés ou grille experte */}
-          {activeLength > 0 ? (
-            <>
-              {viewMode === "normal" ? (
-                <ol
-                  key={`${gridKey}-${gridMotion}-ranking`}
-                  className={cn(
-                    "overflow-hidden rounded-xl border border-border/70 bg-card",
-                    gridMotion === "search-in" && "model-grid-search-in",
-                    gridMotion === "filter" && "model-grid-filter-refresh",
-                  )}
-                >
-                  {visibleRanked.map(({ model, rank }) => (
-                    <RankedModelRow key={model.slug} model={model} rank={rank} />
-                  ))}
-                </ol>
-              ) : (
-                <Suspense
-                  fallback={(
-                    <div role="status" className="flex min-h-48 items-center justify-center">
-                      <Loader2 className="size-5 animate-spin text-muted-foreground" />
-                    </div>
-                  )}
-                >
-                  <div
-                    key={`${gridKey}-${gridMotion}-grid`}
-                    className={cn(
-                      "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4",
-                      gridMotion === "search-in" && "model-grid-search-in",
-                      gridMotion === "filter" && "model-grid-filter-refresh"
-                    )}
-                  >
-                    {visibleModels.map((model, i) => (
-                      <div
-                        key={model.id}
-                        className={cn(
-                          "model-grid-item",
-                          gridMotion === "filter" && "model-grid-filter-item",
-                        )}
-                        style={gridMotion === "filter" ? { animationDelay: `${Math.min(i, 12) * 16}ms` } : undefined}
-                      >
-                        <ModelCard model={model} />
-                      </div>
-                    ))}
-                  </div>
-                </Suspense>
-              )}
-
-              <div ref={sentinelRef} className="h-px" />
-
-              {hasMore && (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="size-5 animate-spin text-muted-foreground" />
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="model-grid-empty-refresh flex flex-col items-center justify-center py-20 text-center">
-              <p className="text-muted-foreground">{t.grid.noResults}</p>
-            </div>
+          {viewMode === "normal" && (
+            <p className="text-xs text-muted-foreground">
+              {t.trust.catalogNote}
+            </p>
           )}
+          {/* Stable keys preserve focus and mounted cards during filtering. */}
+          <div ref={resultsRef} aria-busy={query !== appliedQuery}>
+            {activeLength > 0 ? (
+              <>
+                {viewMode === "normal" ? (
+                  <ol className="overflow-hidden rounded-xl border border-border/70 bg-card">
+                    {visibleRanked.map(({ model, rank }) => (
+                      <RankedModelRow
+                        key={model.slug}
+                        model={model}
+                        rank={rank}
+                      />
+                    ))}
+                  </ol>
+                ) : (
+                  <Suspense
+                    fallback={
+                      <div
+                        role="status"
+                        className="flex min-h-48 items-center justify-center"
+                      >
+                        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                      </div>
+                    }
+                  >
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+                      {visibleModels.map((model) => (
+                        <div key={model.id} className="model-grid-item">
+                          <ModelCard model={model} />
+                        </div>
+                      ))}
+                    </div>
+                  </Suspense>
+                )}
+
+                <div ref={sentinelRef} className="h-px" />
+
+                {hasMore && (
+                  <div className="flex justify-center py-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setVisibleCount((count) => Math.min(count + BATCH, activeLength))}
+                    >
+                      {t.grid.showMore}
+                    </Button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="model-grid-empty-refresh flex flex-col items-center justify-center py-20 text-center">
+                <p className="text-muted-foreground">{t.grid.noResults}</p>
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>

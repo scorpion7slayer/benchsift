@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -50,8 +49,7 @@
 }
 
 :root {
-  /* Geist fonts — loaded via Google Fonts <link> in __root.tsx.
-     Previously injected by next/font; now plain CSS variables. */
+  /* Locally hosted Geist fonts. */
   --font-geist-sans: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-geist-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --background: #F8F6F1;
@@ -60,18 +58,18 @@
   --card-foreground: oklch(0.18 0.006 85);
   --popover: #FFFFFF;
   --popover-foreground: oklch(0.18 0.006 85);
-  --primary: oklch(0.22 0.006 85);
+  --primary: #245CBC;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.94 0.011 88);
   --secondary-foreground: oklch(0.22 0.006 85);
   --muted: oklch(0.94 0.011 88);
   --muted-foreground: oklch(0.45 0.006 85);
-  --accent: oklch(0.94 0.011 88);
-  --accent-foreground: oklch(0.22 0.006 85);
+  --accent: #E8EFFC;
+  --accent-foreground: #244D90;
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.84 0.012 88);
   --input: oklch(0.82 0.012 88);
-  --ring: oklch(0.62 0.01 88);
+  --ring: #245CBC;
   --chart-1: oklch(0.55 0.19 160);
   --chart-1-soft: oklch(0.92 0.05 160);
   --chart-2: oklch(0.56 0.20 248);
@@ -101,18 +99,18 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: #92B8FF;
+  --primary-foreground: #152748;
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --accent: #24334D;
+  --accent-foreground: #DCE8FF;
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: #92B8FF;
   --chart-1: oklch(0.72 0.18 160);
   --chart-1-soft: oklch(0.27 0.045 160);
   --chart-2: oklch(0.69 0.19 248);
@@ -193,39 +191,6 @@ input[type="search"]::-ms-clear {
   display: none;
 }
 
-@keyframes language-soft-change {
-  from {
-    opacity: 0.96;
-    transform: translateY(1px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-html.language-transitioning :is(header, main, footer)
-  :is(h1, h2, h3, h4, p, span, a, button, label, th, td, li) {
-  animation: language-soft-change 0.16s ease-out both;
-}
-
-/* Page route changes */
-
-@keyframes page-route-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.page-transition-frame {
-  animation: page-route-in 0.18s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-}
-
 /* Search and filter changes */
 @keyframes model-grid-search-in {
   from {
@@ -236,25 +201,6 @@ html.language-transitioning :is(header, main, footer)
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-@keyframes model-grid-filter-item {
-  from {
-    opacity: 0.7;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.model-grid-search-in {
-  animation: model-grid-search-in 0.18s ease-out both;
-}
-
-.model-grid-filter-item {
-  animation: model-grid-filter-item 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .model-grid-empty-refresh {
@@ -270,13 +216,8 @@ html.language-transitioning :is(header, main, footer)
   scrollbar-width: none;
 }
 
-.model-category-bar::-webkit-scrollbar,
-.latest-models-mobile::-webkit-scrollbar {
+.model-category-bar::-webkit-scrollbar {
   display: none;
-}
-
-.latest-models-mobile {
-  scrollbar-width: none;
 }
 
 .model-category-indicator {
@@ -297,16 +238,6 @@ html.language-transitioning :is(header, main, footer)
 }
 
 /* Compare state changes */
-@keyframes compare-popover-in {
-  from {
-    opacity: 0;
-    transform: translateY(-6px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
 
 @keyframes compare-state-refresh {
   from {
@@ -317,53 +248,6 @@ html.language-transitioning :is(header, main, footer)
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-@keyframes compare-table-resize {
-  from {
-    transform: scaleX(0.94);
-  }
-  to {
-    transform: scaleX(1);
-  }
-}
-
-@keyframes compare-chip-added {
-  0% {
-    opacity: 0;
-    transform: translateY(7px) scale(0.92);
-  }
-  70% {
-    opacity: 1;
-    transform: translateY(-1px) scale(1.04);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes compare-column-added {
-  from {
-    background-color: color-mix(in oklch, var(--primary) 14%, transparent);
-    opacity: 0.35;
-  }
-  to {
-    background-color: transparent;
-    opacity: 1;
-  }
-}
-
-@keyframes compare-column-remove {
-  to {
-    opacity: 0;
-    transform: translateX(-14px);
-  }
-}
-
-.compare-menu-popover {
-  transform-origin: top left;
-  animation: compare-popover-in 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .compare-bubble {
@@ -378,73 +262,6 @@ html.language-transitioning :is(header, main, footer)
 .compare-bubble[data-state="visible"] {
   opacity: 1;
   pointer-events: auto;
-}
-
-.compare-bar {
-  animation: compare-state-refresh 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.compare-selection-tray,
-.compare-panel-refresh,
-.compare-empty-state {
-  animation: compare-state-refresh 0.18s ease-out both;
-}
-
-.compare-card-selected {
-  transition:
-    box-shadow 0.18s ease,
-    border-color 0.18s ease,
-    background-color 0.18s ease;
-}
-
-.compare-table-frame {
-  transform-origin: left top;
-  animation: compare-table-resize 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.compare-table {
-  transition: width 0.18s ease, min-width 0.18s ease;
-}
-
-.compare-table:is(.compare-removing-col-0) :is(th, td):nth-child(2),
-.compare-table:is(.compare-removing-col-1) :is(th, td):nth-child(3),
-.compare-table:is(.compare-removing-col-2) :is(th, td):nth-child(4),
-.compare-table:is(.compare-removing-col-3) :is(th, td):nth-child(5) {
-  animation: compare-column-remove 0.18s ease-in both;
-  pointer-events: none;
-}
-
-.compare-chip,
-.compare-menu-result,
-.compare-search-result {
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease,
-    transform 0.15s ease,
-    opacity 0.15s ease;
-}
-
-.compare-chip-added {
-  animation: compare-chip-added 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.compare-menu-results,
-.compare-search-dropdown {
-  animation: compare-state-refresh 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.compare-menu-result,
-.compare-search-result {
-  animation: compare-state-refresh 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.compare-menu-result-selected {
-  transform: translateX(2px);
-}
-
-.compare-column-added {
-  animation: compare-column-added 0.2s ease-out both;
 }
 
 /* Shared 404 state */
@@ -602,32 +419,36 @@ html.language-transitioning :is(header, main, footer)
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html.language-transitioning :is(header, main, footer)
-    :is(h1, h2, h3, h4, p, span, a, button, label, th, td, li),
-  .page-transition-frame,
-  .model-grid-search-in,
-  .model-grid-filter-item,
   .model-grid-empty-refresh,
-  .compare-menu-popover,
-  .compare-bubble,
-  .compare-bar,
-  .compare-selection-tray,
-  .compare-panel-refresh,
-  .compare-empty-state,
-  .compare-table-frame,
-  .compare-chip-added,
-  .compare-menu-results,
-  .compare-search-dropdown,
-  .compare-menu-result,
-  .compare-search-result,
-  .compare-column-added,
-  .compare-table:is(.compare-removing-col-0) :is(th, td):nth-child(2),
-  .compare-table:is(.compare-removing-col-1) :is(th, td):nth-child(3),
-  .compare-table:is(.compare-removing-col-2) :is(th, td):nth-child(4),
-  .compare-table:is(.compare-removing-col-3) :is(th, td):nth-child(5) {
+  .compare-bubble {
     animation: none;
   }
   .compare-bubble {
     transition: none;
   }
+}
+
+@font-face { font-family: Geist; src: url("/fonts/Geist.woff2") format("woff2"); font-style: normal; font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Geist Mono"; src: url("/fonts/GeistMono.woff2") format("woff2"); font-style: normal; font-weight: 100 900; font-display: swap; }
+.skip-link { position: fixed; top: .5rem; left: .5rem; z-index: 100; padding: .75rem 1rem; background: var(--background); color: var(--foreground); border: 2px solid var(--ring); border-radius: .5rem; transform: translateY(-200%); }
+.skip-link:focus { transform: translateY(0); }
+/* Preserve the original brand colors. Only monochrome fallback assets invert. */
+.brand-logo { background: color-mix(in oklch, var(--brand-color) 12%, var(--card)); box-shadow: 0 0 0 1px color-mix(in oklch, var(--brand-color) 20%, transparent); }
+.brand-logo img { border-radius: inherit; }
+.dark .brand-logo[data-monochrome] img { filter: invert(1); }
+@media (hover: hover) and (pointer: fine) { .latest-model-link:hover > svg { transform: translateX(2px); } }
+html:has([data-cookie-banner]) { scroll-padding-bottom: var(--analytics-banner-height, 0px); }
+body:has([data-cookie-banner]) [data-scroll-to-top] { visibility: hidden; }
+@media (pointer: coarse) { footer a, footer button { min-height: 44px; display: inline-flex; align-items: center; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+
+/* Comparison updates never delay navigation or replay every result row. */
+@keyframes comparison-content-in {
+  from { opacity: .65; }
+  to { opacity: 1; }
+}
+.compare-picker { transform-origin: top; animation: compare-state-refresh 140ms ease-out; }
+.compare-metrics-enter { animation: comparison-content-in 140ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .compare-picker, .compare-metrics-enter { animation: none; }
 }

@@ -74,6 +74,9 @@ export const Route = createFileRoute("/sitemap.xml")({
             changeFrequency: "daily",
             priority: 0.9,
           },
+          ...["/privacy", "/legal", "/accessibility"].map((pathname) => ({
+            url: absoluteUrl(pathname), changeFrequency: "monthly" as const, priority: 0.2,
+          })),
           {
             url: absoluteUrl("/about"),
             lastModified: today,

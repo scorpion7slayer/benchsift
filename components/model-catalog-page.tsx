@@ -5,9 +5,9 @@ import {
   LibraryBig,
   Plus,
   SlidersHorizontal,
-} from "lucide-react";
+} from "@/components/icons";
 import { Link } from "@/components/link";
-import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
+import { ModelProviderIcon } from "@/components/model-provider-icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useCompare } from "@/lib/compare-store";
@@ -158,7 +158,7 @@ export function ModelCatalogPage({
   );
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pb-24 pt-7 sm:px-6 sm:pt-9 lg:px-8">
+    <main id="main-content" tabIndex={-1} className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pb-24 pt-7 sm:px-6 sm:pt-9 lg:px-8">
       <header className="flex flex-col gap-5 border-b border-border/70 pb-7 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-chart-1/12 text-chart-1">

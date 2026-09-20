@@ -129,7 +129,7 @@ function stripTrailingReasoningWord(value: string): {
   };
 }
 
-export function describeReasoningVariant(
+function describeReasoningVariant(
   model: ReasoningModelIdentity,
 ): ReasoningVariantDescriptor {
   let familyName = cleanName(model.name);
@@ -208,7 +208,7 @@ export function getModelReasoningFamily(
   };
 }
 
-export function getCanonicalReasoningVariant(
+function getCanonicalReasoningVariant(
   family: ModelReasoningFamily,
 ): ModelReasoningVariant {
   return [...family.variants].sort(

@@ -10,7 +10,7 @@ export type ModelPrimaryCategory =
   | "transcription"
   | "unknown";
 
-export const AA_INDEX_KEYS = new Set([
+const AA_INDEX_KEYS = new Set([
   "artificial_analysis_intelligence_index",
   "artificial_analysis_coding_index",
   "artificial_analysis_math_index",
@@ -116,7 +116,7 @@ export function numericEval(
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-export function hasEvaluationValue(
+function hasEvaluationValue(
   evaluations: Evaluations,
   keys: Iterable<string>,
 ): boolean {
@@ -126,7 +126,7 @@ export function hasEvaluationValue(
   return false;
 }
 
-export function isTextBenchmarkKey(key: string): boolean {
+function isTextBenchmarkKey(key: string): boolean {
   return AA_INDEX_KEYS.has(key) || TEXT_BENCHMARK_KEYS.has(key);
 }
 
@@ -142,7 +142,7 @@ export function outputModalities(model: LLMModel): Set<string> {
   return modalities;
 }
 
-export function inputModalities(model: LLMModel): Set<string> {
+function inputModalities(model: LLMModel): Set<string> {
   const modalities = new Set<string>();
   for (const modality of model.openrouter_input_modalities ?? []) {
     modalities.add(modality);
@@ -226,7 +226,7 @@ export function hasAAIndexBenchmarks(model: LLMModel): boolean {
   ]);
 }
 
-export function hasStandardTextBenchmarks(model: LLMModel): boolean {
+function hasStandardTextBenchmarks(model: LLMModel): boolean {
   return isTextOutputModel(model) && hasEvaluationValue(model.evaluations, TEXT_BENCHMARK_KEYS);
 }
 
@@ -273,7 +273,7 @@ export function hasAnyBenchmarkData(model: LLMModel): boolean {
   );
 }
 
-export function hasPerformanceData(model: LLMModel): boolean {
+function hasPerformanceData(model: LLMModel): boolean {
   return Boolean(
     model.median_output_tokens_per_second != null ||
     model.median_time_to_first_token_seconds != null ||
@@ -282,7 +282,7 @@ export function hasPerformanceData(model: LLMModel): boolean {
   );
 }
 
-export function hasOpenRouterUsageData(model: LLMModel): boolean {
+function hasOpenRouterUsageData(model: LLMModel): boolean {
   return Boolean(
     model.openrouter_weekly_rank != null ||
     model.openrouter_weekly_tokens != null ||
@@ -293,7 +293,7 @@ export function hasOpenRouterUsageData(model: LLMModel): boolean {
   );
 }
 
-export function hasHuggingFaceSignal(model: LLMModel): boolean {
+function hasHuggingFaceSignal(model: LLMModel): boolean {
   if (model.huggingface_official !== true || !model.huggingface_url) return false;
   return Boolean(
     (model.huggingface_downloads ?? 0) > 0 ||

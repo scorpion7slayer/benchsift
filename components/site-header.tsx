@@ -13,7 +13,7 @@ import {
   PanelsTopLeft,
   Terminal,
   X,
-} from "lucide-react";
+} from "@/components/icons";
 import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import {
@@ -172,6 +172,12 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
                     </a>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
+                    <a href="https://models.dev/" target="_blank" rel="noopener noreferrer">
+                      <ExternalLink />
+                      Models.dev
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <a href="https://huggingface.co" target="_blank" rel="noopener noreferrer">
                       <ExternalLink />
                       {t.nav.huggingFace}
@@ -300,6 +306,16 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
           >
             <ExternalLink className="size-4 shrink-0" />
             OpenRouter
+          </a>
+          <a
+            href="https://models.dev/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            onClick={() => setMenuOpen(false)}
+          >
+            <ExternalLink className="size-4 shrink-0" />
+            Models.dev
           </a>
           <a
             href="https://huggingface.co"

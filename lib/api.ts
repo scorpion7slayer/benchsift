@@ -1,3 +1,6 @@
+import { parseCodingAgents } from "@/lib/aa-coding-agents";
+import { enrichModelsWithModelsDev } from "@/lib/models-dev-source";
+import { mergeModelsDev } from "@/lib/models-dev";
 import { cached } from "@/lib/revalidate-cache";
 import {
   getCanonicalCreatorSlug,
@@ -209,6 +212,8 @@ export interface LLMModel {
   huggingface_inference_providers?: string[];
   huggingface_created_at?: string | null;
   huggingface_last_modified?: string | null;
+  models_dev_id?: string;
+  models_dev_url?: string;
   provider_icon_url?: string | null;
   availability_status?: ModelAvailabilityStatus | null;
 }
@@ -422,7 +427,7 @@ async function buildPartialModel(slug: string, includeCapabilities = true): Prom
  * Scrapes the Artificial Analysis website for data missing from the API:
  * parameters, open/closed weights, reasoning. / paramètres, poids, raisonnement.
  */
-export async function scrapeAACapabilities(slug: string): Promise<Partial<LLMModel>> {
+async function scrapeAACapabilities(slug: string): Promise<Partial<LLMModel>> {
   try {
     if (!isSafeModelSlug(slug)) return {};
     const res = await fetchWithTimeout(
@@ -528,8 +533,20 @@ async function fetchLightModels(): Promise<LLMModel[]> {
   // path. Cheap official hints still let known open-weight models expose a
   // safe HF link before the cron cache is warm.
   return normaliseUnavailableMetrics(
-    attachOfficialHuggingFaceHints(removeExcludedOpenRouterModels(enriched)),
+    attachOfficialHuggingFaceHints(await enrichModelsWithModelsDev(removeExcludedOpenRouterModels(enriched))),
   );
+}
+
+let coldFetch: Promise<LLMModel[]> | undefined;
+function fetchLightModelsShared(): Promise<LLMModel[]> {
+  coldFetch ??= fetchLightModels().then((models) => {
+    if (models.length > 0) {
+      lastSuccessfulModels = models;
+      scheduleWriteModelsCache(models);
+    }
+    return models;
+  }).finally(() => { coldFetch = undefined; });
+  return coldFetch;
 }
 
 async function enrichCronModelsWithSources(models: LLMModel[]): Promise<LLMModel[]> {
@@ -544,7 +561,7 @@ async function enrichCronModelsWithSources(models: LLMModel[]): Promise<LLMModel
   const hfEnriched = await enrichModelsWithHuggingFace(withCapabilities, {
     apiKey: getHuggingFaceApiKey(),
   });
-  return normaliseUnavailableMetrics(hfEnriched);
+  return normaliseUnavailableMetrics(await enrichModelsWithModelsDev(hfEnriched));
 }
 
 /**
@@ -576,7 +593,7 @@ interface CronFetchResult {
   stats: CronSourceStats;
 }
 
-export async function fetchModelsForCron(): Promise<CronFetchResult> {
+async function fetchModelsForCron(): Promise<CronFetchResult> {
   const retriesBefore = getFetchRetryCount();
   const [apiModels, validSlugs, mediaModels] = await Promise.all([
     fetchAALanguageModels(),
@@ -651,6 +668,7 @@ function sourceCoverageStats(models: LLMModel[]) {
     huggingFaceEnrichedModels: models.filter(
       (model) => Boolean(model.huggingface_id || model.huggingface_url),
     ).length,
+    modelsDevEnrichedModels: models.filter((model) => Boolean(model.models_dev_id)).length,
     openWeightModels: models.filter(
       (model) => model.is_open_weights === true,
     ).length,
@@ -666,7 +684,12 @@ function sourceCoverageStats(models: LLMModel[]) {
  * Public entry point for refresh jobs: refreshes the persisted models cache.
  * Called by `src/routes/api/cron/refresh.ts`.
  */
-export async function refreshModelsCache(): Promise<{ count: number; stats: CronFetchStats }> {
+let refreshing: Promise<{ count: number; stats: CronFetchStats }> | undefined;
+export function refreshModelsCache(): Promise<{ count: number; stats: CronFetchStats }> {
+  refreshing ??= performModelsRefresh().finally(() => { refreshing = undefined; });
+  return refreshing;
+}
+async function performModelsRefresh(): Promise<{ count: number; stats: CronFetchStats }> {
   const { models: rawModels, stats } = await fetchModelsForCron();
   const freshModels = normaliseCatalogModels(rawModels);
   const previous = await readModelsCache({ allowStale: true });
@@ -731,12 +754,20 @@ function removeExcludedOpenRouterModels(models: LLMModel[]): LLMModel[] {
   );
 }
 
+const normalizedSnapshots = new WeakMap<LLMModel[], LLMModel[]>();
 function normaliseCatalogModels(models: LLMModel[]): LLMModel[] {
-  return dedupeOpenRouterVariantModels(
+  const existing = normalizedSnapshots.get(models);
+  if (existing) return existing;
+  const primary = models.filter((model) => !model.id.startsWith("modelsdev:"));
+  const supplemental = models.filter((model) => model.id.startsWith("modelsdev:"));
+  const merged = mergeModelsDev(primary, supplemental);
+  const result = dedupeOpenRouterVariantModels(
     normaliseCreatorNames(
-      mergeAAMediaDuplicateModels(removeExcludedOpenRouterModels(models)),
+      mergeAAMediaDuplicateModels(removeExcludedOpenRouterModels(merged)),
     ),
   );
+  normalizedSnapshots.set(models, result);
+  return result;
 }
 
 /**
@@ -763,10 +794,8 @@ export async function getLLMModels(): Promise<LLMModel[]> {
   // 3. Last resort: AA API only. No sitemap, no HTML scraping — minimal CPU.
   // Schedule a background file write so subsequent requests are instant.
   try {
-    const models = await fetchLightModels();
+    const models = await fetchLightModelsShared();
     if (models.length > 0) {
-      lastSuccessfulModels = models;
-      scheduleWriteModelsCache(models);
       return normaliseCatalogModels(models);
     }
   } catch {
@@ -781,17 +810,11 @@ export async function getLLMModels(): Promise<LLMModel[]> {
   return [];
 }
 
-export { scrapeModelCapabilities };
-
-export async function getLLMModelBasic(slug: string): Promise<LLMModel | undefined> {
-  const models = await getLLMModels();
-  return models.find((m) => m.slug === slug);
-}
 
 /** Enriches models in parallel (chunked to avoid flooding). / Par chunks pour éviter le flood. */
 async function chunkedScrape(
   models: LLMModel[],
-  scrape: (slug: string) => Promise<Partial<LLMModel>> = scrapeModelCapabilities,
+  scrape: (slug: string) => Promise<Partial<LLMModel>>,
   chunkSize = CAPABILITY_CHUNK_SIZE
 ): Promise<Partial<LLMModel>[]> {
   const results: Partial<LLMModel>[] = [];
@@ -857,11 +880,11 @@ function normaliseUnavailableModel(model: LLMModel): LLMModel {
   };
 }
 
-export function normaliseUnavailableMetrics(models: LLMModel[]): LLMModel[] {
+function normaliseUnavailableMetrics(models: LLMModel[]): LLMModel[] {
   return models.map(normaliseUnavailableModel);
 }
 
-export async function enrichModelsWithScrapedCapabilities(models: LLMModel[]): Promise<LLMModel[]> {
+async function enrichModelsWithScrapedCapabilities(models: LLMModel[]): Promise<LLMModel[]> {
   const normalised = normaliseUnavailableMetrics(models);
   const capabilities = await chunkedScrape(normalised, scrapeAACapabilities);
   return normalised.map((model, i) => mergeDefinedModel(model, capabilities[i]));
@@ -916,52 +939,13 @@ async function enrichSupplementaryWithHuggingFace(
 
 export async function getLLMModelSupplementary(slug: string): Promise<Partial<LLMModel>> {
   if (!isSafeModelSlug(slug)) return {};
-  const [models, supplementary] = await Promise.all([
-    getLLMModels(),
-    scrapeModelCapabilities(slug),
-  ]);
+  const models = await getLLMModels();
   const model = models.find((m) => m.slug === slug);
-  if (!model) return supplementary;
+  if (!model) return {};
+  const supplementary = slug.startsWith("modelsdev-") ? {} : await scrapeModelCapabilities(slug);
   return enrichSupplementaryWithHuggingFace(model, supplementary);
 }
 
-/**
- * Module-level cache for development. / Cache module-level pour le développement.
- * In dev, Turbopack resets 'use cache' on each recompile.
- * This Map persists in Node.js memory across navigations → single scrape per session.
- */
-const _devCache = new Map<string, Partial<LLMModel>>();
-
-/**
- * Returns all models enriched with context window, modalities, reasoning…
- * Production: 'use cache' caches the combined result for 1h.
- * Dev: _devCache avoids re-scraping on each Turbopack recompile. / évite de re-scraper.
- */
-export async function getLLMModelsWithContext(): Promise<LLMModel[]> {
-  const models = await getLLMModels();
-
-  if (process.env.NODE_ENV === "development") {
-    const uncached = models.filter((m) => !_devCache.has(m.slug));
-    if (uncached.length > 0) {
-      const caps = await chunkedScrape(uncached);
-      uncached.forEach((m, i) => _devCache.set(m.slug, caps[i]));
-    }
-    return models.map((m) => ({ ...m, ..._devCache.get(m.slug) }));
-  }
-
-  const capabilities = await chunkedScrape(models);
-  return models.map((model, i) => ({ ...model, ...capabilities[i] }));
-}
-
-/** Returns a model enriched with website data (context window, modalities…). / Retourne un modèle enrichi. */
-export async function getLLMModel(slug: string): Promise<LLMModel | undefined> {
-  if (!isSafeModelSlug(slug)) return undefined;
-  const models = await getLLMModels();
-  const model = models.find((m) => m.slug === slug);
-  if (!model) return undefined;
-  const supplementary = await getLLMModelSupplementary(model.slug);
-  return { ...model, ...supplementary };
-}
 
 // ─── Coding Agents (AA Coding Agent Index) ─────────────────────────────────
 // AA's coding-agents page tracks how harnesses (Claude Code, Cursor CLI, OpenCode…)
@@ -969,93 +953,12 @@ export async function getLLMModel(slug: string): Promise<LLMModel | undefined> {
 // La page coding-agents d'AA mesure comment chaque harnais (Claude Code, Cursor CLI…)
 // performe avec un modèle donné sur 3 benchmarks composites.
 
-// `CodingAgent` and `CODING_AGENT_HARNESSES` live in `lib/coding-agents.ts`
-// (client-safe) and are re-exported here for backwards-compatible imports.
-export type { CodingAgent };
-export { CODING_AGENT_HARNESSES } from "@/lib/coding-agents";
 
 const AA_AGENTS_PAGE = "https://artificialanalysis.ai/agents/coding-agents";
 
-interface AAAgentRow {
-  id?: string;
-  agentName?: string;
-  provider?: string;
-  hostModelSlug?: string;
-  display?: { agent?: string; model?: string };
-  displayLabel?: string;
-  releaseDate?: string;
-  hostName?: string;
-  hostShortName?: string;
-  modelName?: string;
-  indexScore?: number;
-  mean?: {
-    reward?: number;
-    costUsd?: number;
-    agentWallTimeSec?: number;
-    steps?: number;
-    inputTokens?: number;
-    outputTokens?: number;
-    cacheTokens?: number;
-    cacheHitRate?: number;
-    totalTokens?: number;
-  };
-  evals?: Array<{
-    datasetIndexName?: string;
-    mean?: { reward?: number };
-  }>;
-  componentScores?: Array<{
-    datasetIndexName?: string;
-    mean?: { reward?: number };
-  }>;
-}
-
-/**
- * Extracts the agent rows array from AA's RSC payload.
- * AA's /agents/coding-agents is client-rendered, but Next.js exposes the data
- * via the React Server Components (RSC) payload when the "RSC: 1" header is set.
- * We balance-parse the "rows":[...] array to get the leaderboard.
- * Le payload RSC est récupéré via le header "RSC: 1" sur la page Next.js.
- */
-function extractRowsFromRSC(payload: string): AAAgentRow[] | null {
-  const key = '"rows":[';
-  const start = payload.indexOf(key);
-  if (start < 0) return null;
-
-  // Walk balanced brackets from inside the array opener
-  let i = start + key.length;
-  let depth = 1;
-  let inStr = false;
-  let esc = false;
-  const maxLen = payload.length;
-  while (i < maxLen && depth > 0) {
-    const c = payload[i];
-    if (esc) esc = false;
-    else if (c === "\\") esc = true;
-    else if (c === '"') inStr = !inStr;
-    else if (!inStr) {
-      if (c === "[" || c === "{") depth++;
-      else if (c === "]" || c === "}") depth--;
-    }
-    i++;
-  }
-  if (depth !== 0) return null;
-  const arrText = payload.slice(start + key.length - 1, i);
-  try {
-    return JSON.parse(arrText) as AAAgentRow[];
-  } catch {
-    return null;
-  }
-}
-
-/** Slug-ify the harness name to match HARNESS keys / icons. */
-function harnessSlug(agentName: string): string {
-  return agentName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-}
-
 /**
  * Fetches the AA coding-agents leaderboard via Next.js RSC payload.
- * Cached 24h to avoid hammering AA's frontend.
- * Mise en cache 24h pour ne pas surcharger AA.
+ * Cached for six hours to limit upstream requests.
  */
 const getCodingAgentsCached = cached(
   async (): Promise<CodingAgent[]> => {
@@ -1072,61 +975,14 @@ const getCodingAgentsCached = cached(
         },
         SCRAPE_FETCH_TIMEOUT_MS
       );
-      if (!res.ok) return [];
+      if (!res.ok) throw new Error("Coding agent source unavailable");
       const payload = await res.text();
 
-      const rows = extractRowsFromRSC(payload);
-      if (!rows) return [];
-
-      const componentScore = (row: AAAgentRow, name: string): number | null => {
-        const components = row.evals ?? row.componentScores;
-        const c = components?.find((x) => x.datasetIndexName === name);
-        return c?.mean?.reward ?? null;
-      };
-
-      return rows
-        .map((row, i): CodingAgent | null => {
-          const agentName = row.agentName ?? row.display?.agent ?? "";
-          if (!agentName) return null;
-          const slug = harnessSlug(agentName);
-          const mean = row.mean ?? {};
-          // hostModelSlug looks like "anthropic_claude-opus-4-6" — extract host + model id.
-          // Then resolve the *real* creator from the model id, because the host is
-          // sometimes a routing provider (friendliai for GLM, cursor for its own models…)
-          // rather than the actual creator.
-          const hostSlug = row.hostModelSlug ?? "";
-          const [hostRaw, ...modelRest] = hostSlug.split("_");
-          const modelSlug = modelRest.join("_") || hostSlug;
-          const hostSlugLower = (hostRaw || row.provider || "").toLowerCase();
-          const creatorSlug = resolveCreatorFromModelSlug(modelSlug, hostSlugLower);
-          return {
-            id: row.id ?? `${slug}-${i}`,
-            agent_name: agentName,
-            agent_slug: slug,
-            display_label: row.displayLabel ?? `${agentName} - ${row.modelName ?? ""}`,
-            model_name: row.modelName ?? row.display?.model ?? modelSlug,
-            model_short: row.display?.model ?? row.modelName ?? "",
-            model_slug: modelSlug,
-            model_creator_slug: creatorSlug,
-            release_date: row.releaseDate ?? null,
-            // Convert 0-1 index to 0-100 for display consistency with LLM indices
-            coding_agent_index: typeof row.indexScore === "number" ? row.indexScore * 100 : null,
-            deep_swe:              componentScore(row, "deep-swe"),
-            terminal_bench_v2:    componentScore(row, "terminal-bench-v2"),
-            swe_atlas_qna:        componentScore(row, "swe-atlas-qna"),
-            cost_per_task_usd:    mean.costUsd ?? null,
-            time_per_task_seconds: mean.agentWallTimeSec ?? null,
-            input_tokens_per_task:        mean.inputTokens ?? null,
-            cached_input_tokens_per_task: mean.cacheTokens ?? null,
-            output_tokens_per_task:       mean.outputTokens ?? null,
-            total_tokens_per_task:        mean.totalTokens ?? null,
-            cache_hit_rate:               mean.cacheHitRate ?? null,
-            steps_per_task:               mean.steps ?? null,
-          };
-        })
-        .filter((x): x is CodingAgent => x !== null);
+      const agents = parseCodingAgents(payload);
+      if (!agents.length) throw new Error("Coding agent data unavailable");
+      return agents;
     } catch {
-      return [];
+      throw new Error("Coding agent source unavailable");
     }
   },
   ["aa-coding-agents"],
@@ -1134,6 +990,9 @@ const getCodingAgentsCached = cached(
   { revalidate: CACHE_RSC_SECONDS }
 );
 
+let codingAgentsRetryAt = 0;
 export async function getCodingAgents(): Promise<CodingAgent[]> {
-  return getCodingAgentsCached();
+  if (Date.now() < codingAgentsRetryAt) return [];
+  try { return await getCodingAgentsCached(); }
+  catch { codingAgentsRetryAt = Date.now() + 30_000; return []; }
 }

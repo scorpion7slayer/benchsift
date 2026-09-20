@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity } from "lucide-react";
+import { Activity } from "@/components/icons";
 import { fetchDeepSweData } from "@/lib/server-fns";
 import { DeepSweTable } from "@/components/deepswe-table";
 import { SiteHeader } from "@/components/site-header";
@@ -32,7 +32,7 @@ function DeepSwePage() {
   return (
     <div className="flex flex-col flex-1">
       <SiteHeader />
-      <main className="flex-1 flex flex-col max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <main id="main-content" tabIndex={-1} className="flex-1 flex flex-col max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <div className="flex items-start gap-3">
           <div className="size-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
             <Activity className="size-5 text-muted-foreground" />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
@@ -16,6 +16,7 @@ export function ScrollToTop() {
 
   return (
     <Button
+      data-scroll-to-top
       variant="outline"
       size="icon"
       tabIndex={visible ? 0 : -1}

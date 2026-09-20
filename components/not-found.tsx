@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Home } from "lucide-react";
+import { ArrowRight, Home } from "@/components/icons";
 import { BrandMark } from "@/components/brand-mark";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -27,7 +27,7 @@ export function NotFound() {
     <div className="flex min-h-[100svh] flex-1 flex-col">
       <SiteHeader />
 
-      <main className="flex flex-1 items-center" aria-labelledby="not-found-title">
+      <main id="main-content" tabIndex={-1} className="flex flex-1 items-center" aria-labelledby="not-found-title">
         <div className="mx-auto grid w-full max-w-7xl items-center gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[minmax(0,0.85fr)_minmax(28rem,1.15fr)] lg:gap-16 lg:px-8 lg:py-20">
           <div ref={copyRef} className="t-stagger is-shown max-w-xl">
             <div className="t-stagger-line t-stagger-line--1">

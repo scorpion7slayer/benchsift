@@ -5,7 +5,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader, setResponseHeader } from "@tanstack/react-start/server";
 import {
   getLLMModels,
-  getLLMModel,
   getLLMModelSupplementary,
   getCodingAgents,
   type LLMModel,
@@ -23,12 +22,16 @@ import {
   type HomeCatalogData,
 } from "@/lib/home-catalog";
 import { readCookieValue } from "@/lib/http-cookie";
+import { readAnalyticsConsent, type AnalyticsConsent } from "@/lib/analytics-consent";
+import { getModelCatalogPage } from "@/lib/model-catalog";
 
-function setPublicResponseCache(): void {
+// Loaders also run inside cookie-personalised SSR documents. Never mark those
+// documents public; the server snapshot already avoids repeated data work.
+function setResponseCache(): void {
   try {
     setResponseHeader(
       "cache-control",
-      "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
+      "private, no-cache",
     );
   } catch {
     // The header helper only exists during request handling.
@@ -43,16 +46,29 @@ function isSafeSlug(slug: string): boolean {
 /** Full models list (fast KV-cached path). */
 export const fetchModels = createServerFn({ method: "GET" }).handler(
   async (): Promise<LLMModel[]> => {
-    setPublicResponseCache();
+    setResponseCache();
     return getLLMModels();
   },
 );
 
+const homeSnapshots = new WeakMap<LLMModel[], HomeCatalogData>();
+
+/** Project pagination on the server rather than sending the entire catalogue. */
+export const fetchCatalogPage = createServerFn({ method: "GET" })
+  .inputValidator((page: number) => page)
+  .handler(async ({ data }) => {
+    setResponseCache();
+    return getModelCatalogPage(await getLLMModels(), data);
+  });
+
 /** Lightweight data needed by the default homepage ranking. */
 export const fetchHomeCatalog = createServerFn({ method: "GET" }).handler(
   async (): Promise<HomeCatalogData> => {
-    setPublicResponseCache();
-    return buildHomeCatalogData(await getLLMModels());
+    setResponseCache();
+    const models = await getLLMModels();
+    let data = homeSnapshots.get(models);
+    if (!data) { data = buildHomeCatalogData(models); homeSnapshots.set(models, data); }
+    return data;
   },
 );
 
@@ -78,12 +94,11 @@ export const fetchCompareData = createServerFn({ method: "GET" })
   .inputValidator((slugs: string[]) => slugs)
   .handler(
     async ({ data }): Promise<{ allModels: CompareModelOption[]; selected: LLMModel[] }> => {
-      setPublicResponseCache();
+      setResponseCache();
       const slugs = [...new Set(data.filter(isSafeSlug))].slice(0, 4);
-      const [models, ...selectedModels] = await Promise.all([
-        getLLMModels(),
-        ...slugs.map((slug) => getLLMModel(slug)),
-      ]);
+      const models = await getLLMModels();
+      const bySlug = new Map(models.map(model => [model.slug, model]));
+      const selectedModels = slugs.map(slug => bySlug.get(slug));
       const allModels = models.map((model) => ({
         id: model.id,
         name: model.name,
@@ -105,13 +120,13 @@ export const fetchCompareData = createServerFn({ method: "GET" })
 
 /** AA coding-agents leaderboard. */
 export const fetchCodingAgents = createServerFn({ method: "GET" }).handler(
-  async () => getCodingAgents(),
+  async () => { setResponseCache(); return getCodingAgents(); },
 );
 
 /** Datacurve DeepSWE leaderboard. */
 export const fetchDeepSweData = createServerFn({ method: "GET" }).handler(
   async (): Promise<DeepSweData> => {
-    setPublicResponseCache();
+    setResponseCache();
     return getDeepSweData();
   },
 );
@@ -119,12 +134,13 @@ export const fetchDeepSweData = createServerFn({ method: "GET" }).handler(
 export interface Preferences {
   lang: Lang;
   theme: string;
-  noticeAcknowledged: boolean;
+  analyticsConsent: AnalyticsConsent;
 }
 
 /** Reads the language/theme preferences from the request cookies. */
 export const fetchPreferences = createServerFn({ method: "GET" }).handler(
   async (): Promise<Preferences> => {
+    setResponseCache();
     const cookie = getRequestHeader("cookie") ?? "";
     const read = (name: string): string | undefined =>
       readCookieValue(cookie, name);
@@ -134,9 +150,6 @@ export const fetchPreferences = createServerFn({ method: "GET" }).handler(
     const theme = ["dark", "light", "system"].includes(storedTheme ?? "")
       ? storedTheme!
       : "system";
-    const noticeAcknowledged =
-      /(?:^|;\s*)benchsift_(?:notice=1|consent=(?:0|1))(?:;|$)/.test(cookie);
-
-    return { lang, theme, noticeAcknowledged };
+    return { lang, theme, analyticsConsent: readAnalyticsConsent(cookie) };
   },
 );

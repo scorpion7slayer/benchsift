@@ -1,4 +1,4 @@
-import { ExternalLink, TriangleAlert } from "lucide-react";
+import { ExternalLink, TriangleAlert } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n";

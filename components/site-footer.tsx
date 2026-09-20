@@ -1,4 +1,6 @@
+import { Link } from "@/components/link";
 import { useI18n } from "@/lib/i18n";
+import { AnalyticsPreferencesButton } from "@/components/analytics-consent";
 
 export function SiteFooter() {
   const { t } = useI18n();
@@ -44,6 +46,14 @@ export function SiteFooter() {
             MIT License
           </a>
         </div>
+        <nav aria-label={t.trust.legal} className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 border-t pt-3">
+          <Link href="/privacy" className="hover:text-foreground">{t.trust.privacy}</Link>
+          <AnalyticsPreferencesButton />
+          <Link href="/legal" className="hover:text-foreground">{t.trust.legal}</Link>
+          <Link href="/accessibility" className="hover:text-foreground">{t.trust.accessibility}</Link>
+          <a href="https://models.dev/" target="_blank" rel="noreferrer" className="hover:text-foreground">Models.dev</a>
+          <a href="https://huggingface.co/" target="_blank" rel="noreferrer" className="hover:text-foreground">Hugging Face</a>
+        </nav>
       </div>
     </footer>
   );

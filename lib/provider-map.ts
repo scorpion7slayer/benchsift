@@ -1,6 +1,6 @@
 /**
  * Mapping des slugs créateurs renvoyés par Artificial Analysis
- * vers les clés provider de @lobehub/icons.
+ * vers les clés des logos fournisseurs locaux.
  * Slugs réels normalisés depuis l'API : /language/models/free
  */
 const CREATOR_TO_PROVIDER: Record<string, string> = {
@@ -61,7 +61,7 @@ const CREATOR_TO_PROVIDER: Record<string, string> = {
   groq: "groq",
   "microsoft-ai": "microsoft",
 
-  // Media and specialist labs covered by direct @lobehub/icons exports.
+  // Media and specialist labs covered by local provider logos.
   adobe: "adobe",
   "aion-labs": "aionlabs",
   aion: "aionlabs",
@@ -120,6 +120,19 @@ const CREATOR_TO_PROVIDER: Record<string, string> = {
 };
 
 const CREATOR_CANONICAL_SLUG: Record<string, string> = {
+  "ai21-labs": "ai21",
+  "arcee-ai": "arcee",
+  "meta-llama": "meta",
+  mistralai: "mistral",
+  moonshot: "moonshotai",
+  kimi: "moonshotai",
+  bytedance_seed: "bytedance",
+  "bytedance-seed": "bytedance",
+  "nous-research": "nousresearch",
+  "swiss-ai": "swiss-ai-initiative",
+  thinkingmachines: "thinking-machines",
+  zhipuai: "zai",
+
   "lg-ai-research": "lg",
   "voyage-ai": "voyage",
   voyageai: "voyage",
@@ -207,6 +220,9 @@ export function getModelProviderKey(modelSlug: string, creatorSlug: string): str
  * Sur certains modèles AA renvoie le nom de produit au lieu du nom du créateur.
  */
 const CREATOR_DISPLAY_NAME: Record<string, string> = {
+  ai21: "AI21 Labs", arcee: "Arcee AI", meta: "Meta", mistral: "Mistral", bytedance: "ByteDance",
+  nousresearch: "Nous Research", "swiss-ai-initiative": "Swiss AI Initiative", "thinking-machines": "Thinking Machines",
+
   kimi: "Moonshot AI",
   moonshot: "Moonshot AI",
   moonshotai: "Moonshot AI",

@@ -1,11 +1,25 @@
-import { Activity, DollarSign, ExternalLink, GitCompareArrows, Info, Timer, Trophy } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import {
+  Activity,
+  DollarSign,
+  ExternalLink,
+  GitCompareArrows,
+  Info,
+  Search,
+  Timer,
+  Trophy,
+} from "@/components/icons";
+import { useMemo, useState, type ReactNode } from "react";
+import { Input } from "@/components/ui/input";
+import { selectDeepSweRows, type DeepSweSort } from "@/lib/deepswe-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
-import { getModelProviderKey, resolveCreatorFromModelSlug } from "@/lib/provider-map";
+import { ModelProviderIcon } from "@/components/model-provider-icon";
+import {
+  getModelProviderKey,
+  resolveCreatorFromModelSlug,
+} from "@/lib/provider-map";
 import { useI18n } from "@/lib/i18n";
 import type { DeepSweData, DeepSweRow, DeepSweVersion } from "@/lib/deepswe";
 
@@ -65,19 +79,23 @@ function displayModelName(slug: string): string {
     .replace(/^mimo-v(\d+)-(\d+)-/, "MiMo V$1.$2 ")
     .replace(/^grok-build-(\d+)-(\d+)/, "Grok Build $1.$2")
     .split("-")
-    .map((part) => part.length <= 3 && /^[a-z]+$/.test(part) ? part.toUpperCase() : part)
+    .map((part) =>
+      part.length <= 3 && /^[a-z]+$/.test(part) ? part.toUpperCase() : part,
+    )
     .join(" ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
     .replace(/\bV(\d)\b/g, "V$1");
 }
 
 function providerFor(row: DeepSweRow): string {
-  const creator = resolveCreatorFromModelSlug(row.model, row.model.split("-")[0] ?? "");
+  const creator =
+    row.provider ??
+    resolveCreatorFromModelSlug(row.model, row.model.split("-")[0] ?? "");
   return getModelProviderKey(row.model, creator);
 }
 
 function effortLabel(row: DeepSweRow): string {
-  return row.reasoning_effort ?? "default";
+  return row.reasoning_effort ?? "—";
 }
 
 function StatCard({
@@ -94,7 +112,9 @@ function StatCard({
       <CardContent className="flex items-center justify-between gap-3 p-4">
         <div>
           <p className="text-xs text-muted-foreground">{title}</p>
-          <p className="mt-1 font-mono text-lg font-semibold tabular-nums">{value}</p>
+          <p className="mt-1 font-mono text-lg font-semibold tabular-nums">
+            {value}
+          </p>
         </div>
         <div className="size-9 rounded-md bg-muted flex items-center justify-center text-muted-foreground">
           {icon}
@@ -112,9 +132,16 @@ export function DeepSweTable({ data }: { data: DeepSweData }) {
   const leaderboard =
     data.leaderboards.find((entry) => entry.version === version) ??
     data.leaderboards[0];
+  const [query, setQuery] = useState("");
+  const [bestOnly, setBestOnly] = useState(true);
+  const [sort, setSort] = useState<DeepSweSort>("score");
   const comparison = data.comparison;
-  const rows = leaderboard.rows;
-  const top = rows[0] ?? null;
+  const rows = useMemo(
+    () => selectDeepSweRows(leaderboard.rows, { query, bestOnly, sort }),
+    [leaderboard.rows, query, bestOnly, sort],
+  );
+  const ranks = new Map(leaderboard.rows.map((row, index) => [row, index + 1]));
+  const top = leaderboard.rows[0] ?? null;
 
   if (data.leaderboards.every((entry) => entry.rows.length === 0)) {
     return (
@@ -122,7 +149,12 @@ export function DeepSweTable({ data }: { data: DeepSweData }) {
         <Card>
           <CardContent className="py-10 text-center space-y-4">
             <p className="text-sm text-muted-foreground">{t.deepSwe.empty}</p>
-            <Button variant="outline" size="sm" asChild className="touch-target">
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="touch-target"
+            >
               <a
                 href="https://deepswe.datacurve.ai/"
                 target="_blank"
@@ -174,12 +206,16 @@ export function DeepSweTable({ data }: { data: DeepSweData }) {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title={t.deepSwe.stats.configs}
-          value={String(rows.length)}
+          value={String(leaderboard.rows.length)}
           icon={<Activity className="size-4" />}
         />
         <StatCard
           title={t.deepSwe.stats.tasks}
-          value={leaderboard.n_tasks_in_set != null ? String(leaderboard.n_tasks_in_set) : "-"}
+          value={
+            leaderboard.n_tasks_in_set != null
+              ? String(leaderboard.n_tasks_in_set)
+              : "-"
+          }
           icon={<Info className="size-4" />}
         />
         <StatCard
@@ -195,120 +231,238 @@ export function DeepSweTable({ data }: { data: DeepSweData }) {
       </div>
 
       {version === "v1.1" && comparison && (
-        <Card>
+        <details className="rounded-xl border bg-card p-4">
+          <summary className="touch-target cursor-pointer content-center text-sm font-medium">
+            {t.deepSwe.comparison}
+          </summary>
+          <Card className="mt-4 border-0 shadow-none">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <GitCompareArrows className="size-4 text-muted-foreground" />
+                {t.deepSwe.comparison}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-4">
+                <div className="rounded-lg border bg-muted/20 p-3">
+                  <p className="text-xs text-muted-foreground">v1</p>
+                  <p className="mt-1 font-mono text-lg font-semibold">
+                    {fmtPct(comparison.pooled.v1)}
+                  </p>
+                </div>
+                <div className="rounded-lg border bg-muted/20 p-3">
+                  <p className="text-xs text-muted-foreground">v1.1</p>
+                  <p className="mt-1 font-mono text-lg font-semibold">
+                    {fmtPct(comparison.pooled.current)}
+                  </p>
+                </div>
+                <div className="rounded-lg border bg-muted/20 p-3">
+                  <p className="text-xs text-muted-foreground">
+                    {t.deepSwe.delta}
+                  </p>
+                  <p className="mt-1 font-mono text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+                    {fmtDelta(
+                      comparison.pooled.current != null &&
+                        comparison.pooled.v1 != null
+                        ? comparison.pooled.current - comparison.pooled.v1
+                        : null,
+                    )}
+                  </p>
+                </div>
+                <div className="rounded-lg border bg-muted/20 p-3">
+                  <p className="text-xs text-muted-foreground">
+                    {t.deepSwe.sharedConfigs}
+                  </p>
+                  <p className="mt-1 font-mono text-lg font-semibold">
+                    {comparison.n_shared_configs ?? "-"}
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {comparison.scope}
+              </p>
+              <div
+                className="overflow-x-auto rounded-lg border"
+                tabIndex={0}
+                role="region"
+                aria-label={t.deepSwe.comparison}
+              >
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/40 text-xs text-muted-foreground">
+                      <th scope="col" className="px-3 py-2 text-left">
+                        {t.deepSwe.headers.model}
+                      </th>
+                      <th scope="col" className="px-3 py-2 text-right">
+                        v1
+                      </th>
+                      <th scope="col" className="px-3 py-2 text-right">
+                        v1.1
+                      </th>
+                      <th scope="col" className="px-3 py-2 text-right">
+                        {t.deepSwe.delta}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {comparison.configs.map((row) => (
+                      <tr key={row.config} className="border-b last:border-0">
+                        <td className="px-3 py-2">
+                          <span className="font-medium">
+                            {displayModelName(row.model)}
+                          </span>
+                          <span className="ml-2 font-mono text-xs text-muted-foreground">
+                            {row.reasoning_effort ?? "—"}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono text-xs">
+                          {fmtPct(row.v1)}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono text-xs">
+                          {fmtPct(row.current)}
+                        </td>
+                        <td
+                          className={`px-3 py-2 text-right font-mono text-xs ${
+                            (row.delta ?? 0) > 0
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : (row.delta ?? 0) < 0
+                                ? "text-red-600 dark:text-red-400"
+                                : "text-muted-foreground"
+                          }`}
+                        >
+                          {fmtDelta(row.delta)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </details>
+      )}
+
+      <details className="rounded-xl border bg-card p-4">
+        <summary className="touch-target cursor-pointer content-center text-sm font-medium">
+          {t.benchmarkUi.methodology}
+        </summary>
+        <Card className="mt-4 border-0 shadow-none">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <GitCompareArrows className="size-4 text-muted-foreground" />
-              {t.deepSwe.comparison}
+              <Info className="size-4 text-muted-foreground" />
+              {t.deepSwe.methodLabel}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-4">
-              <div className="rounded-lg border bg-muted/20 p-3">
-                <p className="text-xs text-muted-foreground">v1</p>
-                <p className="mt-1 font-mono text-lg font-semibold">{fmtPct(comparison.pooled.v1)}</p>
-              </div>
-              <div className="rounded-lg border bg-muted/20 p-3">
-                <p className="text-xs text-muted-foreground">v1.1</p>
-                <p className="mt-1 font-mono text-lg font-semibold">{fmtPct(comparison.pooled.current)}</p>
-              </div>
-              <div className="rounded-lg border bg-muted/20 p-3">
-                <p className="text-xs text-muted-foreground">{t.deepSwe.delta}</p>
-                <p className="mt-1 font-mono text-lg font-semibold text-emerald-600 dark:text-emerald-400">
-                  {fmtDelta(
-                    comparison.pooled.current != null && comparison.pooled.v1 != null
-                      ? comparison.pooled.current - comparison.pooled.v1
-                      : null,
-                  )}
-                </p>
-              </div>
-              <div className="rounded-lg border bg-muted/20 p-3">
-                <p className="text-xs text-muted-foreground">{t.deepSwe.sharedConfigs}</p>
-                <p className="mt-1 font-mono text-lg font-semibold">{comparison.n_shared_configs ?? "-"}</p>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">{comparison.scope}</p>
-            <div className="overflow-x-auto rounded-lg border">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/40 text-xs text-muted-foreground">
-                    <th className="px-3 py-2 text-left">{t.deepSwe.headers.model}</th>
-                    <th className="px-3 py-2 text-right">v1</th>
-                    <th className="px-3 py-2 text-right">v1.1</th>
-                    <th className="px-3 py-2 text-right">{t.deepSwe.delta}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {comparison.configs.map((row) => (
-                    <tr key={row.config} className="border-b last:border-0">
-                      <td className="px-3 py-2">
-                        <span className="font-medium">{displayModelName(row.model)}</span>
-                        <span className="ml-2 font-mono text-xs text-muted-foreground">
-                          {row.reasoning_effort ?? "default"}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono text-xs">{fmtPct(row.v1)}</td>
-                      <td className="px-3 py-2 text-right font-mono text-xs">{fmtPct(row.current)}</td>
-                      <td className={`px-3 py-2 text-right font-mono text-xs ${
-                        (row.delta ?? 0) > 0
-                          ? "text-emerald-600 dark:text-emerald-400"
-                          : (row.delta ?? 0) < 0
-                            ? "text-red-600 dark:text-red-400"
-                            : "text-muted-foreground"
-                      }`}>
-                        {fmtDelta(row.delta)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
+            <p>{t.deepSwe.methodDescription}</p>
+            <div className="flex flex-wrap gap-1.5">
+              <Badge variant="secondary" className="font-mono text-xs">
+                pass@1
+              </Badge>
+              <Badge variant="secondary" className="font-mono text-xs">
+                pass@4
+              </Badge>
+              {[
+                ...new Set(
+                  leaderboard.rows.map((row) => row.harness).filter(Boolean),
+                ),
+              ].map((harness) => (
+                <Badge
+                  key={harness!}
+                  variant="secondary"
+                  className="font-mono text-xs"
+                >
+                  {harness}
+                </Badge>
+              ))}
+              <Badge variant="secondary" className="font-mono text-xs">
+                {leaderboard.n_tasks_in_set ?? "—"} {t.deepSwe.stats.tasks}
+              </Badge>
             </div>
           </CardContent>
         </Card>
-      )}
+      </details>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-sm font-medium">
-            <Info className="size-4 text-muted-foreground" />
-            {t.deepSwe.methodLabel}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm text-muted-foreground">
-          <p>{t.deepSwe.methodDescription}</p>
-          <div className="flex flex-wrap gap-1.5">
-            <Badge variant="secondary" className="font-mono text-xs">pass@1</Badge>
-            <Badge variant="secondary" className="font-mono text-xs">pass@4</Badge>
-            <Badge variant="secondary" className="font-mono text-xs">mini-swe-agent</Badge>
-            <Badge variant="secondary" className="font-mono text-xs">
-              {leaderboard.n_tasks_in_set ?? "-"} tasks
-            </Badge>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1">
+            <Search
+              aria-hidden="true"
+              className="absolute left-3 top-3.5 size-4 text-muted-foreground"
+            />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={t.benchmarkUi.search}
+              aria-label={t.benchmarkUi.search}
+              className="h-11 pl-9"
+            />
           </div>
-        </CardContent>
-      </Card>
-
+          <select
+            value={sort}
+            onChange={(event) => setSort(event.target.value as DeepSweSort)}
+            aria-label={t.benchmarkUi.sort}
+            className="h-11 rounded-lg border bg-background px-3 text-sm"
+          >
+            <option value="score">{t.benchmarkUi.byScore}</option>
+            <option value="cost">{t.benchmarkUi.byCost}</option>
+            <option value="time">{t.benchmarkUi.byTime}</option>
+          </select>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-1 rounded-lg bg-muted/40 p-1">
+            {[true, false].map((best) => (
+              <button
+                key={String(best)}
+                type="button"
+                aria-pressed={bestOnly === best}
+                onClick={() => setBestOnly(best)}
+                className={`touch-target rounded-md px-3 py-2 text-xs transition-colors ${bestOnly === best ? "bg-background font-medium shadow-sm" : "text-muted-foreground"}`}
+              >
+                {best ? t.benchmarkUi.bestOnly : t.benchmarkUi.allEfforts}
+              </button>
+            ))}
+          </div>
+          <p role="status" className="text-xs text-muted-foreground">
+            {rows.length} / {leaderboard.rows.length}{" "}
+            {t.benchmarkUi.configurations}
+          </p>
+        </div>
+      </div>
+      {!rows.length && (
+        <p
+          role="status"
+          className="py-8 text-center text-sm text-muted-foreground"
+        >
+          {t.grid.noResults}
+        </p>
+      )}
       <div className="grid gap-3 md:hidden">
         {rows.map((row, index) => (
           <Card key={`${row.config}-${index}`} className="overflow-hidden p-0">
             <CardContent className="space-y-3 p-4">
               <div className="flex items-center gap-3">
                 <span className="w-6 shrink-0 font-mono text-xs text-muted-foreground">
-                  #{index + 1}
+                  #{ranks.get(row)}
                 </span>
                 <div className="size-9 rounded-md bg-muted flex items-center justify-center shrink-0">
                   <ModelProviderIcon provider={providerFor(row)} size={22} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium leading-tight">{displayModelName(row.model)}</p>
+                  <p className="truncate font-medium leading-tight">
+                    {displayModelName(row.model)}
+                  </p>
                   <p className="truncate font-mono text-xs text-muted-foreground">
-                    {row.harness} / {effortLabel(row)}
+                    {row.harness ?? "—"} / {effortLabel(row)}
                   </p>
                 </div>
                 <Badge
-                  variant={index === 0 ? "default" : "outline"}
+                  variant={row.config === top?.config ? "default" : "outline"}
                   className="shrink-0 font-mono"
                 >
-                  {index === 0 && <Trophy className="mr-1 size-3" />}
+                  {row.config === top?.config && (
+                    <Trophy className="mr-1 size-3" />
+                  )}
                   {fmtPct(row.pass_at_1)}
                 </Badge>
               </div>
@@ -319,20 +473,28 @@ export function DeepSweTable({ data }: { data: DeepSweData }) {
                   <p className="font-mono">{fmtPct(row.pass_at_4)}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">{t.deepSwe.headers.cost}</p>
+                  <p className="text-muted-foreground">
+                    {t.deepSwe.headers.cost}
+                  </p>
                   <p className="font-mono">{fmtCost(row.mean_cost_usd)}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">{t.deepSwe.headers.time}</p>
-                  <p className="font-mono">{fmtTime(row.mean_duration_seconds)}</p>
+                  <p className="text-muted-foreground">
+                    {t.deepSwe.headers.time}
+                  </p>
+                  <p className="font-mono">
+                    {fmtTime(row.mean_duration_seconds)}
+                  </p>
                 </div>
               </div>
               <Separator />
-              <div className="flex justify-between text-xs text-muted-foreground">
+              <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
                 <span>{fmtTokens(row.mean_output_tokens)} out</span>
                 <span>{fmtTokens(row.mean_input_tokens)} in</span>
                 <span>{fmtConfidence(row)} CI</span>
-                <span>{row.n_runs ?? row.n_attempted ?? "-"} runs</span>
+                <span>
+                  {row.n_runs ?? "—"} {t.benchmarkUi.runs}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -340,19 +502,42 @@ export function DeepSweTable({ data }: { data: DeepSweData }) {
       </div>
 
       <div className="hidden overflow-hidden rounded-xl border md:block">
-        <div className="overflow-x-auto">
+        <div
+          className="overflow-x-auto"
+          tabIndex={0}
+          role="region"
+          aria-label={t.deepSwe.title}
+        >
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/40 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                <th className="w-12 px-4 py-3 text-left">#</th>
-                <th className="px-4 py-3 text-left">{t.deepSwe.headers.model}</th>
-                <th className="px-4 py-3 text-left">{t.deepSwe.headers.effort}</th>
-                <th className="px-4 py-3 text-right">pass@1</th>
-                <th className="px-4 py-3 text-right">{t.deepSwe.headers.confidence}</th>
-                <th className="px-4 py-3 text-right">pass@4</th>
-                <th className="px-4 py-3 text-right">{t.deepSwe.headers.cost}</th>
-                <th className="px-4 py-3 text-right">{t.deepSwe.headers.time}</th>
-                <th className="px-4 py-3 text-right">{t.deepSwe.headers.outputTokens}</th>
+                <th scope="col" className="w-12 px-4 py-3 text-left">
+                  #
+                </th>
+                <th scope="col" className="px-4 py-3 text-left">
+                  {t.deepSwe.headers.model}
+                </th>
+                <th scope="col" className="px-4 py-3 text-left">
+                  {t.deepSwe.headers.effort}
+                </th>
+                <th scope="col" className="px-4 py-3 text-right">
+                  pass@1
+                </th>
+                <th scope="col" className="px-4 py-3 text-right">
+                  {t.deepSwe.headers.confidence}
+                </th>
+                <th scope="col" className="px-4 py-3 text-right">
+                  pass@4
+                </th>
+                <th scope="col" className="px-4 py-3 text-right">
+                  {t.deepSwe.headers.cost}
+                </th>
+                <th scope="col" className="px-4 py-3 text-right">
+                  {t.deepSwe.headers.time}
+                </th>
+                <th scope="col" className="px-4 py-3 text-right">
+                  {t.deepSwe.headers.outputTokens}
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -361,15 +546,24 @@ export function DeepSweTable({ data }: { data: DeepSweData }) {
                   key={`${row.config}-${index}`}
                   className="border-b last:border-0 hover:bg-muted/30 transition-colors"
                 >
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{index + 1}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                    {ranks.get(row)}
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5">
                       <div className="size-8 rounded-md bg-muted flex items-center justify-center shrink-0">
-                        <ModelProviderIcon provider={providerFor(row)} size={20} />
+                        <ModelProviderIcon
+                          provider={providerFor(row)}
+                          size={20}
+                        />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-medium">{displayModelName(row.model)}</p>
-                        <p className="font-mono text-xs text-muted-foreground">{row.model}</p>
+                        <p className="font-medium">
+                          {displayModelName(row.model)}
+                        </p>
+                        <p className="font-mono text-xs text-muted-foreground">
+                          {row.model}
+                        </p>
                       </div>
                     </div>
                   </td>
@@ -380,23 +574,35 @@ export function DeepSweTable({ data }: { data: DeepSweData }) {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Badge
-                      variant={index === 0 ? "default" : "outline"}
+                      variant={
+                        row.config === top?.config ? "default" : "outline"
+                      }
                       className="font-mono"
                     >
-                      {index === 0 && <Trophy className="mr-1 size-3" />}
+                      {row.config === top?.config && (
+                        <Trophy className="mr-1 size-3" />
+                      )}
                       {fmtPct(row.pass_at_1)}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 text-right font-mono text-xs">{fmtConfidence(row)}</td>
-                  <td className="px-4 py-3 text-right font-mono text-xs">{fmtPct(row.pass_at_4)}</td>
+                  <td className="px-4 py-3 text-right font-mono text-xs">
+                    {fmtConfidence(row)}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono text-xs">
+                    {fmtPct(row.pass_at_4)}
+                  </td>
                   <td className="px-4 py-3 text-right font-mono text-xs">
                     <span className="inline-flex items-center justify-end gap-1">
                       <DollarSign className="size-3 text-muted-foreground" />
                       {fmtCost(row.mean_cost_usd).replace("$", "")}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right font-mono text-xs">{fmtTime(row.mean_duration_seconds)}</td>
-                  <td className="px-4 py-3 text-right font-mono text-xs">{fmtTokens(row.mean_output_tokens)}</td>
+                  <td className="px-4 py-3 text-right font-mono text-xs">
+                    {fmtTime(row.mean_duration_seconds)}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono text-xs">
+                    {fmtTokens(row.mean_output_tokens)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -404,6 +610,25 @@ export function DeepSweTable({ data }: { data: DeepSweData }) {
         </div>
       </div>
 
+      {rows.some((row) => row.cost_basis) && (
+        <details className="rounded-xl border bg-card p-4">
+          <summary className="touch-target cursor-pointer content-center text-sm font-medium">
+            {t.benchmarkUi.costBasis}
+          </summary>
+          <ul className="mt-3 space-y-3 text-xs leading-5 text-muted-foreground">
+            {rows
+              .filter((row) => row.cost_basis)
+              .map((row) => (
+                <li key={row.config}>
+                  <span className="font-medium text-foreground">
+                    {displayModelName(row.model)} · {effortLabel(row)} :{" "}
+                  </span>
+                  {row.cost_basis}
+                </li>
+              ))}
+          </ul>
+        </details>
+      )}
       <div className="flex flex-col items-center justify-between gap-3 text-center sm:flex-row sm:text-left">
         <p className="text-xs text-muted-foreground">{t.deepSwe.sourceNote}</p>
         <Button variant="outline" size="sm" asChild className="touch-target">

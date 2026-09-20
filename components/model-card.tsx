@@ -1,5 +1,5 @@
 import { Link } from "@/components/link";
-import { Zap, Timer, DollarSign, ChevronRight, ChevronDown, Plus, Check, Brain, ImageIcon, Video, Mic, Type, BarChart3, Trophy, Unlock, ExternalLink } from "lucide-react";
+import { Zap, Timer, DollarSign, ChevronRight, ChevronDown, Plus, Check, Brain, ImageIcon, Video, Mic, Type, BarChart3, Trophy, Unlock, ExternalLink } from "@/components/icons";
 import {
   Card,
   CardHeader,
@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
-import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
+import { ModelProviderIcon } from "@/components/model-provider-icon";
 import { ModelAvailabilityBadge } from "@/components/model-availability";
 import { getModelProviderKey } from "@/lib/provider-map";
 import { cn } from "@/lib/utils";

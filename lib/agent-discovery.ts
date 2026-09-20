@@ -1,11 +1,11 @@
 import { DEFAULT_DESCRIPTION, SITE_NAME, SITE_URL, absoluteUrl } from "@/lib/seo";
 
-export const API_CATALOG_PATH = "/.well-known/api-catalog";
-export const OPENAPI_PATH = "/.well-known/openapi.json";
-export const AGENT_SKILLS_INDEX_PATH = "/.well-known/agent-skills/index.json";
-export const MCP_SERVER_CARD_PATH = "/.well-known/mcp/server-card.json";
-export const API_DOCS_PATH = "/docs/api";
-export const AUTH_MD_PATH = "/auth.md";
+const API_CATALOG_PATH = "/.well-known/api-catalog";
+const OPENAPI_PATH = "/.well-known/openapi.json";
+const AGENT_SKILLS_INDEX_PATH = "/.well-known/agent-skills/index.json";
+const MCP_SERVER_CARD_PATH = "/.well-known/mcp/server-card.json";
+const API_DOCS_PATH = "/docs/api";
+const AUTH_MD_PATH = "/auth.md";
 
 interface LinkHeaderItem {
   path: string;

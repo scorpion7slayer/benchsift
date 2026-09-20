@@ -2,14 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ModelCatalogPage } from "@/components/model-catalog-page";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { getModelCatalogPage } from "@/lib/model-catalog";
 import { absoluteUrl, seo } from "@/lib/seo";
-import { fetchModels } from "@/lib/server-fns";
+import { fetchCatalogPage } from "@/lib/server-fns";
 
 export const Route = createFileRoute("/models/")({
   loader: async () => {
-    const models = await fetchModels();
-    return getModelCatalogPage(models, 1)!;
+    return (await fetchCatalogPage({ data: 1 }))!;
   },
   head: ({ loaderData }) =>
     seo({

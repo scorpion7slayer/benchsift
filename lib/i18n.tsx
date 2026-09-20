@@ -1,8 +1,79 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from "react";
 
+import { animateContent } from "./content-motion";
+
 export type Lang = "fr" | "en";
 
 export interface Translations {
+  benchmarkUi: {
+    search: string;
+    sort: string;
+    byScore: string;
+    byCost: string;
+    byTime: string;
+    configurations: string;
+    bestOnly: string;
+    allEfforts: string;
+    costBasis: string;
+    methodology: string;
+    runs: string;
+  };
+  compareWorkspace: {
+    lead: string;
+    search: string;
+    configurations: string;
+    start: string;
+    startHint: string;
+    essential: string;
+    pricing: string;
+    all: string;
+    metrics: string;
+    differences: string;
+    share: string;
+    copied: string;
+    failed: string;
+    addSecond: string;
+    legend: string;
+    scrollHint: string;
+    noMetrics: string;
+    yes: string;
+    no: string;
+  };
+  analytics: {
+    title: string;
+    bannerTitle: string;
+    bannerDescription: string;
+    description: string;
+    duration: string;
+    accept: string;
+    reject: string;
+    manage: string;
+    accepted: string;
+    rejected: string;
+    undecided: string;
+    close: string;
+    saveFailed: string;
+  };
+  trust: {
+    privacy: string;
+    legal: string;
+    accessibility: string;
+    skip: string;
+    privacyLead: string;
+    privacySections: Array<{ title: string; body: string }>;
+    legalLead: string;
+    legalSections: Array<{ title: string; body: string }>;
+    accessibilityLead: string;
+    accessibilitySections: Array<{ title: string; body: string }>;
+    regulator: string;
+    licenses: string;
+    resetFilters: string;
+    catalogNote: string;
+    modelsDevSource: string;
+    contact: string;
+    privacyContact: string;
+    legalContact: string;
+  };
   brand: string;
   nav: {
     back: string;
@@ -40,6 +111,7 @@ export interface Translations {
       artificialAnalysis: string;
       openRouter: string;
       huggingFace: string;
+      modelsDev: string;
     };
     visitSource: string;
     limitsTitle: string;
@@ -52,6 +124,7 @@ export interface Translations {
     alternativeToCta: string;
   };
   grid: {
+    showMore: string;
     search: string;
     sortBy: string;
     viewModes: {
@@ -303,7 +376,6 @@ export interface Translations {
     remove: string;
   };
   footer: { via: string; cache: string };
-  cookies: { title: string; message: string; dismiss: string };
   error: { title: string; description: string; rateLimitDescription: (s: number) => string; retry: string };
   notFound: {
     title: string;
@@ -409,6 +481,118 @@ export interface Translations {
 
 const T: Record<Lang, Translations> = {
   fr: {
+    benchmarkUi: {
+      "search": "Rechercher un modèle ou un harnais…",
+      "sort": "Trier le classement",
+      "byScore": "Score le plus élevé",
+      "byCost": "Coût le plus bas",
+      "byTime": "Exécution la plus rapide",
+      "configurations": "configurations",
+      "bestOnly": "Meilleure configuration",
+      "allEfforts": "Tous les efforts",
+      "costBasis": "Base du coût",
+      "methodology": "Méthode et versions",
+      "runs": "passes"
+},
+    compareWorkspace: {
+      "lead": "Jusqu’à quatre modèles, les mêmes critères, côte à côte.",
+      "search": "Rechercher un modèle ou un fournisseur…",
+      "configurations": "Chaque niveau de réflexion reste une configuration distincte.",
+      "start": "Un point de départ",
+      "startHint": "Choisissez un modèle du catalogue ou utilisez la recherche.",
+      "essential": "Essentiel",
+      "pricing": "Prix",
+      "all": "Tout",
+      "metrics": "Mesures",
+      "differences": "Différences uniquement",
+      "share": "Copier le lien",
+      "copied": "Lien copié",
+      "failed": "La sélection n’a pas pu être mise à jour. Réessayez.",
+      "addSecond": "Ajoutez un deuxième modèle pour lire les écarts.",
+      "legend": "✓ Meilleure valeur publiée parmi les modèles mesurés. — Donnée indisponible. Les métriques ne constituent pas un classement global.",
+      "scrollHint": "Faites défiler le tableau horizontalement pour voir tous les modèles.",
+      "noMetrics": "Aucune mesure disponible pour cette vue.",
+      "yes": "Oui",
+      "no": "Non"
+},
+    analytics: {
+      title: "Autoriser l’analyse de navigation ?",
+      bannerTitle: "Préférences et audience",
+      bannerDescription: "Rybbit : visites, performances, clics, copies, formulaires et relecture de sessions (saisies masquées), avec votre accord. Refuser ne limite pas le site.",
+      description: "Avec votre accord, Rybbit mesure les visites, les performances et les interactions (clics, copies, formulaires) et permet la relecture de sessions pour améliorer BenchSift. Les saisies sont masquées dans les relectures. Refuser ne limite pas le site.",
+      duration: "Votre choix est conservé 180 jours. Modifiez-le à tout moment via « Préférences de confidentialité » en bas de page. Le retrait recharge la page.",
+      accept: "Accepter",
+      reject: "Refuser",
+      manage: "Préférences de confidentialité",
+      accepted: "Choix actuel : analyse autorisée. Refuser retire votre accord.",
+      rejected: "Choix actuel : analyse refusée.",
+      undecided: "Aucun choix enregistré : Rybbit est désactivé.",
+      close: "Fermer",
+      saveFailed: "Le choix n’a pas pu être enregistré. Vérifiez que votre navigateur autorise les cookies fonctionnels du site.",
+    },
+    trust: {
+      "contact": "Contact",
+      "privacyContact": "Pour une question sur vos données personnelles ou pour exercer vos droits, vous pouvez contacter Théo Darville à l’adresse suivante :",
+      "legalContact": "Pour contacter Théo Darville au sujet de BenchSift :",
+      "privacy": "Confidentialité",
+      "legal": "Mentions légales",
+      "accessibility": "Accessibilité",
+      "skip": "Aller au contenu",
+      "privacyLead": "Vos préférences restent locales. Rybbit ne se charge qu’avec votre accord.",
+      "privacySections": [
+            {
+                  "title": "Responsable du traitement",
+                  "body": "Théo Darville est responsable des traitements de données liés à BenchSift, un site gratuit développé à titre personnel en Belgique."
+            },
+            {
+                  "title": "Ce que le site conserve",
+                  "body": "La langue et le thème choisis sont mémorisés pendant un an dans des cookies fonctionnels. Le thème, le mode du catalogue et la sélection de comparaison peuvent aussi rester dans le stockage local du navigateur jusqu’à leur suppression. Ces données servent à retrouver vos choix ; elles ne servent pas à la publicité."
+            },
+            {
+                  "title": "Statistiques et services tiers",
+                  "body": "Avec votre consentement, le site charge Rybbit depuis rybbit.nxtaigen.com pour comprendre les visites et améliorer le service : pages et paramètres d’URL, navigation, liens sortants, clics, copies, interactions avec les formulaires, erreurs et performances. La relecture de sessions est activée ; les valeurs saisies y sont masquées. Le serveur de statistiques reçoit aussi des informations techniques de connexion. Aucun script Rybbit ne se charge avant votre accord ou après un refus. Cette instance est hébergée sur le même VPS OVHcloud à Gravelines (GRA), en France. Les relectures de sessions utilisent la conservation par défaut de Rybbit, annoncée à 30 jours. La durée de conservation des statistiques de visite reste à vérifier. Les polices et logos sont hébergés avec le site ; les données du catalogue sont récupérées par le serveur auprès des sources citées. Les services ouverts via des liens externes appliquent leurs propres règles."
+            },
+            {
+                  "title": "Hébergement et journaux techniques",
+                  "body": "Le site fonctionne sur un VPS OVHcloud à Gravelines (GRA), en France, administré avec Dokploy. L’hébergement et le serveur peuvent traiter l’adresse IP, l’heure, l’URL demandée et des informations techniques pour délivrer les pages et assurer la sécurité. Les journaux techniques et les sauvegardes sont conservés pendant 30 jours."
+            },
+            {
+                  "title": "Vos choix et vos droits",
+                  "body": "Votre accord ou refus pour Rybbit est conservé 180 jours dans le cookie fonctionnel benchsift_analytics_v1. Le stockage local transmet ce choix aux autres onglets, sans prolonger sa validité. Le bouton « Préférences de confidentialité » en bas de chaque page permet de refuser ou de retirer votre accord. Le retrait recharge la page pour arrêter le suivi ; il n’efface pas les données déjà collectées. Vous pouvez supprimer les cookies et le stockage du site dans les paramètres de votre navigateur pour réinitialiser vos préférences. Le RGPD prévoit notamment des droits d’accès, de rectification, d’effacement, de limitation et, selon le traitement, d’opposition ou de portabilité. Une réclamation peut être adressée à l’Autorité de protection des données belge."
+            }
+      ],
+      "legalLead": "BenchSift est un site gratuit et indépendant, développé par Théo Darville à titre personnel en Belgique.",
+      "legalSections": [
+            {
+                  "title": "Édition et hébergement",
+                  "body": "Théo Darville édite et développe BenchSift en solo, sans société, depuis la Belgique. Le site est hébergé sur un VPS OVHcloud à Gravelines (GRA), en France. Dokploy est l’outil de déploiement. L’entité contractuelle précise de l’hébergeur reste à confirmer."
+            },
+            {
+                  "title": "Données, sources et limites",
+                  "body": "Artificial Analysis fournit les benchmarks et mesures principales. OpenRouter complète les capacités et les informations commerciales ; Hugging Face fournit les métadonnées des dépôts. Models.dev complète les modèles et certaines spécifications manquantes. Une donnée absente reste absente. Les prix, disponibilités et résultats peuvent évoluer : vérifiez la source avant une décision."
+            },
+            {
+                  "title": "Indépendance et droits",
+                  "body": "BenchSift n’est ni affilié ni approuvé par les fournisseurs cités. Les marques et logos appartiennent à leurs titulaires. Le code du projet est sous licence MIT ; cela ne transfère pas les droits sur les données ou les marques tierces. Les icônes Rune normal sont utilisées sous licence Apache 2.0. Les mentions de licence sont disponibles avec le site."
+            }
+      ],
+      "accessibilityLead": "Le site vise WCAG 2.2 AA. Cette page ne constitue pas une certification de conformité.",
+      "accessibilitySections": [
+            {
+                  "title": "Fonctions disponibles",
+                  "body": "Navigation au clavier, lien d’accès direct au contenu, contrastes des thèmes clair et sombre, boutons nommés et prise en compte de la réduction des animations. Les filtres, la comparaison et les informations sur les modèles restent accessibles sur mobile."
+            },
+            {
+                  "title": "État de la vérification",
+                  "body": "Des contrôles techniques et des vérifications dans le navigateur accompagnent les modifications. Un audit indépendant complet et des tests avec plusieurs lecteurs d’écran restent nécessaires avant de déclarer une conformité totale."
+            }
+      ],
+      "regulator": "Autorité de protection des données belge",
+      "licenses": "Licences des ressources",
+      "resetFilters": "Réinitialiser les filtres",
+      "catalogNote": "Les modèles sans score restent consultables en mode Avancé.",
+      "modelsDevSource": "Spécifications complémentaires et modèles absents des autres sources, sans remplacer les benchmarks d’Artificial Analysis."
+},
     brand: "BenchSift",
     nav: {
       back: "Retour",
@@ -425,7 +609,7 @@ const T: Record<Lang, Translations> = {
     },
     hero: {
       title: "Modèles d'IA",
-      description: "Benchmarks texte et média, performances, prix, liens Hugging Face officiels et popularité OpenRouter — données via Artificial Analysis, OpenRouter et Hugging Face.",
+      description: "Comparez les performances, les prix et les capacités des modèles, avec leurs sources.",
       latestModels: "Derniers modèles",
       previousModel: "Modèle précédent",
       nextModel: "Modèle suivant",
@@ -460,6 +644,7 @@ const T: Record<Lang, Translations> = {
       sourcesTitle: "D’où viennent les données",
       sourcesLead: "BenchSift agrège et présente des données produites ou publiées par d’autres services. Il ne prétend pas avoir exécuté les benchmarks affichés.",
       sources: {
+        modelsDev: "Spécifications complémentaires et modèles absents des autres sources, sans remplacer les benchmarks d’Artificial Analysis.",
         artificialAnalysis: "Source essentielle pour les indices, benchmarks et nombreuses mesures de performance. BenchSift réorganise ces données sans se les attribuer.",
         openRouter: "Complète les fiches avec des informations comme les prix, le contexte, les modalités et les tendances d’usage disponibles.",
         huggingFace: "Aide à relier les modèles open weight à leurs dépôts officiels et à présenter des informations utiles sur leur disponibilité.",
@@ -475,6 +660,7 @@ const T: Record<Lang, Translations> = {
       alternativeToCta: "Voir la fiche BenchSift sur AlternativeTo",
     },
     grid: {
+      showMore: "Afficher plus de modèles",
       search: "Rechercher un modèle ou un fournisseur…",
       sortBy: "Trier par",
       viewModes: {
@@ -731,11 +917,6 @@ const T: Record<Lang, Translations> = {
       remove: "Retirer",
     },
     footer: { via: "Données via", cache: "Cache · 1h" },
-    cookies: {
-      title: "Préférences et audience",
-      message: "BenchSift mémorise vos préférences de langue, de thème et de comparaison dans votre navigateur. Des mesures d'audience servent aussi à améliorer le site.",
-      dismiss: "Compris",
-    },
     error: {
       title: "Un problème est survenu",
       description: "Impossible de charger les données. Réessaie dans un instant.",
@@ -753,9 +934,9 @@ const T: Record<Lang, Translations> = {
     },
     agents: {
       title: "Agents de programmation",
-      description: "Performance des harnais (Claude Code, Cursor CLI, OpenCode…) sur l'Artificial Analysis Coding Agent Index, composé de 3 benchmarks : DeepSWE, Terminal-Bench v2 et SWE-Atlas-QnA.",
+      description: "Comparez les configurations modèle + harnais mesurées par Artificial Analysis : score, coût et temps par tâche.",
       indexLabel: "Coding Agent Index",
-      indexTooltip: "Moyenne pass@1 sur les 3 benchmarks (DeepSWE, Terminal-Bench v2, SWE-Atlas-QnA).",
+      indexTooltip: "Indice publié par Artificial Analysis. Les composantes et leurs versions ci-dessous proviennent de la source ; elles restent distinctes des résultats DeepSWE de Datacurve.",
       benchmarks: {
         deep_swe: "DeepSWE",
         terminal_bench_v2: "Terminal-Bench v2",
@@ -776,7 +957,7 @@ const T: Record<Lang, Translations> = {
         time: "Temps",
       },
       empty: "Données coding agents indisponibles pour l'instant.",
-      sourceNote: "Données via Artificial Analysis — mises à jour quotidiennement.",
+      sourceNote: "Données via Artificial Analysis · vérification toutes les 6 heures. Le rang reste celui de l’index après filtrage.",
       navLink: "Coding Agents",
       pageTitle: "Coding Agents — BenchSift",
       knownHarnesses: "Harnais suivis",
@@ -844,6 +1025,118 @@ const T: Record<Lang, Translations> = {
     },
   },
   en: {
+    benchmarkUi: {
+      "search": "Search for a model or harness…",
+      "sort": "Sort leaderboard",
+      "byScore": "Highest score",
+      "byCost": "Lowest cost",
+      "byTime": "Fastest execution",
+      "configurations": "configurations",
+      "bestOnly": "Best configuration",
+      "allEfforts": "All effort levels",
+      "costBasis": "Cost basis",
+      "methodology": "Method and versions",
+      "runs": "runs"
+},
+    compareWorkspace: {
+      "lead": "Up to four models, the same criteria, side by side.",
+      "search": "Search for a model or provider…",
+      "configurations": "Each reasoning level remains a separate configuration.",
+      "start": "A starting point",
+      "startHint": "Choose a catalogue model or use the search.",
+      "essential": "Essentials",
+      "pricing": "Pricing",
+      "all": "All",
+      "metrics": "Metrics",
+      "differences": "Differences only",
+      "share": "Copy link",
+      "copied": "Link copied",
+      "failed": "The selection could not be updated. Please try again.",
+      "addSecond": "Add a second model to see the differences.",
+      "legend": "✓ Best published value among measured models. — Data unavailable. These metrics do not establish an overall ranking.",
+      "scrollHint": "Scroll the table horizontally to see all models.",
+      "noMetrics": "No measurements available for this view.",
+      "yes": "Yes",
+      "no": "No"
+},
+    analytics: {
+      title: "Allow navigation analytics?",
+      bannerTitle: "Preferences and analytics",
+      bannerDescription: "Rybbit: visits, performance, clicks, copies, forms and session replay (masked inputs), with your permission. Refusing does not limit the site.",
+      description: "With your permission, Rybbit measures visits, performance and interactions (clicks, copies, forms), including session replay, to improve BenchSift. Input values are masked in replays. Refusing does not limit the site.",
+      duration: "Your choice is stored for 180 days. Change it at any time using “Privacy preferences” in the footer. Withdrawal reloads the page.",
+      accept: "Accept",
+      reject: "Reject",
+      manage: "Privacy preferences",
+      accepted: "Current choice: analytics allowed. Reject to withdraw your consent.",
+      rejected: "Current choice: analytics rejected.",
+      undecided: "No choice stored: Rybbit is disabled.",
+      close: "Close",
+      saveFailed: "Your choice could not be saved. Check that your browser allows the site’s functional cookies.",
+    },
+    trust: {
+      "contact": "Contact",
+      "privacyContact": "For questions about your personal data or to exercise your rights, you can contact Théo Darville at the following address:",
+      "legalContact": "To contact Théo Darville about BenchSift:",
+      "privacy": "Privacy",
+      "legal": "Legal notice",
+      "accessibility": "Accessibility",
+      "skip": "Skip to content",
+      "privacyLead": "Your preferences stay local. Rybbit only loads with your permission.",
+      "privacySections": [
+            {
+                  "title": "Data controller",
+                  "body": "Théo Darville is responsible for data processing associated with BenchSift, a free website developed as a personal project in Belgium."
+            },
+            {
+                  "title": "What the site stores",
+                  "body": "Your chosen language and theme are remembered for one year in functional cookies. The theme, catalogue mode and comparison selection may also remain in browser local storage until you delete them. These values restore your choices; they are not used for advertising."
+            },
+            {
+                  "title": "Analytics and external services",
+                  "body": "With your consent, the site loads Rybbit from rybbit.nxtaigen.com to understand visits and improve the service: pages and URL parameters, navigation, outbound links, clicks, copies, form interactions, errors and performance. Session replay is enabled; input values are masked in replays. The analytics server also receives technical connection information. No Rybbit script loads before acceptance or after refusal. This instance is hosted on the same OVHcloud VPS in Gravelines (GRA), France. Session replays use Rybbit’s default retention, documented as 30 days. Retention of visit statistics still needs verification. Fonts and logos are hosted with the site; catalogue data is fetched by the server from the attributed sources. Services opened through external links apply their own rules."
+            },
+            {
+                  "title": "Hosting and technical logs",
+                  "body": "The site runs on an OVHcloud VPS in Gravelines (GRA), France, administered with Dokploy. Hosting and server software may process IP addresses, timestamps, requested URLs and technical information to deliver pages and maintain security. Technical logs and backups are retained for 30 days."
+            },
+            {
+                  "title": "Your choices and rights",
+                  "body": "Your acceptance or refusal of Rybbit is stored for 180 days in the functional benchsift_analytics_v1 cookie. Local storage signals this choice to other tabs without extending its validity. “Privacy preferences” in the footer lets you refuse or withdraw consent. Withdrawal reloads the page to stop tracking; it does not delete data already collected. You can delete site cookies and local storage in your browser settings to reset your preferences. The GDPR provides rights including access, rectification, erasure, restriction and, depending on the processing, objection or portability. You may lodge a complaint with the Belgian Data Protection Authority."
+            }
+      ],
+      "legalLead": "BenchSift is a free, independent website developed by Théo Darville as a personal project in Belgium.",
+      "legalSections": [
+            {
+                  "title": "Publisher and hosting",
+                  "body": "Théo Darville publishes and develops BenchSift independently from Belgium, without a company. The site is hosted on an OVHcloud VPS in Gravelines (GRA), France. Dokploy is the deployment tool. The precise contractual hosting entity still needs confirmation."
+            },
+            {
+                  "title": "Data, sources and limitations",
+                  "body": "Artificial Analysis provides the primary benchmarks and measurements. OpenRouter adds capabilities and commercial information; Hugging Face provides repository metadata. Models.dev adds models and selected missing specifications. Missing data stays missing. Prices, availability and results can change: check the source before making a decision."
+            },
+            {
+                  "title": "Independence and rights",
+                  "body": "BenchSift is not affiliated with or endorsed by the listed providers. Trademarks and logos belong to their owners. The project code is MIT licensed; this does not transfer rights to third-party data or brands. Rune normal icons are used under Apache 2.0. Asset licence notices are available with the site."
+            }
+      ],
+      "accessibilityLead": "The site targets WCAG 2.2 AA. This page is not a certification of compliance.",
+      "accessibilitySections": [
+            {
+                  "title": "Available features",
+                  "body": "Keyboard navigation, a skip-to-content link, light and dark theme contrast, named controls and support for reduced motion. Filters, comparison and model information remain available on mobile."
+            },
+            {
+                  "title": "Verification status",
+                  "body": "Technical checks and browser verification accompany changes. A complete independent audit and testing with several screen readers are still needed before claiming full conformance."
+            }
+      ],
+      "regulator": "Belgian Data Protection Authority",
+      "licenses": "Asset licences",
+      "resetFilters": "Reset filters",
+      "catalogNote": "Models without scores remain available in Advanced mode.",
+      "modelsDevSource": "Additional specifications and models missing from other sources, without replacing Artificial Analysis benchmarks."
+},
     brand: "BenchSift",
     nav: {
       back: "Back",
@@ -860,7 +1153,7 @@ const T: Record<Lang, Translations> = {
     },
     hero: {
       title: "AI Models",
-      description: "Text and media benchmarks, performance, pricing, official Hugging Face links and OpenRouter popularity — data via Artificial Analysis, OpenRouter and Hugging Face.",
+      description: "Compare model performance, pricing and capabilities, with sources you can check.",
       latestModels: "Latest models",
       previousModel: "Previous model",
       nextModel: "Next model",
@@ -895,6 +1188,7 @@ const T: Record<Lang, Translations> = {
       sourcesTitle: "Where the data comes from",
       sourcesLead: "BenchSift aggregates and presents data produced or published by other services. It does not claim to have run the benchmarks it displays.",
       sources: {
+        modelsDev: "Additional specifications and models missing from other sources, without replacing Artificial Analysis benchmarks.",
         artificialAnalysis: "An essential source for indices, benchmarks, and many performance measurements. BenchSift reorganizes this data without claiming it as its own.",
         openRouter: "Complements model profiles with available information such as pricing, context, modalities, and usage trends.",
         huggingFace: "Helps connect open-weight models to their official repositories and surface useful information about their availability.",
@@ -910,6 +1204,7 @@ const T: Record<Lang, Translations> = {
       alternativeToCta: "View the BenchSift listing on AlternativeTo",
     },
     grid: {
+      showMore: "Show more models",
       search: "Search a model or provider…",
       sortBy: "Sort by",
       viewModes: {
@@ -1166,11 +1461,6 @@ const T: Record<Lang, Translations> = {
       remove: "Remove",
     },
     footer: { via: "Data via", cache: "Cache · 1h" },
-    cookies: {
-      title: "Preferences and analytics",
-      message: "BenchSift keeps your language, theme, and comparison preferences in your browser. Audience measurements also help improve the site.",
-      dismiss: "Got it",
-    },
     error: {
       title: "Something went wrong",
       description: "Unable to load data. Please try again in a moment.",
@@ -1188,9 +1478,9 @@ const T: Record<Lang, Translations> = {
     },
     agents: {
       title: "Coding Agents",
-      description: "Harness performance (Claude Code, Cursor CLI, OpenCode…) on the Artificial Analysis Coding Agent Index, a composite of 3 benchmarks: DeepSWE, Terminal-Bench v2 and SWE-Atlas-QnA.",
+      description: "Compare model + harness configurations measured by Artificial Analysis: score, cost and time per task.",
       indexLabel: "Coding Agent Index",
-      indexTooltip: "Average pass@1 across the 3 benchmarks (DeepSWE, Terminal-Bench v2, SWE-Atlas-QnA).",
+      indexTooltip: "Index published by Artificial Analysis. Components and versions below come from the source; they remain distinct from Datacurve’s DeepSWE results.",
       benchmarks: {
         deep_swe: "DeepSWE",
         terminal_bench_v2: "Terminal-Bench v2",
@@ -1211,7 +1501,7 @@ const T: Record<Lang, Translations> = {
         time: "Time",
       },
       empty: "Coding agents data unavailable for now.",
-      sourceNote: "Data via Artificial Analysis — updated daily.",
+      sourceNote: "Data from Artificial Analysis · checked every 6 hours. Filtering preserves the index rank.",
       navLink: "Coding Agents",
       pageTitle: "Coding Agents — BenchSift",
       knownHarnesses: "Tracked harnesses",
@@ -1300,33 +1590,14 @@ export function LanguageProvider({
   initialLang?: Lang;
 }) {
   const [lang, setLangState] = useState<Lang>(initialLang);
-  const transitionTimerRef = useRef<number | null>(null);
-
+  const motion = useRef<Animation | null>(null);
   const setLang = useCallback((l: Lang) => {
-    const html = document.documentElement;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    if (!reduceMotion) {
-      if (transitionTimerRef.current) window.clearTimeout(transitionTimerRef.current);
-      html.classList.remove("language-transitioning");
-      void html.offsetWidth;
-      html.classList.add("language-transitioning");
-      transitionTimerRef.current = window.setTimeout(() => {
-        html.classList.remove("language-transitioning");
-        transitionTimerRef.current = null;
-      }, 220);
-    }
-
     setLangState(l);
     document.cookie = `benchsift_lang=${l};path=/;max-age=31536000;SameSite=Lax`;
+    document.documentElement.lang = l;
+    motion.current = animateContent(document.querySelector('main'), motion.current);
   }, []);
-
-  useEffect(() => {
-    return () => {
-      if (transitionTimerRef.current) window.clearTimeout(transitionTimerRef.current);
-      document.documentElement.classList.remove("language-transitioning");
-    };
-  }, []);
+  useEffect(() => () => motion.current?.cancel(), []);
 
   const value = useMemo(() => ({ lang, setLang, t: T[lang] }), [lang, setLang]);
 

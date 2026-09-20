@@ -7,6 +7,10 @@ export function getRouter() {
   return createRouter({
     routeTree,
     defaultPreload: "intent",
+    defaultPreloadDelay: 100,
+    defaultStaleTime: 30_000,
+    defaultGcTime: 120_000,
+    defaultPreloadGcTime: 30_000,
     scrollRestoration: true,
     defaultErrorComponent: DefaultCatchBoundary,
     defaultNotFoundComponent: () => <NotFound />,
