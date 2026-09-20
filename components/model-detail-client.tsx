@@ -4,7 +4,7 @@ import {
   Zap, DollarSign, BarChart3, TrendingUp, GitCompareArrows,
   Brain, ImageIcon, Video, Mic, Type, Lock, Unlock, BookOpen, Info,
   Sparkles, ExternalLink, SlidersHorizontal,
-} from "lucide-react";
+} from "@/components/icons";
 import {
   Card,
   CardContent,
@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
+import { ModelProviderIcon } from "@/components/model-provider-icon";
 import { ModelAvailabilityBadge, ModelAvailabilityNotice } from "@/components/model-availability";
 import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
@@ -663,6 +663,7 @@ export function ModelDetailClient({
                     />
                   </Suspense>
                 )}
+                {model.models_dev_url && <a href={model.models_dev_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs underline underline-offset-4">Models.dev <ExternalLink className="size-3" /></a>}
                 {officialHuggingFaceUrl ? (
                   <HuggingFaceAnchor url={officialHuggingFaceUrl} label={t.card.huggingface} />
                 ) : capabilitiesPromise ? (

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 
@@ -8,11 +8,13 @@ export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
   const { lang } = useI18n();
   const activeTransitionRef = useRef<ViewTransition | null>(null);
+  const requestId = useRef(0);
   const pendingThemeRef = useRef<"light" | "dark" | null>(null);
   const finishThemeWaitRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (resolvedTheme === pendingThemeRef.current) pendingThemeRef.current = null;
+    if (resolvedTheme === pendingThemeRef.current)
+      pendingThemeRef.current = null;
   }, [resolvedTheme]);
 
   function waitForThemeClass(theme: "light" | "dark") {
@@ -32,7 +34,8 @@ export function ThemeToggle() {
         settled = true;
         observer.disconnect();
         window.clearTimeout(fallbackTimer);
-        if (finishThemeWaitRef.current === finish) finishThemeWaitRef.current = null;
+        if (finishThemeWaitRef.current === finish)
+          finishThemeWaitRef.current = null;
         resolve();
       };
       const observer = new MutationObserver(() => {
@@ -44,13 +47,26 @@ export function ThemeToggle() {
     });
   }
 
+  useEffect(
+    () => () => {
+      requestId.current++;
+      finishThemeWaitRef.current?.();
+      activeTransitionRef.current?.skipTransition();
+    },
+    [],
+  );
+
   function toggle() {
+    const id = ++requestId.current;
     const html = document.documentElement;
-    const currentTheme = pendingThemeRef.current
-      ?? (html.classList.contains("dark") ? "dark" : resolvedTheme);
+    const currentTheme =
+      pendingThemeRef.current ??
+      (html.classList.contains("dark") ? "dark" : resolvedTheme);
     const next = currentTheme === "dark" ? "light" : "dark";
     pendingThemeRef.current = next;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     document.cookie = `benchsift_theme=${next};path=/;max-age=31536000;SameSite=Lax`;
     finishThemeWaitRef.current?.();
 
@@ -65,6 +81,7 @@ export function ThemeToggle() {
 
     try {
       const transition = document.startViewTransition(async () => {
+        if (id !== requestId.current) return;
         setTheme(next);
         await waitForThemeClass(next);
       });

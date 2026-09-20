@@ -1,7 +1,7 @@
 # BenchSift repository guide
 
 BenchSift is an evidence-first AI model catalogue. These instructions apply to
-this repository; `CLAUDE.md` imports this file.
+this repository.
 
 ## Working context
 

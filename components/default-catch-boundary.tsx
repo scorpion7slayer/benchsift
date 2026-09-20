@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useRouter } from "@tanstack/react-router";
 import type { ErrorComponentProps } from "@tanstack/react-router";
-import { Brain, RefreshCw } from "lucide-react";
+import { Brain, RefreshCw } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 

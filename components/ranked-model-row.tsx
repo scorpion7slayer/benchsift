@@ -1,6 +1,6 @@
-import { Check, Plus } from "lucide-react";
+import { Check, Plus } from "@/components/icons";
 import { Link } from "@/components/link";
-import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
+import { ModelProviderIcon } from "@/components/model-provider-icon";
 import { Button } from "@/components/ui/button";
 import { useCompare } from "@/lib/compare-store";
 import { useI18n } from "@/lib/i18n";

@@ -58,6 +58,7 @@ export function buildPublicHealth(
       openRouter: {
         enrichedModels: stat(stats, "openRouterEnrichedModels"),
       },
+      modelsDev: { enrichedModels: stat(stats, "modelsDevEnrichedModels") },
       huggingFace: {
         enrichedModels: stat(stats, "huggingFaceEnrichedModels"),
       },

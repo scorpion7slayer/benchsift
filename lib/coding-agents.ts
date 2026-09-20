@@ -8,6 +8,8 @@ export interface CodingAgent {
   id: string; // unique row id from AA
   agent_name: string; // harness name (Claude Code, Cursor CLI…)
   agent_slug: string; // harness slug for icon lookup
+  agent_creator_slug: string | null;
+  models: Array<{ name: string; creator: string | null }>;
   display_label: string; // "Claude Code - Opus 4.7 (Medium)"
   model_name: string; // underlying model name (full)
   model_short: string; // shorter display name
@@ -15,6 +17,7 @@ export interface CodingAgent {
   model_creator_slug: string; // for provider icon
   release_date: string | null; // ISO date
   coding_agent_index: number | null; // composite 0-100 (× 100 from raw 0-1)
+  benchmark_scores: Array<{ id: string; label: string; value: number | null }>;
   deep_swe: number | null; // pass@1 (0-1)
   terminal_bench_v2: number | null; // pass@1 (0-1)
   swe_atlas_qna: number | null; // pass@1 (0-1)
@@ -29,8 +32,7 @@ export interface CodingAgent {
 }
 
 /**
- * Known coding-agent harnesses with their @lobehub/icons keys.
- * Harnais connus avec leurs clés d'icônes @lobehub/icons.
+ * Known coding-agent harnesses with their local logo keys.
  */
 export const CODING_AGENT_HARNESSES: Record<string, { name: string; icon: string }> = {
   "claude-code":   { name: "Claude Code",   icon: "claudecode" },

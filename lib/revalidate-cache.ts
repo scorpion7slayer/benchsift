@@ -1,38 +1,61 @@
-// Small server-side revalidating cache for long-running Node processes.
-//
-// This replaces the former Cloudflare KV tier. On Dokploy the process is
-// stateful, so an in-memory cache avoids repeated upstream fetches while the
-// catalog-specific cache in `cron-cache.ts` handles persistence.
-
+// Bounded, single-flight cache for server data. Rejected fetches are never cached.
 interface Entry<T> {
   value: T;
-  expires: number; // ms epoch
+  expires: number;
+}
+const memory = new Map<string, Entry<unknown>>();
+const pending = new Map<string, Promise<unknown>>();
+const MAX_ENTRIES = 128;
+let expiryTimer: ReturnType<typeof setTimeout> | undefined;
+
+function scheduleExpiry() {
+  clearTimeout(expiryTimer);
+  if (!memory.size) return;
+  const nextExpiry = Math.min(...Array.from(memory.values(), (entry) => entry.expires));
+  expiryTimer = setTimeout(() => {
+    const now = Date.now();
+    for (const [key, entry] of memory) {
+      if (entry.expires <= now) memory.delete(key);
+    }
+    scheduleExpiry();
+  }, Math.min(2_147_483_647, Math.max(1, nextExpiry - Date.now())));
+  expiryTimer.unref();
 }
 
-const memory = new Map<string, Entry<unknown>>();
-
-/**
- * Wraps an async function with a revalidating in-memory cache.
- *
- * @param fn         the function to memoise
- * @param keyParts   stable parts identifying this cache slot
- * @param options    `revalidate` - seconds before the cache is considered stale
- */
 export function cached<Args extends unknown[], T>(
   fn: (...args: Args) => Promise<T>,
   keyParts: string[],
   options: { revalidate: number },
 ): (...args: Args) => Promise<T> {
-  const ttlMs = options.revalidate * 1000;
-
   return async (...args: Args): Promise<T> => {
-    const key = ["cache", ...keyParts, ...args.map((a) => String(a))].join(":");
-    const now = Date.now();
-    const mem = memory.get(key);
-    if (mem && mem.expires > now) return mem.value as T;
-
-    const value = await fn(...args);
-    memory.set(key, { value, expires: now + ttlMs });
-    return value;
+    const key = JSON.stringify([keyParts, args]);
+    const entry = memory.get(key);
+    if (entry && entry.expires > Date.now()) {
+      // Promote hits so frequently used data survives a burst of detail requests.
+      memory.delete(key);
+      memory.set(key, entry);
+      return entry.value as T;
+    }
+    memory.delete(key);
+    const active = pending.get(key);
+    if (active) return active as Promise<T>;
+    const request = Promise.resolve()
+      .then(() => fn(...args))
+      .then((value) => {
+        // Zero TTL shares concurrent work without retaining a second catalogue.
+        if (options.revalidate <= 0) return value;
+        memory.delete(key);
+        if (memory.size >= MAX_ENTRIES)
+          memory.delete(memory.keys().next().value!);
+        memory.set(key, {
+          value,
+          expires: Date.now() + options.revalidate * 1000,
+        });
+        scheduleExpiry();
+        return value;
+      })
+      .finally(() => pending.delete(key));
+    pending.set(key, request);
+    return request;
   };
 }

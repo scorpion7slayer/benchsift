@@ -4,11 +4,9 @@ WORKDIR /app
 
 FROM base AS install
 
-RUN mkdir -p /temp/dev /temp/prod
+RUN mkdir -p /temp/dev
 COPY package.json bun.lock /temp/dev/
 RUN cd /temp/dev && bun install --frozen-lockfile
-COPY package.json bun.lock /temp/prod/
-RUN cd /temp/prod && bun install --frozen-lockfile --production
 
 FROM base AS build
 
@@ -23,18 +21,15 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV MODELS_CACHE_FILE=/app/.data/models-cache.json
 
-RUN apk add --no-cache bash curl
-
 COPY --from=build /app/package.json ./
-COPY --from=build /app/bun.lock ./
-COPY --from=install /temp/prod/node_modules ./node_modules
+# Nitro includes the runtime dependencies it traces inside .output/server.
 COPY --from=build /app/.output ./.output
-COPY --from=build /app/scripts ./scripts
+COPY --from=build /app/scripts/refresh-cache.mjs ./scripts/refresh-cache.mjs
 
 RUN mkdir -p /app/.data && chown -R bun:bun /app
 USER bun
 
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD curl -f http://127.0.0.1:3000/health || exit 1
+  CMD ["bun", "-e", "const response = await fetch('http://127.0.0.1:3000/health'); process.exit(response.ok ? 0 : 1)"]
 CMD ["bun", ".output/server/index.mjs"]

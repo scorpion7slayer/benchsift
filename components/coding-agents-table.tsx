@@ -1,273 +1,283 @@
-import { Info, Trophy, Zap, DollarSign, ExternalLink } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useMemo, useState } from "react";
+import { ExternalLink, Search } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Separator } from "@/components/ui/separator";
-import { ModelProviderIcon } from "@/components/model-provider-icon-lazy";
-import { HarnessIcon } from "@/components/harness-icon-lazy";
-import { getModelProviderKey } from "@/lib/provider-map";
+import { Input } from "@/components/ui/input";
+import { ModelProviderIcon } from "@/components/model-provider-icon";
+import { HarnessIcon } from "@/components/harness-icon";
 import { useI18n } from "@/lib/i18n";
 import { CODING_AGENT_HARNESSES, type CodingAgent } from "@/lib/coding-agents";
 
-function fmt(v: number | null, decimals = 1): string {
-  if (v == null) return "—";
-  return v.toFixed(decimals);
-}
-function fmtPct(v: number | null): string {
-  if (v == null) return "—";
-  return `${(v <= 1 ? v * 100 : v).toFixed(1)}%`;
-}
-function fmtCost(v: number | null): string {
-  if (v == null) return "—";
-  return `$${v.toFixed(2)}`;
-}
-function fmtTime(v: number | null): string {
-  if (v == null) return "—";
-  if (v >= 60) return `${Math.floor(v / 60)}m ${Math.round(v % 60)}s`;
-  return `${v.toFixed(1)}s`;
-}
-function fmtTokens(v: number | null): string {
-  if (v == null) return "—";
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
-  return String(v);
-}
-
-function harnessIconKey(slug: string): string {
-  const cfg = CODING_AGENT_HARNESSES[slug];
-  return cfg?.icon ?? slug;
-}
-function harnessName(slug: string, fallback: string): string {
-  const cfg = CODING_AGENT_HARNESSES[slug];
-  return cfg?.name ?? fallback;
-}
+const fmt = (v: number | null) => (v === null ? "—" : v.toFixed(1));
+const pct = (v: number | null) =>
+  v === null ? "—" : `${(v * 100).toFixed(1)}%`;
+const cost = (v: number | null) => (v === null ? "—" : `$${v.toFixed(2)}`);
+const time = (v: number | null) =>
+  v === null ? "—" : `${(v / 60).toFixed(1)} min`;
 
 export function CodingAgentsTable({ agents }: { agents: CodingAgent[] }) {
   const { t } = useI18n();
-
-  if (agents.length === 0) {
-    // Fallback: AA's coding-agents page is rendered client-side and there's no public API yet.
-    // We show the known harnesses with their icons and link to the official AA leaderboard.
-    const harnesses = Object.entries(CODING_AGENT_HARNESSES);
-    return (
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <Info className="size-4 text-muted-foreground" />
-              {t.agents.indexLabel}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground space-y-2">
-            <p>{t.agents.indexTooltip}</p>
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              <Badge variant="secondary" className="font-mono text-xs">{t.agents.benchmarks.deep_swe}</Badge>
-              <Badge variant="secondary" className="font-mono text-xs">{t.agents.benchmarks.terminal_bench_v2}</Badge>
-              <Badge variant="secondary" className="font-mono text-xs">{t.agents.benchmarks.swe_atlas_qna}</Badge>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">
-              {t.agents.knownHarnesses}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {harnesses.map(([slug, cfg]) => (
-                <div
-                  key={slug}
-                  className="flex items-center gap-2.5 rounded-lg border bg-card/50 p-3 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="size-8 rounded-md bg-muted flex items-center justify-center shrink-0">
-                    <HarnessIcon slug={cfg.icon} size={20} />
-                  </div>
-                  <span className="font-medium text-sm truncate">{cfg.name}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="py-8 text-center space-y-3">
-            <p className="text-sm text-muted-foreground max-w-md mx-auto">
-              {t.agents.previewNotice}
-            </p>
-            <Button variant="outline" size="sm" asChild className="touch-target">
-              <a
-                href="https://artificialanalysis.ai/agents/coding-agents"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="gap-1.5"
-              >
-                <ExternalLink className="size-3.5" />
-                {t.agents.viewOnAA}
-              </a>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <p className="text-xs text-muted-foreground text-center">{t.agents.sourceNote}</p>
-      </div>
-    );
-  }
-
-  const sorted = [...agents].sort(
-    (a, b) => (b.coding_agent_index ?? -1) - (a.coding_agent_index ?? -1)
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState("score");
+  const ranked = useMemo(
+    () =>
+      [...agents].sort(
+        (a, b) => (b.coding_agent_index ?? -1) - (a.coding_agent_index ?? -1),
+      ),
+    [agents],
   );
-  const bestIndex = sorted[0]?.coding_agent_index ?? null;
+  const ranks = new Map(ranked.map((row, index) => [row.id, index + 1]));
+  const benchmarks = [
+    ...new Map(
+      agents
+        .flatMap((agent) => agent.benchmark_scores)
+        .map((item) => [item.id, item]),
+    ).values(),
+  ];
+  const rows = ranked.filter((agent) =>
+    `${agent.agent_name} ${agent.model_name} ${agent.model_short}`
+      .toLowerCase()
+      .includes(query.trim().toLowerCase()),
+  );
+  if (sort !== "score") {
+    const key = sort === "cost" ? "cost_per_task_usd" : "time_per_task_seconds";
+    rows.sort((a, b) => (a[key] ?? Infinity) - (b[key] ?? Infinity));
+  }
+  const sourceLink = (
+    <Button variant="outline" asChild className="touch-target">
+      <a
+        href="https://artificialanalysis.ai/agents/coding-agents"
+        target="_blank"
+        rel="noreferrer"
+      >
+        {t.agents.viewOnAA}
+        <ExternalLink className="size-4" />
+      </a>
+    </Button>
+  );
+  if (!agents.length)
+    return (
+      <section className="rounded-xl border bg-card p-8 text-center">
+        <p className="mb-4 text-muted-foreground">{t.agents.empty}</p>
+        {sourceLink}
+      </section>
+    );
 
   return (
-    <div className="space-y-6">
-      {/* Benchmarks composition card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-sm font-medium">
-            <Info className="size-4 text-muted-foreground" />
-            {t.agents.indexLabel}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>{t.agents.indexTooltip}</p>
-          <div className="flex flex-wrap gap-1.5 pt-1">
-            <Badge variant="secondary" className="font-mono text-xs">{t.agents.benchmarks.deep_swe}</Badge>
-            <Badge variant="secondary" className="font-mono text-xs">{t.agents.benchmarks.terminal_bench_v2}</Badge>
-            <Badge variant="secondary" className="font-mono text-xs">{t.agents.benchmarks.swe_atlas_qna}</Badge>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
+        <div className="min-w-0">
+          <p className="text-sm font-medium">{t.agents.indexLabel}</p>
+          <p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">
+            {t.agents.indexTooltip}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {benchmarks.map((item) => (
+              <Badge key={item.id} variant="secondary">
+                {item.label}
+              </Badge>
+            ))}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Mobile cards */}
+        </div>
+        {sourceLink}
+      </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search
+            aria-hidden="true"
+            className="absolute left-3 top-3.5 size-4 text-muted-foreground"
+          />
+          <Input
+            className="h-11 pl-9"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label={t.benchmarkUi.search}
+            placeholder={t.benchmarkUi.search}
+          />
+        </div>
+        <select
+          aria-label={t.benchmarkUi.sort}
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+          className="h-11 rounded-lg border bg-background px-3 text-sm"
+        >
+          <option value="score">{t.benchmarkUi.byScore}</option>
+          <option value="cost">{t.benchmarkUi.byCost}</option>
+          <option value="time">{t.benchmarkUi.byTime}</option>
+        </select>
+        <p className="text-xs text-muted-foreground" role="status">
+          {rows.length} / {agents.length} {t.benchmarkUi.configurations}
+        </p>
+      </div>
+      {!rows.length && (
+        <p
+          role="status"
+          className="py-8 text-center text-sm text-muted-foreground"
+        >
+          {t.grid.noResults}
+        </p>
+      )}
       <div className="grid gap-3 md:hidden">
-        {sorted.map((a, i) => (
-          <Card key={a.id} className="p-0 overflow-hidden">
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-mono text-muted-foreground w-6 shrink-0">#{i + 1}</span>
-                <div className="size-9 rounded-md bg-muted flex items-center justify-center shrink-0">
-                  <HarnessIcon slug={harnessIconKey(a.agent_slug)} size={22} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium leading-tight truncate">
-                    {harnessName(a.agent_slug, a.agent_name)}
-                  </p>
-                  <div className="text-xs text-muted-foreground flex items-center gap-1 min-w-0">
-                    <ModelProviderIcon provider={getModelProviderKey(a.model_slug, a.model_creator_slug)} size={12} />
-                    <span className="truncate">{a.model_short || a.model_name}</span>
-                  </div>
-                </div>
-                {a.coding_agent_index !== null && (
-                  <Badge variant={a.coding_agent_index === bestIndex ? "default" : "outline"} className="font-mono shrink-0">
-                    {a.coding_agent_index === bestIndex && <Trophy className="size-3 mr-1" />}
-                    {fmt(a.coding_agent_index)}
-                  </Badge>
-                )}
+        {rows.map((agent) => (
+          <article key={agent.id} className="rounded-xl border bg-card p-4">
+            <div className="flex items-start gap-3">
+              <span className="font-mono text-xs text-muted-foreground">
+                #{ranks.get(agent.id)}
+              </span>
+              <HarnessIcon
+                slug={
+                  CODING_AGENT_HARNESSES[agent.agent_slug]?.icon ??
+                  agent.agent_slug
+                }
+                size={22}
+                creator={agent.agent_creator_slug}
+              />
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm font-medium">{agent.agent_name}</h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  <AgentModels agent={agent} />
+                </p>
               </div>
-              <Separator />
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                <div className="text-center">
-                  <p className="text-muted-foreground mb-0.5 truncate">DeepSWE</p>
-                  <p className="font-mono">{fmtPct(a.deep_swe)}</p>
+              <Badge variant="secondary" className="font-mono">
+                {fmt(agent.coding_agent_index)}
+              </Badge>
+            </div>
+            <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
+              {agent.benchmark_scores.map((item) => (
+                <div key={item.id}>
+                  <dt className="text-muted-foreground">{item.label}</dt>
+                  <dd className="mt-1 font-mono">{pct(item.value)}</dd>
                 </div>
-                <div className="text-center">
-                  <p className="text-muted-foreground mb-0.5">Terminal v2</p>
-                  <p className="font-mono">{fmtPct(a.terminal_bench_v2)}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-muted-foreground mb-0.5">SWE-Atlas</p>
-                  <p className="font-mono">{fmtPct(a.swe_atlas_qna)}</p>
-                </div>
+              ))}
+              <div>
+                <dt className="text-muted-foreground">
+                  {t.agents.metrics.costPerTask}
+                </dt>
+                <dd className="mt-1 font-mono">
+                  {cost(agent.cost_per_task_usd)}
+                </dd>
               </div>
-              <Separator />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <DollarSign className="size-3" />
-                  {fmtCost(a.cost_per_task_usd)}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Zap className="size-3" />
-                  {fmtTime(a.time_per_task_seconds)}
-                </span>
-                <span>{fmtTokens(a.output_tokens_per_task)} out</span>
+              <div>
+                <dt className="text-muted-foreground">
+                  {t.agents.metrics.timePerTask}
+                </dt>
+                <dd className="mt-1 font-mono">
+                  {time(agent.time_per_task_seconds)}
+                </dd>
               </div>
-            </CardContent>
-          </Card>
+            </dl>
+          </article>
         ))}
       </div>
-
-      {/* Desktop table */}
-      <div className="hidden md:block rounded-xl border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/40 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                <th className="py-3 px-4 text-left w-12">#</th>
-                <th className="py-3 px-4 text-left">{t.agents.headers.harness}</th>
-                <th className="py-3 px-4 text-left">{t.agents.headers.model}</th>
-                <th className="py-3 px-4 text-right">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="cursor-help">{t.agents.headers.index}</span>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-64 text-xs">{t.agents.indexTooltip}</TooltipContent>
-                  </Tooltip>
+      <div
+        className="hidden max-w-full overflow-x-auto rounded-xl border md:block"
+        tabIndex={0}
+        role="region"
+        aria-label={t.agents.title}
+      >
+        <table className="w-full text-sm">
+          <caption className="sr-only">{t.agents.title}</caption>
+          <thead>
+            <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+              <th scope="col" className="p-3">
+                #
+              </th>
+              <th scope="col" className="p-3">
+                {t.agents.headers.harness}
+              </th>
+              <th scope="col" className="p-3">
+                {t.agents.headers.model}
+              </th>
+              <th scope="col" className="p-3 text-right">
+                {t.agents.headers.index}
+              </th>
+              {benchmarks.map((item) => (
+                <th
+                  key={item.id}
+                  scope="col"
+                  className="whitespace-nowrap p-3 text-right"
+                >
+                  {item.label}
                 </th>
-                <th className="py-3 px-4 text-right hidden lg:table-cell">DeepSWE</th>
-                <th className="py-3 px-4 text-right hidden lg:table-cell">Terminal v2</th>
-                <th className="py-3 px-4 text-right hidden lg:table-cell">SWE-Atlas</th>
-                <th className="py-3 px-4 text-right">{t.agents.headers.cost}</th>
-                <th className="py-3 px-4 text-right">{t.agents.headers.time}</th>
+              ))}
+              <th scope="col" className="p-3 text-right">
+                {t.agents.headers.cost}
+              </th>
+              <th scope="col" className="p-3 text-right">
+                {t.agents.headers.time}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((agent) => (
+              <tr
+                key={agent.id}
+                className="border-b bg-card transition-colors last:border-0 hover:bg-muted/30"
+              >
+                <td className="p-3 font-mono text-xs text-muted-foreground">
+                  {ranks.get(agent.id)}
+                </td>
+                <th scope="row" className="p-3 text-left font-medium">
+                  <span className="flex items-center gap-2">
+                    <HarnessIcon
+                      slug={
+                        CODING_AGENT_HARNESSES[agent.agent_slug]?.icon ??
+                        agent.agent_slug
+                      }
+                      size={20}
+                      creator={agent.agent_creator_slug}
+                    />
+                    {agent.agent_name}
+                  </span>
+                </th>
+                <td className="min-w-48 p-3">
+                  <span className="flex items-center gap-2">
+                    <AgentModels agent={agent} />
+                  </span>
+                </td>
+                <td className="p-3 text-right font-mono font-medium">
+                  {fmt(agent.coding_agent_index)}
+                </td>
+                {benchmarks.map((item) => (
+                  <td
+                    key={item.id}
+                    className="p-3 text-right font-mono text-xs"
+                  >
+                    {pct(
+                      agent.benchmark_scores.find(
+                        (score) => score.id === item.id,
+                      )?.value ?? null,
+                    )}
+                  </td>
+                ))}
+                <td className="p-3 text-right font-mono text-xs">
+                  {cost(agent.cost_per_task_usd)}
+                </td>
+                <td className="p-3 text-right font-mono text-xs">
+                  {time(agent.time_per_task_seconds)}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {sorted.map((a, i) => {
-                const isBest = a.coding_agent_index === bestIndex && bestIndex !== null;
-                return (
-                  <tr key={a.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="py-3 px-4 text-xs font-mono text-muted-foreground">{i + 1}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2.5">
-                        <div className="size-8 rounded-md bg-muted flex items-center justify-center shrink-0">
-                          <HarnessIcon slug={harnessIconKey(a.agent_slug)} size={20} />
-                        </div>
-                        <span className="font-medium">
-                          {harnessName(a.agent_slug, a.agent_name)}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <ModelProviderIcon provider={getModelProviderKey(a.model_slug, a.model_creator_slug)} size={14} />
-                        <span className="text-muted-foreground">{a.model_short || a.model_name}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <Badge
-                        variant={isBest ? "default" : "outline"}
-                        className="font-mono"
-                      >
-                        {isBest && <Trophy className="size-3 mr-1" />}
-                        {fmt(a.coding_agent_index)}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono text-xs hidden lg:table-cell">{fmtPct(a.deep_swe)}</td>
-                    <td className="py-3 px-4 text-right font-mono text-xs hidden lg:table-cell">{fmtPct(a.terminal_bench_v2)}</td>
-                    <td className="py-3 px-4 text-right font-mono text-xs hidden lg:table-cell">{fmtPct(a.swe_atlas_qna)}</td>
-                    <td className="py-3 px-4 text-right font-mono text-xs">{fmtCost(a.cost_per_task_usd)}</td>
-                    <td className="py-3 px-4 text-right font-mono text-xs">{fmtTime(a.time_per_task_seconds)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
-
-      <p className="text-xs text-muted-foreground text-center">{t.agents.sourceNote}</p>
+      <p className="text-xs text-muted-foreground">{t.agents.sourceNote}</p>
     </div>
+  );
+}
+
+function AgentModels({ agent }: { agent: CodingAgent }) {
+  return (
+    <span className="flex flex-col gap-1.5">
+      {agent.models.map((model, index) => (
+        <span
+          key={`${index}-${model.name}`}
+          className="flex items-center gap-2"
+        >
+          <ModelProviderIcon provider={model.creator ?? ""} size={18} />
+          <span>{model.name}</span>
+        </span>
+      ))}
+    </span>
   );
 }

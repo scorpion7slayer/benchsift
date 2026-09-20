@@ -8,10 +8,10 @@ import {
 import type { ReactNode } from "react";
 import { Providers } from "@/components/providers";
 import { PageTransitionProvider } from "@/components/page-transition-provider";
-import { CookieBanner } from "@/components/cookie-banner";
 import { DefaultCatchBoundary } from "@/components/default-catch-boundary";
 import { WebMcpProvider } from "@/components/webmcp-provider";
 import { fetchPreferences } from "@/lib/server-fns";
+import { useI18n } from "@/lib/i18n";
 import { SITE_NAME, seo, websiteJsonLd } from "@/lib/seo";
 import appCss from "../styles/globals.css?url";
 
@@ -40,16 +40,7 @@ export const Route = createRootRoute({
         sizes: "any",
         href: "/favicon-97b25adc.svg",
       },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      {
-        rel: "preconnect",
-        href: "https://fonts.gstatic.com",
-        crossOrigin: "anonymous",
-      },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap",
-      },
+
     ],
   }),
   // Reads language/theme cookies so the document renders with the right
@@ -66,11 +57,11 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
-  const { lang, theme, noticeAcknowledged } = Route.useLoaderData();
+  const { lang, theme, analyticsConsent } = Route.useLoaderData();
   return (
     <RootDocument lang={lang}>
-      <Providers initialLang={lang} initialTheme={theme}>
-        <CookieBanner initiallyVisible={!noticeAcknowledged} />
+      <Providers initialLang={lang} initialTheme={theme} initialAnalyticsConsent={analyticsConsent}>
+        <SkipLink />
         <PageTransitionProvider>
           <Outlet />
         </PageTransitionProvider>
@@ -91,17 +82,7 @@ function RootDocument({
     <html lang={lang} className="h-full" suppressHydrationWarning>
       <head>
         <HeadContent />
-        {/* Third-party analytics — kept in <head> so they load before hydration. */}
-        <script
-          src="https://analyticstheo.serverscorpion1601.site/api/script.js"
-          data-site-id="8544cf104129"
-          defer
-        />
-        <script
-          src="https://rybbit.nxtaigen.com/api/script.js"
-          data-site-id="4e72af66bb61"
-          defer
-        />
+
       </head>
       <body
         className="min-h-full flex flex-col bg-background antialiased"
@@ -113,3 +94,5 @@ function RootDocument({
     </html>
   );
 }
+
+function SkipLink() { const { t } = useI18n(); return <a href="#main-content" className="skip-link">{t.trust.skip}</a>; }

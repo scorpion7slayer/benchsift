@@ -9,7 +9,7 @@ import {
   Gauge,
   Heart,
   Route as RouteIcon,
-} from "lucide-react";
+} from "@/components/icons";
 import { Link } from "@/components/link";
 import { BrandMark } from "@/components/brand-mark";
 import { SiteFooter } from "@/components/site-footer";
@@ -58,6 +58,7 @@ function AboutPage() {
       description: t.about.sources.openRouter,
       icon: RouteIcon,
     },
+    { name: "Models.dev", href: "https://models.dev/", description: t.about.sources.modelsDev, icon: Boxes },
     {
       name: "Hugging Face",
       href: sourceLinks.huggingFace,
@@ -69,7 +70,7 @@ function AboutPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
         <article className="space-y-14 sm:space-y-16">
           <header className="max-w-3xl">
             <div className="mb-5 flex size-11 items-center justify-center rounded-xl border bg-card shadow-sm">

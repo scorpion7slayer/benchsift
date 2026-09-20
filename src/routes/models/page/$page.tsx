@@ -2,17 +2,16 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { ModelCatalogPage } from "@/components/model-catalog-page";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { getModelCatalogPage, MODEL_CATALOG_PAGE_SIZE } from "@/lib/model-catalog";
+import { MODEL_CATALOG_PAGE_SIZE } from "@/lib/model-catalog";
 import { absoluteUrl, seo } from "@/lib/seo";
-import { fetchModels } from "@/lib/server-fns";
+import { fetchCatalogPage } from "@/lib/server-fns";
 
 export const Route = createFileRoute("/models/page/$page")({
   loader: async ({ params }) => {
     const page = Number(params.page);
     if (!Number.isSafeInteger(page) || page <= 1) throw notFound();
 
-    const models = await fetchModels();
-    const catalogPage = getModelCatalogPage(models, page);
+    const catalogPage = await fetchCatalogPage({ data: page });
     if (!catalogPage) throw notFound();
     return catalogPage;
   },
