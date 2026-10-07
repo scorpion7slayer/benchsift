@@ -36,6 +36,7 @@ export interface AAV2LanguageModel {
   evaluations?: unknown;
   artificial_analysis_intelligence_index_cost?: {
     total_cost?: unknown;
+    cost_per_task?: { total_cost?: unknown };
   };
   artificial_analysis_intelligence_index_token_counts?: {
     output_tokens?: unknown;
@@ -245,6 +246,9 @@ export function normaliseAAV2LanguageModel(
     ),
     intelligence_index_cost_usd: optionalFiniteNumber(
       raw.artificial_analysis_intelligence_index_cost?.total_cost,
+    ),
+    intelligence_index_cost_per_task_usd: optionalFiniteNumber(
+      raw.artificial_analysis_intelligence_index_cost?.cost_per_task?.total_cost,
     ),
     ...(huggingfaceUrl
       ? {

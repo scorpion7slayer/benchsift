@@ -1,8 +1,9 @@
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { useI18n } from "@/lib/i18n";
+import { PageCat } from "@/components/pixel-art/page-cats";
 
-const CONTACT_EMAIL = "support@contact.nxtaigen.com";
+const CONTACT_EMAIL = "contact@nxtaigen.com";
 
 export function TrustPage({
   kind,
@@ -21,8 +22,9 @@ export function TrustPage({
         className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6 sm:py-16"
       >
         <header className="flex flex-col gap-3">
-          <h1 className="text-3xl font-semibold tracking-tight">
+          <h1 className="flex flex-wrap items-end gap-x-3 text-3xl font-semibold tracking-tight">
             {copy[kind]}
+            <PageCat kind="reading" className="mb-1" />
           </h1>
           <p className="text-muted-foreground">{copy[`${kind}Lead`]}</p>
         </header>

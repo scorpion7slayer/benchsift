@@ -1,4 +1,6 @@
 export interface CompareModelOption {
+  search_aliases?: import("./api").LLMModel["search_aliases"];
+  stealth_history?: import("./api").LLMModel["stealth_history"];
   id: string;
   name: string;
   slug: string;

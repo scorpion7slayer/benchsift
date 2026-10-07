@@ -1,10 +1,11 @@
+import { useCallback } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { parseCatalogSearch, type CatalogSearch } from "@/lib/catalog-search";
 import { fetchHomeCatalog } from "@/lib/server-fns";
 import { ModelGrid } from "@/components/model-grid";
 import { SiteHeader } from "@/components/site-header";
 import { HomeHero } from "@/components/home-hero";
 import { SiteFooter } from "@/components/site-footer";
-import { Separator } from "@/components/ui/separator";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import { SITE_NAME, absoluteUrl, seo, websiteJsonLd } from "@/lib/seo";
 import {
@@ -14,6 +15,9 @@ import {
 } from "@/lib/agent-discovery";
 
 export const Route = createFileRoute("/")({
+  validateSearch: parseCatalogSearch,
+  // Filters live in the URL; changing them must not refetch the whole catalogue.
+  shouldReload: ({ cause }) => cause !== "stay",
   server: {
     handlers: {
       GET: ({ request, next }) => {
@@ -65,18 +69,23 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   const { count, latestModels, models } = Route.useLoaderData();
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const updateSearch = useCallback(
+    (next: CatalogSearch) => void navigate({ search: next, replace: true, resetScroll: false }),
+    [navigate],
+  );
 
   return (
     <div className="flex flex-col flex-1">
       <SiteHeader modelCount={count} />
 
-      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-7xl flex-1 px-4 pb-24 pt-4 sm:px-6 sm:pt-8 lg:px-8">
+      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-7xl flex-1 px-4 pb-10 pt-5 sm:px-6 sm:pt-8 lg:px-8">
         <HomeHero
           count={count}
           latestModels={latestModels}
         />
-        <Separator className="mb-6" />
-        <ModelGrid models={models} />
+        <ModelGrid models={models} search={search} onSearchChange={updateSearch} />
       </main>
 
       <SiteFooter />

@@ -32,10 +32,10 @@ export function CompareMenu({
       <RouterLink
         to="/compare"
         search={search}
-        aria-label={isBubble ? label : undefined}
+        aria-label={label}
       >
         <GitCompareArrows data-icon={isBubble ? undefined : "inline-start"} />
-        {!isBubble && t.compare.compare}
+        {!isBubble && <span className="hidden sm:inline">{t.compare.compare}</span>}
         {selected.length > 0 && (
           <Badge
             variant={isBubble ? "default" : "secondary"}

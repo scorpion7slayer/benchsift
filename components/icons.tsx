@@ -9,6 +9,11 @@ export function Activity({ size = 24, ...props }: RuneIconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M22 12H19.52C19.083 11.9991 18.6577 12.1413 18.3091 12.405C17.9606 12.6686 17.708 13.0392 17.59 13.46L15.24 21.82C15.2249 21.8719 15.1933 21.9175 15.15 21.95C15.1067 21.9825 15.0541 22 15 22C14.9459 22 14.8933 21.9825 14.85 21.95C14.8067 21.9175 14.7751 21.8719 14.76 21.82L9.24 2.18C9.22485 2.12807 9.19327 2.08246 9.15 2.05C9.10673 2.01754 9.05409 2 9 2C8.94591 2 8.89327 2.01754 8.85 2.05C8.80673 2.08246 8.77515 2.12807 8.76 2.18L6.41 10.54C6.29246 10.9592 6.04138 11.3285 5.69486 11.592C5.34835 11.8555 4.92532 11.9988 4.49 12H2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
+/** Chain link, drawn to match the Rune outline style. */
+export function Link2({ size = 24, ...props }: RuneIconProps) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M9 17H7C4.23858 17 2 14.7614 2 12C2 9.23858 4.23858 7 7 7H9M15 7H17C19.7614 7 22 9.23858 22 12C22 14.7614 19.7614 17 17 17H15M8 12H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
 /** Rune normal/arrow-right. */
 export function ArrowRight({ size = 24, ...props }: RuneIconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M5 12H19M12 19L19 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
@@ -22,6 +27,21 @@ export function ArrowUp({ size = 24, ...props }: RuneIconProps) {
 /** Rune normal/arrow-up-down. */
 export function ArrowUpDown({ size = 24, ...props }: RuneIconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M13 16L17 20L21 16M17 20V4M11 8L7 4L3 8M7 4V20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+/** Descending sort: arrow down beside bars that narrow, matching the Rune outline style. */
+export function SortDescending({ size = 24, ...props }: RuneIconProps) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M3 16L7 20L11 16M7 20V4M11 4H21M11 9H18M11 14H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+/** Ascending sort: arrow up beside bars that widen, matching the Rune outline style. */
+export function SortAscending({ size = 24, ...props }: RuneIconProps) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M3 8L7 4L11 8M7 4V20M11 10H15M11 15H18M11 20H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+/** Download tray, drawn to match the Rune outline style. */
+export function Download({ size = 24, ...props }: RuneIconProps) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M12 3V15M7 10L12 15L17 10M4 17V19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
 /** Rune normal/volume-2. */
@@ -49,9 +69,9 @@ export function Boxes({ size = 24, ...props }: RuneIconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M3.30005 7L12 12M12 12L20.7001 7M12 12L12 22M21 7.9999C20.9996 7.64918 20.9071 7.30471 20.7315 7.00106C20.556 6.69742 20.3037 6.44526 20 6.2699L13 2.2699C12.696 2.09437 12.3511 2.00195 12 2.00195C11.6489 2.00195 11.304 2.09437 11 2.2699L4 6.2699C3.69626 6.44526 3.44398 6.69742 3.26846 7.00106C3.09294 7.30471 3.00036 7.64918 3 7.9999V15.9999C3.00036 16.3506 3.09294 16.6951 3.26846 16.9987C3.44398 17.3024 3.69626 17.5545 4 17.7299L11 21.7299C11.304 21.9054 11.6489 21.9979 12 21.9979C12.3511 21.9979 12.696 21.9054 13 21.7299L20 17.7299C20.3037 17.5545 20.556 17.3024 20.7315 16.9987C20.9071 16.6951 20.9996 16.3506 21 15.9999V7.9999Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
-/** Rune normal/sparkles. */
+/** Rune normal/git-branch: reasoning steps. */
 export function Brain({ size = 24, ...props }: RuneIconProps) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><g clipPath="url(#clip0_1_2467)"><path d="M20 2V6M22 4H18M11.017 2.81395C11.0598 2.58456 11.1815 2.37737 11.3611 2.22827C11.5406 2.07917 11.7666 1.99756 12 1.99756C12.2333 1.99756 12.4593 2.07917 12.6389 2.22827C12.8184 2.37737 12.9401 2.58456 12.983 2.81395L14.034 8.37195C14.1086 8.7671 14.3006 9.13057 14.585 9.41492C14.8693 9.69928 15.2328 9.89131 15.628 9.96595L21.186 11.017C21.4153 11.0598 21.6225 11.1815 21.7716 11.3611C21.9207 11.5406 22.0023 11.7666 22.0023 12C22.0023 12.2333 21.9207 12.4593 21.7716 12.6389C21.6225 12.8184 21.4153 12.9401 21.186 12.983L15.628 14.034C15.2328 14.1086 14.8693 14.3006 14.585 14.585C14.3006 14.8693 14.1086 15.2328 14.034 15.628L12.983 21.186C12.9401 21.4153 12.8184 21.6225 12.6389 21.7716C12.4593 21.9207 12.2333 22.0023 12 22.0023C11.7666 22.0023 11.5406 21.9207 11.3611 21.7716C11.1815 21.6225 11.0598 21.4153 11.017 21.186L9.96595 15.628C9.89131 15.2328 9.69928 14.8693 9.41492 14.585C9.13057 14.3006 8.7671 14.1086 8.37195 14.034L2.81395 12.983C2.58456 12.9401 2.37737 12.8184 2.22827 12.6389C2.07917 12.4593 1.99756 12.2333 1.99756 12C1.99756 11.7666 2.07917 11.5406 2.22827 11.3611C2.37737 11.1815 2.58456 11.0598 2.81395 11.017L8.37195 9.96595C8.7671 9.89131 9.13057 9.69928 9.41492 9.41492C9.69928 9.13057 9.89131 8.7671 9.96595 8.37195L11.017 2.81395ZM6 20C6 21.1046 5.10457 22 4 22C2.89543 22 2 21.1046 2 20C2 18.8954 2.89543 18 4 18C5.10457 18 6 18.8954 6 20Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></g><defs ><clipPath id="clip0_1_2467"><rect width="24" height="24" fill="white" /></clipPath></defs></svg>;
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M15 6C12.6131 6 10.3239 6.94821 8.63604 8.63604C6.94821 10.3239 6 12.6131 6 15M15 6C15 7.65685 16.3431 9 18 9C19.6569 9 21 7.65685 21 6C21 4.34315 19.6569 3 18 3C16.3431 3 15 4.34315 15 6ZM6 15V3M6 15C4.34315 15 3 16.3431 3 18C3 19.6569 4.34315 21 6 21C7.65685 21 9 19.6569 9 18C9 16.3431 7.65685 15 6 15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
 }
 
 /** Rune normal/message-square-text. */
@@ -154,11 +174,6 @@ export function LibraryBig({ size = 24, ...props }: RuneIconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M3.00001 8.26807C2.6951 8.44411 2.44206 8.69752 2.26647 9.00269C2.09088 9.30787 1.99896 9.65398 2.00001 10.0061V19.0001C2.00001 19.5305 2.21072 20.0392 2.5858 20.4143C2.96087 20.7894 3.46958 21.0001 4.00001 21.0001H15C15.3511 21.0001 15.696 20.9076 16 20.7321C16.304 20.5566 16.5565 20.3041 16.732 20.0001M20 5C20.5304 5 21.0391 5.21071 21.4142 5.58579C21.7893 5.96086 22 6.46957 22 7V14C22 14.5304 21.7893 15.0391 21.4142 15.4142C21.0391 15.7893 20.5304 16 20 16H9C8.46957 16 7.96086 15.7893 7.58579 15.4142C7.21071 15.0391 7 14.5304 7 14V5C7 4.46957 7.21071 3.96086 7.58579 3.58579C7.96086 3.21071 8.46957 3 9 3H11.5C11.7329 3 11.9625 3.05422 12.1708 3.15836C12.3791 3.2625 12.5603 3.41371 12.7 3.6L13.3 4.4C13.4397 4.58629 13.6209 4.7375 13.8292 4.84164C14.0375 4.94578 14.2671 5 14.5 5H20Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
-/** Rune normal/clipboard-list. */
-export function List({ size = 24, ...props }: RuneIconProps) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M16 4H18C18.5304 4 19.0391 4.21071 19.4142 4.58579C19.7893 4.96086 20 5.46957 20 6V20C20 20.5304 19.7893 21.0391 19.4142 21.4142C19.0391 21.7893 18.5304 22 18 22H6C5.46957 22 4.96086 21.7893 4.58579 21.4142C4.21071 21.0391 4 20.5304 4 20V6C4 5.46957 4.21071 4.96086 4.58579 4.58579C4.96086 4.21071 5.46957 4 6 4H8M12 11H16M12 16H16M8 11H8.01M8 16H8.01M9 2H15C15.5523 2 16 2.44772 16 3V5C16 5.55228 15.5523 6 15 6H9C8.44772 6 8 5.55228 8 5V3C8 2.44772 8.44772 2 9 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
-}
-
 /** Rune normal/refresh-cw. */
 export function Loader2({ size = 24, ...props }: RuneIconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M3 12C3 9.61305 3.94821 7.32387 5.63604 5.63604C7.32387 3.94821 9.61305 3 12 3C14.516 3.00947 16.931 3.99122 18.74 5.74L21 8M16 8H21V3M21 12C21 14.3869 20.0518 16.6761 18.364 18.364C16.6761 20.0518 14.3869 21 12 21C9.48395 20.9905 7.06897 20.0088 5.26 18.26L3 16M3 21V16H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
@@ -219,11 +234,6 @@ export function SlidersHorizontal({ size = 24, ...props }: RuneIconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M10 5H3M12 19H3M14 3V7M16 17V21M21 12H12M21 19H16M21 5H14M8 10V14M8 12H3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
-/** Rune normal/sparkles. */
-export function Sparkles({ size = 24, ...props }: RuneIconProps) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><g clipPath="url(#clip0_1_2467)"><path d="M20 2V6M22 4H18M11.017 2.81395C11.0598 2.58456 11.1815 2.37737 11.3611 2.22827C11.5406 2.07917 11.7666 1.99756 12 1.99756C12.2333 1.99756 12.4593 2.07917 12.6389 2.22827C12.8184 2.37737 12.9401 2.58456 12.983 2.81395L14.034 8.37195C14.1086 8.7671 14.3006 9.13057 14.585 9.41492C14.8693 9.69928 15.2328 9.89131 15.628 9.96595L21.186 11.017C21.4153 11.0598 21.6225 11.1815 21.7716 11.3611C21.9207 11.5406 22.0023 11.7666 22.0023 12C22.0023 12.2333 21.9207 12.4593 21.7716 12.6389C21.6225 12.8184 21.4153 12.9401 21.186 12.983L15.628 14.034C15.2328 14.1086 14.8693 14.3006 14.585 14.585C14.3006 14.8693 14.1086 15.2328 14.034 15.628L12.983 21.186C12.9401 21.4153 12.8184 21.6225 12.6389 21.7716C12.4593 21.9207 12.2333 22.0023 12 22.0023C11.7666 22.0023 11.5406 21.9207 11.3611 21.7716C11.1815 21.6225 11.0598 21.4153 11.017 21.186L9.96595 15.628C9.89131 15.2328 9.69928 14.8693 9.41492 14.585C9.13057 14.3006 8.7671 14.1086 8.37195 14.034L2.81395 12.983C2.58456 12.9401 2.37737 12.8184 2.22827 12.6389C2.07917 12.4593 1.99756 12.2333 1.99756 12C1.99756 11.7666 2.07917 11.5406 2.22827 11.3611C2.37737 11.1815 2.58456 11.0598 2.81395 11.017L8.37195 9.96595C8.7671 9.89131 9.13057 9.69928 9.41492 9.41492C9.69928 9.13057 9.89131 8.7671 9.96595 8.37195L11.017 2.81395ZM6 20C6 21.1046 5.10457 22 4 22C2.89543 22 2 21.1046 2 20C2 18.8954 2.89543 18 4 18C5.10457 18 6 18.8954 6 20Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></g><defs ><clipPath id="clip0_1_2467"><rect width="24" height="24" fill="white" /></clipPath></defs></svg>;
-}
-
 /** Rune normal/sun. */
 export function Sun({ size = 24, ...props }: RuneIconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M12 2V4M12 20V22M4.93005 4.93018L6.34005 6.34018M17.66 17.6602L19.07 19.0702M2 12H4M20 12H22M6.34005 17.6602L4.93005 19.0702M19.07 4.93018L17.66 6.34018M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
@@ -277,4 +287,10 @@ export function X({ size = 24, ...props }: RuneIconProps) {
 /** Rune normal/zap. */
 export function Zap({ size = 24, ...props }: RuneIconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M3.99999 14C3.81076 14.0007 3.62522 13.9476 3.46495 13.847C3.30467 13.7464 3.17623 13.6024 3.09454 13.4317C3.01286 13.261 2.98129 13.0706 3.00349 12.8827C3.0257 12.6948 3.10077 12.517 3.21999 12.37L13.12 2.17004C13.1943 2.08432 13.2955 2.0264 13.407 2.00577C13.5185 1.98515 13.6337 2.00305 13.7337 2.05654C13.8337 2.11004 13.9126 2.19594 13.9573 2.30015C14.0021 2.40436 14.0101 2.52069 13.98 2.63004L12.06 8.65004C12.0034 8.80156 11.9844 8.96456 12.0046 9.12505C12.0248 9.28553 12.0837 9.43872 12.1761 9.57147C12.2685 9.70421 12.3918 9.81256 12.5353 9.8872C12.6788 9.96185 12.8382 10.0006 13 10H20C20.1892 9.9994 20.3748 10.0525 20.535 10.1531C20.6953 10.2537 20.8238 10.3977 20.9054 10.5684C20.9871 10.7391 21.0187 10.9295 20.9965 11.1174C20.9743 11.3053 20.8992 11.4831 20.78 11.63L10.88 21.83C10.8057 21.9158 10.7045 21.9737 10.593 21.9943C10.4815 22.0149 10.3663 21.997 10.2663 21.9435C10.1663 21.89 10.0874 21.8041 10.0427 21.6999C9.99791 21.5957 9.98991 21.4794 10.02 21.37L11.94 15.35C11.9966 15.1985 12.0156 15.0355 11.9954 14.875C11.9752 14.7145 11.9163 14.5614 11.8239 14.4286C11.7315 14.2959 11.6082 14.1875 11.4647 14.1129C11.3212 14.0382 11.1617 13.9995 11 14H3.99999Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+/** Rune normal/eye. */
+export function Eye({ size = 24, ...props }: RuneIconProps) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M2.06202 12.3481C1.97868 12.1236 1.97868 11.8766 2.06202 11.6521C2.87372 9.68397 4.25153 8.00116 6.02079 6.81701C7.79004 5.63287 9.87106 5.00073 12 5.00073C14.129 5.00073 16.21 5.63287 17.9792 6.81701C19.7485 8.00116 21.1263 9.68397 21.938 11.6521C22.0214 11.8766 22.0214 12.1236 21.938 12.3481C21.1263 14.3163 19.7485 15.9991 17.9792 17.1832C16.21 18.3674 14.129 18.9995 12 18.9995C9.87106 18.9995 7.79004 18.3674 6.02079 17.1832C4.25153 15.9991 2.87372 14.3163 2.06202 12.3481Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+<path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
 }

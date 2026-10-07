@@ -31,28 +31,52 @@ export interface CodingAgent {
   steps_per_task: number | null;
 }
 
-/**
- * Known coding-agent harnesses with their local logo keys.
- */
-export const CODING_AGENT_HARNESSES: Record<string, { name: string; icon: string }> = {
-  "claude-code":   { name: "Claude Code",   icon: "claudecode" },
-  "cursor-cli":    { name: "Cursor CLI",    icon: "cursor" },
-  "cursor":        { name: "Cursor",        icon: "cursor" },
-  "opencode":      { name: "OpenCode",      icon: "opencode" },
-  "codex":         { name: "Codex CLI",     icon: "codex" },
-  "codex-cli":     { name: "Codex CLI",     icon: "codex" },
-  "openhands":     { name: "OpenHands",     icon: "openhands" },
-  "cline":         { name: "Cline",         icon: "cline" },
-  "amp":           { name: "Amp",           icon: "amp" },
-  "antigravity":   { name: "Antigravity",   icon: "antigravity" },
-  "junie":         { name: "Junie",         icon: "junie" },
-  "trae":          { name: "Trae",          icon: "trae" },
-  "windsurf":      { name: "Windsurf",      icon: "windsurf" },
-  "github-copilot": { name: "GitHub Copilot", icon: "githubcopilot" },
-  "copilot":       { name: "Copilot",       icon: "copilot" },
-  "gemini-cli":    { name: "Gemini CLI",    icon: "geminicli" },
-  "kilo-code":     { name: "KiloCode",      icon: "kilocode" },
-  "roo-code":      { name: "RooCode",       icon: "roocode" },
-  "grok-build":    { name: "Grok Build",    icon: "grok" },
-  "kimi-code-cli": { name: "Kimi Code CLI", icon: "kimi" },
+/** Logo owner of each harness family; versioned slugs match by prefix. */
+const HARNESS_PROVIDERS: Record<string, string> = {
+  "claude-code": "anthropic",
+  claudecode: "anthropic",
+  codex: "openai",
+  "codex-cli": "openai",
+  cursor: "cursor",
+  "cursor-cli": "cursor",
+  "gemini-cli": "google",
+  geminicli: "google",
+  antigravity: "google",
+  "github-copilot": "github-copilot",
+  githubcopilot: "github-copilot",
+  copilot: "github-copilot",
+  "grok-build": "xai",
+  grok: "xai",
+  "kimi-code": "moonshotai",
+  "kimi-code-cli": "moonshotai",
+  kimi: "moonshotai",
+  devin: "cognition",
+  "devin-fusion-cli": "cognition",
+  "muse-code": "meta",
+  opencode: "opencode",
 };
+
+/**
+ * The provider whose logo represents a harness. AA versions some harness
+ * slugs ("muse-code-102-rc", "antigravity-sdk-v0112"), so the longest known
+ * prefix wins; an explicit creator from the source takes precedence.
+ */
+export function harnessProvider(slug: string, creator?: string | null): string {
+  if (creator) return creator;
+  const key = slug.toLowerCase();
+  if (HARNESS_PROVIDERS[key]) return HARNESS_PROVIDERS[key];
+  const prefix = Object.keys(HARNESS_PROVIDERS)
+    .filter((candidate) => key.startsWith(`${candidate}-`))
+    .sort((a, b) => b.length - a.length)[0];
+  return prefix ? HARNESS_PROVIDERS[prefix] : key;
+}
+
+const EFFORT_PATTERN = /\s*(?:\(\s*(minimal|low|medium|high|xhigh|max)\s*\)|\b(minimal|low|medium|high|xhigh|max)\b)/i;
+
+/** "Sonnet 5.5 (max)" → { base: "Sonnet 5.5", effort: "max" }; names without an effort keep it null. */
+export function splitEffort(name: string): { base: string; effort: string | null } {
+  const match = name.match(EFFORT_PATTERN);
+  if (!match || match.index == null) return { base: name.trim(), effort: null };
+  const base = `${name.slice(0, match.index)}${name.slice(match.index + match[0].length)}`.replace(/\s+/g, " ").trim();
+  return { base, effort: (match[1] ?? match[2]).toLowerCase() };
+}

@@ -7,7 +7,7 @@ import {
   isClaudeFable5,
   isModelCurrentlyUnavailable,
 } from "@/lib/model-availability";
-import type { LLMModel } from "@/lib/api";
+import type { LLMModel } from "@/lib/model-types";
 
 function CheckeredMark({ className = "size-3" }: { className?: string }) {
   return (

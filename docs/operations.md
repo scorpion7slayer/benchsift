@@ -4,7 +4,8 @@ The runtime stays Bun 1.3.14, TanStack Start, Vite and Nitro (`node-server`). Re
 and Radix provide the interface; Tailwind and its small utility packages provide
 styling. LobeHub, Lucide, router devtools and the shadcn CLI dependency were removed.
 The checked-in shadcn components remain usable without its CLI in production.
-Rune normal SVGs are local React components; Artificial Analysis/Models.dev logos and Geist fonts are
+Rune normal SVGs are local React components; Artificial Analysis, Models.dev and
+selected Lobe brand SVGs and Geist fonts are
 local static files. See `public/licenses/` for licences and provenance. To add a
 Rune icon, copy the normal SVG, preserve its geometry and adapt colour to
 `currentColor` in `components/icons.tsx`. Do not install an unofficial package.
@@ -67,6 +68,25 @@ Ambiguous matches are skipped. Historical Models.dev rows are merged when a
 first-party record arrives, rather than being retained as duplicate models.
 Models without benchmark values remain visible through Advanced/catalogue flows.
 
+xAI, x-ai and SpaceXAI share one creator identity displayed as SpaceXAI. Duplicate
+Models.dev rows merge into the measured model on both refresh and cache reads;
+their old detail URLs redirect to the canonical model.
+
+Stealth previews stay searchable without requiring a benchmark score. Advanced
+mode has a Stealth filter, including former previews. Scheduled refreshes read
+OpenRouter's official stealth listings and each preview's structured model/FAQ
+data, including older "cloaked model" descriptions. A small source-linked list
+of OpenRouter announcements covers previews whose descriptions omit anonymity.
+The exact model's reveal notice is also checked because JSON-LD can lag behind
+the visible page. Only an explicit reveal with a unique target ID establishes an alias.
+Related model cards and guesses never establish identity. A revealed preview's
+name, URL and history move to the published model, without carrying over preview
+prices or scores. Unrevealed previews and reveals whose target is absent stay
+in the catalogue. Dates distinguish the source's listing date from BenchSift's
+first observation; historical observations that were never recorded stay absent.
+The existing persistent cache retains this history through later refreshes and
+source outages. Existing caches acquire the new history on their next refresh.
+
 The other benchmark pages use separate upstream snapshots, not the persisted
 model catalogue. Artificial Analysis's `/agents/coding-agents` RSC response
 contains a highlights array and a full `benchmarkRows` array. The JSON-only
@@ -97,7 +117,7 @@ uses the browser animation API, with cancellation and reduced-motion support;
 navigation does not wait for a decorative exit animation.
 
 Provider and agent logos use locally hosted Artificial Analysis assets first,
-with Models.dev fallbacks. Compound Devin Fusion configurations use the creator
+with Models.dev and bundled Lobe SVG fallbacks. Compound Devin Fusion configurations use the creator
 mapping published by Artificial Analysis; unknown component creators stay
 unassigned. Original logo artwork is preserved, including monochrome brands.
 Source colours tint the surrounding tiles, with semantic accents on controls.

@@ -1,0 +1,114 @@
+<!doctype html>
+<!--
+  Source of public/og-image.png (1200 × 630), the link preview shared by every page.
+  Regenerate from the repository root with Chrome:
+
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars \
+    --force-device-scale-factor=1 --window-size=1200,630 \
+    --screenshot="$PWD/public/og-image.png" "file://$PWD/scripts/og-image.html"
+
+  The chart is illustrative: no values, labels or model names, so the image never
+  claims a measurement.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @font-face {
+        font-family: Geist;
+        src: url("../public/fonts/Geist.woff2") format("woff2");
+        font-weight: 100 900;
+      }
+      @font-face {
+        font-family: "Geist Mono";
+        src: url("../public/fonts/GeistMono.woff2") format("woff2");
+        font-weight: 100 900;
+      }
+      * { box-sizing: border-box; margin: 0; }
+      html, body { width: 1200px; height: 630px; overflow: hidden; }
+      body {
+        background: #f8f6f1;
+        color: #1e1d1c;
+        font-family: Geist, system-ui, sans-serif;
+        display: grid;
+        grid-template-columns: 1fr 470px;
+        gap: 56px;
+        padding: 72px 72px 64px;
+      }
+      .brand { display: flex; align-items: center; gap: 14px; font-size: 30px; font-weight: 600; letter-spacing: -0.02em; }
+      .brand svg { width: 40px; height: 40px; }
+      h1 { margin-top: 56px; font-size: 62px; line-height: 1.04; font-weight: 600; letter-spacing: -0.045em; }
+      p { margin-top: 24px; max-width: 30ch; font-size: 25px; line-height: 1.4; color: #5d5a54; letter-spacing: -0.01em; }
+      .sources { position: absolute; left: 72px; bottom: 64px; display: flex; gap: 10px; }
+      .sources span {
+        font-family: "Geist Mono", ui-monospace, monospace;
+        font-size: 16px;
+        color: #5d5a54;
+        border: 1px solid #d3cfc6;
+        border-radius: 999px;
+        padding: 7px 14px;
+        background: #fff;
+      }
+      .card {
+        align-self: center;
+        height: 470px;
+        border: 1px solid #d3cfc6;
+        border-radius: 28px;
+        background: #fff;
+        box-shadow: 0 1px 2px rgb(30 29 28 / 0.04), 0 18px 40px -24px rgb(30 29 28 / 0.25);
+        padding: 30px 30px 26px;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+      .card header { display: flex; justify-content: space-between; align-items: baseline; font-size: 18px; font-weight: 600; }
+      .card header span { font-family: "Geist Mono", monospace; font-size: 14px; font-weight: 500; color: #8a867e; }
+      svg.chart { width: 100%; height: 100%; margin-top: 12px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="brand">
+        <svg viewBox="0 0 24 24" fill="#1e1d1c" aria-hidden="true">
+          <path d="M4 4h14.5l-2.25 4H4V4Z" />
+          <path d="M4 10h10.75l-2.25 4H4v-4Z" />
+          <path d="M17 10h3v4h-5.25L17 10Z" />
+          <path d="M4 16h7.25L9 20H4v-4Z" />
+          <path d="M13.5 16h4.25L20 20h-8.75l2.25-4Z" />
+        </svg>
+        BenchSift
+      </div>
+      <h1>Compare AI models on real evidence.</h1>
+      <p>Benchmarks, speed, latency, pricing and context, side by side and sourced.</p>
+      <div class="sources"><span>Artificial Analysis</span><span>OpenRouter</span><span>Hugging Face</span></div>
+    </main>
+    <section class="card" aria-hidden="true">
+      <header>Score vs cost <span>most efficient ↗</span></header>
+      <svg class="chart" viewBox="0 0 410 330">
+        <g stroke="#ebe7df" stroke-width="1">
+          <line x1="20" y1="40" x2="400" y2="40" />
+          <line x1="20" y1="110" x2="400" y2="110" />
+          <line x1="20" y1="180" x2="400" y2="180" />
+          <line x1="20" y1="250" x2="400" y2="250" />
+        </g>
+        <line x1="20" y1="310" x2="400" y2="310" stroke="#c9c4ba" stroke-width="1.5" />
+        <g fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline stroke="#2f62b5" points="70,200 160,128 255,84 340,60" />
+          <polyline stroke="#c26a35" points="110,236 205,176 300,140" />
+          <polyline stroke="#2f8a5e" points="60,280 150,240 240,214" />
+        </g>
+        <g stroke="#fff" stroke-width="3">
+          <circle cx="70" cy="200" r="8" fill="#2f62b5" />
+          <circle cx="160" cy="128" r="8" fill="#2f62b5" />
+          <circle cx="255" cy="84" r="8" fill="#2f62b5" />
+          <circle cx="340" cy="60" r="8" fill="#2f62b5" />
+          <circle cx="110" cy="236" r="8" fill="#c26a35" />
+          <circle cx="205" cy="176" r="8" fill="#c26a35" />
+          <circle cx="300" cy="140" r="8" fill="#c26a35" />
+          <circle cx="60" cy="280" r="8" fill="#2f8a5e" />
+          <circle cx="150" cy="240" r="8" fill="#2f8a5e" />
+          <circle cx="240" cy="214" r="8" fill="#2f8a5e" />
+        </g>
+      </svg>
+    </section>
+  </body>
+</html>

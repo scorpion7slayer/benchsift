@@ -120,6 +120,9 @@ const CREATOR_TO_PROVIDER: Record<string, string> = {
 };
 
 const CREATOR_CANONICAL_SLUG: Record<string, string> = {
+  "x-ai": "xai",
+  spacexai: "xai",
+  "space-xai": "xai",
   "ai21-labs": "ai21",
   "arcee-ai": "arcee",
   "meta-llama": "meta",
@@ -188,7 +191,7 @@ const CREATOR_FROM_MODEL_PREFIXES: readonly CreatorPrefixRule[] = [
 ];
 
 export function getCanonicalCreatorSlug(creatorSlug: string): string {
-  const slug = creatorSlug.toLowerCase();
+  const slug = creatorSlug.trim().toLowerCase();
   return CREATOR_CANONICAL_SLUG[slug] ?? slug;
 }
 
@@ -220,6 +223,7 @@ export function getModelProviderKey(modelSlug: string, creatorSlug: string): str
  * Sur certains modèles AA renvoie le nom de produit au lieu du nom du créateur.
  */
 const CREATOR_DISPLAY_NAME: Record<string, string> = {
+  xai: "SpaceXAI",
   ai21: "AI21 Labs", arcee: "Arcee AI", meta: "Meta", mistral: "Mistral", bytedance: "ByteDance",
   nousresearch: "Nous Research", "swiss-ai-initiative": "Swiss AI Initiative", "thinking-machines": "Thinking Machines",
 

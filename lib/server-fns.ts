@@ -14,7 +14,14 @@ import {
   toModelDetailData,
   type ModelDetailData,
 } from "@/lib/model-reasoning";
+import {
+  familyPoints,
+  modelInsights,
+  type ComparisonFamily,
+  type ModelInsights,
+} from "@/lib/model-insights";
 import { getDeepSweData, type DeepSweData } from "@/lib/deepswe";
+import { matchDeepSweModels, type DeepSweModelInfo } from "@/lib/deepswe-catalog";
 import type { CompareModelOption } from "@/lib/compare-model";
 import type { Lang } from "@/lib/i18n";
 import {
@@ -24,6 +31,7 @@ import {
 import { readCookieValue } from "@/lib/http-cookie";
 import { readAnalyticsConsent, type AnalyticsConsent } from "@/lib/analytics-consent";
 import { getModelCatalogPage } from "@/lib/model-catalog";
+import { resolveModelSlug } from "./model-identity";
 
 // Loaders also run inside cookie-personalised SSR documents. Never mark those
 // documents public; the server snapshot already avoids repeated data work.
@@ -75,10 +83,13 @@ export const fetchHomeCatalog = createServerFn({ method: "GET" }).handler(
 /** A model and its matching reasoning variants (no scraped capabilities). */
 export const fetchModelDetail = createServerFn({ method: "GET" })
   .inputValidator((slug: string) => slug)
-  .handler(async ({ data }): Promise<ModelDetailData | null> => {
+  .handler(async ({ data }): Promise<(ModelDetailData & ModelInsights) | null> => {
     if (!isSafeSlug(data)) return null;
-    const family = getModelReasoningFamily(await getLLMModels(), data);
-    return family ? toModelDetailData(family, data) : null;
+    const models = await getLLMModels();
+    const slug = resolveModelSlug(models, data);
+    const family = getModelReasoningFamily(models, slug);
+    const detail = family ? toModelDetailData(family, slug) : null;
+    return family && detail ? { ...detail, ...modelInsights(models, family, detail.model) } : null;
   });
 
 /** Scraped capabilities for a model (context window, modalities, params…). */
@@ -93,28 +104,43 @@ export const fetchModelCapabilities = createServerFn({ method: "GET" })
 export const fetchCompareData = createServerFn({ method: "GET" })
   .inputValidator((slugs: string[]) => slugs)
   .handler(
-    async ({ data }): Promise<{ allModels: CompareModelOption[]; selected: LLMModel[] }> => {
+    async ({ data }): Promise<{
+      allModels: CompareModelOption[];
+      selected: LLMModel[];
+      families: Record<string, ComparisonFamily>;
+    }> => {
       setResponseCache();
       const slugs = [...new Set(data.filter(isSafeSlug))].slice(0, 4);
       const models = await getLLMModels();
       const bySlug = new Map(models.map(model => [model.slug, model]));
-      const selectedModels = slugs.map(slug => bySlug.get(slug));
-      const allModels = models.map((model) => ({
-        id: model.id,
-        name: model.name,
-        slug: model.slug,
-        model_creator: {
-          name: model.model_creator.name,
-          slug: model.model_creator.slug,
-        },
-        provider_icon_url: model.provider_icon_url,
-        intelligence_score:
-          model.evaluations.artificial_analysis_intelligence_index ?? null,
-      }));
+      const selectedModels = [...new Set(slugs.map(slug => resolveModelSlug(models, slug)))].map(slug => bySlug.get(slug));
+      // Search options for every model: absent fields are omitted, since this
+      // list is serialised into the page.
+      const allModels = models.map((model): CompareModelOption => {
+        const option: CompareModelOption = {
+          id: model.id,
+          name: model.name,
+          slug: model.slug,
+          model_creator: { name: model.model_creator.name, slug: model.model_creator.slug },
+          intelligence_score: model.evaluations.artificial_analysis_intelligence_index ?? null,
+        };
+        if (model.provider_icon_url) option.provider_icon_url = model.provider_icon_url;
+        if (model.search_aliases?.length) option.search_aliases = model.search_aliases;
+        if (model.stealth_history?.length) option.stealth_history = model.stealth_history;
+        return option;
+      });
       const selected = selectedModels.filter(
         (m): m is NonNullable<typeof m> => m != null,
       );
-      return { allModels, selected };
+      // Each compared model brings its reasoning levels, plotted as one curve.
+      const families: Record<string, ComparisonFamily> = {};
+      for (const model of selected) {
+        const family = getModelReasoningFamily(models, model.slug);
+        if (family) {
+          families[model.slug] = { familyKey: family.familyKey, familyName: family.familyName, points: familyPoints(family) };
+        }
+      }
+      return { allModels, selected, families };
     },
   );
 
@@ -125,9 +151,11 @@ export const fetchCodingAgents = createServerFn({ method: "GET" }).handler(
 
 /** Datacurve DeepSWE leaderboard. */
 export const fetchDeepSweData = createServerFn({ method: "GET" }).handler(
-  async (): Promise<DeepSweData> => {
+  async (): Promise<DeepSweData & { catalog: Record<string, DeepSweModelInfo> }> => {
     setResponseCache();
-    return getDeepSweData();
+    const [data, models] = await Promise.all([getDeepSweData(), getLLMModels()]);
+    const rows = data.leaderboards.flatMap((leaderboard) => leaderboard.rows);
+    return { ...data, catalog: matchDeepSweModels(models, rows) };
   },
 );
 

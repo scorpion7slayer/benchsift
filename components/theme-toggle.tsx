@@ -3,6 +3,7 @@ import { useTheme } from "next-themes";
 import { Moon, Sun } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
+import { runViewTransition } from "@/lib/view-transition";
 
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
@@ -56,7 +57,7 @@ export function ThemeToggle() {
     [],
   );
 
-  function toggle() {
+  function toggle(event: React.MouseEvent<HTMLButtonElement>) {
     const id = ++requestId.current;
     const html = document.documentElement;
     const currentTheme =
@@ -64,39 +65,26 @@ export function ThemeToggle() {
       (html.classList.contains("dark") ? "dark" : resolvedTheme);
     const next = currentTheme === "dark" ? "light" : "dark";
     pendingThemeRef.current = next;
-    const reduceMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
     document.cookie = `benchsift_theme=${next};path=/;max-age=31536000;SameSite=Lax`;
     finishThemeWaitRef.current?.();
-
-    if (reduceMotion || typeof document.startViewTransition !== "function") {
-      activeTransitionRef.current?.skipTransition();
-      activeTransitionRef.current = null;
-      setTheme(next);
-      return;
-    }
-
     activeTransitionRef.current?.skipTransition();
 
-    try {
-      const transition = document.startViewTransition(async () => {
-        if (id !== requestId.current) return;
-        setTheme(next);
-        await waitForThemeClass(next);
-      });
-      activeTransitionRef.current = transition;
-      void transition.finished
-        .catch(() => undefined)
-        .finally(() => {
-          if (activeTransitionRef.current === transition) {
-            activeTransitionRef.current = null;
-          }
-        });
-    } catch {
-      activeTransitionRef.current = null;
+    // The new theme grows from the button (or its centre for keyboard use).
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const origin = event.clientX || event.clientY
+      ? { x: event.clientX, y: event.clientY }
+      : { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
+    const transition = runViewTransition("theme", async () => {
+      if (id !== requestId.current) return;
       setTheme(next);
-    }
+      await waitForThemeClass(next);
+    }, origin);
+    activeTransitionRef.current = transition;
+    void transition?.finished
+      .catch(() => undefined)
+      .finally(() => {
+        if (activeTransitionRef.current === transition) activeTransitionRef.current = null;
+      });
   }
 
   return (

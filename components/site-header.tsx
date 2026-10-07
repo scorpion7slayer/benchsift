@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "@/components/link";
 import {
   Activity,
@@ -7,13 +7,13 @@ import {
   Coffee,
   ExternalLink,
   Info,
-  List,
+  LibraryBig,
   Menu,
   MessageSquarePlus,
   PanelsTopLeft,
   Terminal,
-  X,
 } from "@/components/icons";
+import { MobileSheet } from "@/components/mobile-sheet";
 import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +23,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useI18n, type Lang } from "@/lib/i18n";
 
@@ -46,7 +45,7 @@ function LangToggle() {
       aria-label={lang === "fr" ? "Switch to English" : "Passer en français"}
       className="touch-target h-10 px-2.5 text-xs font-mono font-medium sm:h-8"
     >
-      {next.toUpperCase()}
+      <span key={next} className="language-label">{next.toUpperCase()}</span>
     </Button>
   );
 }
@@ -59,14 +58,7 @@ interface SiteHeaderProps {
 export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
   const { t, lang } = useI18n();
   const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setMenuOpen(false);
-    }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, []);
+  const menuButton = useRef<HTMLButtonElement>(null);
 
   return (
     <header className="sticky top-0 z-20 border-b bg-card/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/85">
@@ -97,14 +89,14 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
           <nav aria-label={lang === "fr" ? "Navigation principale" : "Primary navigation"} className="hidden items-center gap-1 lg:flex">
             <Link
               href="/models"
-              className="flex min-h-8 items-center gap-1 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+              className="flex min-h-8 items-center gap-1 whitespace-nowrap rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground data-[status=active]:text-foreground"
             >
-              <List className="size-3" />
-              {t.nav.models}
+              <LibraryBig className="size-3" />
+              {t.nav.allModels}
             </Link>
             <Link
               href="/about"
-              className="flex min-h-8 items-center gap-1 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+              className="flex min-h-8 items-center gap-1 whitespace-nowrap rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground data-[status=active]:text-foreground"
             >
               <Info className="size-3" />
               {t.nav.about}
@@ -192,19 +184,21 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
               href="https://buymeacoffee.com/scorpion7slayer"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex min-h-8 items-center gap-1 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+              title={t.nav.buyMeACoffee}
+              className="flex min-h-8 items-center gap-1 whitespace-nowrap rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             >
               <Coffee className="size-3" />
-              {t.nav.buyMeACoffee}
+              <span className="sr-only xl:not-sr-only">{t.nav.buyMeACoffee}</span>
             </a>
             <a
               href="https://github.com/scorpion7slayer/benchsift/issues"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex min-h-8 items-center gap-1 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+              title={t.nav.feedback}
+              className="flex min-h-8 items-center gap-1 whitespace-nowrap rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             >
               <MessageSquarePlus className="size-3" />
-              {t.nav.feedback}
+              <span className="sr-only xl:not-sr-only">{t.nav.feedback}</span>
             </a>
             <a
               href="https://github.com/scorpion7slayer/benchsift"
@@ -224,143 +218,36 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
 
           {/* Bouton hamburger — mobile uniquement */}
           <button
+            ref={menuButton}
             type="button"
             className="touch-target flex size-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground lg:hidden"
-            onClick={() => setMenuOpen((o) => !o)}
+            onClick={() => setMenuOpen(true)}
             aria-expanded={menuOpen}
             aria-controls="mobile-navigation"
             aria-label={menuOpen
               ? lang === "fr" ? "Fermer le menu" : "Close menu"
               : lang === "fr" ? "Ouvrir le menu" : "Open menu"}
           >
-            {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            <Menu className="size-5" />
           </button>
         </div>
       </div>
 
-      {/* Menu déroulant mobile */}
-      {menuOpen && (
-        <nav
-          id="mobile-navigation"
-          aria-label={lang === "fr" ? "Navigation mobile" : "Mobile navigation"}
-          className="flex flex-col gap-1 border-t bg-card/95 px-4 py-2 backdrop-blur animate-in fade-in-0 slide-in-from-top-1 duration-150 lg:hidden"
-        >
-          <Link
-            href="/models"
-            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-            onClick={() => setMenuOpen(false)}
-          >
-            <List className="size-4 shrink-0" />
-            {t.nav.models}
-          </Link>
-          <Link
-            href="/about"
-            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-            onClick={() => setMenuOpen(false)}
-          >
-            <Info className="size-4 shrink-0" />
-            {t.nav.about}
-          </Link>
-
-          <Separator className="my-1" />
-          <p className="px-2 pt-1 text-xs font-medium text-muted-foreground">
-            {t.nav.otherBenchmarks}
-          </p>
-          <Link
-            href="/agents/coding"
-            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-            onClick={() => setMenuOpen(false)}
-          >
-            <Terminal className="size-4 shrink-0" />
-            {t.nav.codingAgents}
-          </Link>
-          <Link
-            href="/benchmarks/deepswe"
-            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-            onClick={() => setMenuOpen(false)}
-          >
-            <Activity className="size-4 shrink-0" />
-            {t.nav.deepSwe}
-          </Link>
-
-          <Separator className="my-1" />
-          <p className="px-2 pt-1 text-xs font-medium text-muted-foreground">
-            {t.nav.dataSources}
-          </p>
-          <a
-            href="https://artificialanalysis.ai"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-            onClick={() => setMenuOpen(false)}
-          >
-            <ExternalLink className="size-4 shrink-0" />
-            {t.nav.source}
-          </a>
-          <a
-            href="https://openrouter.ai"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-            onClick={() => setMenuOpen(false)}
-          >
-            <ExternalLink className="size-4 shrink-0" />
-            OpenRouter
-          </a>
-          <a
-            href="https://models.dev/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-            onClick={() => setMenuOpen(false)}
-          >
-            <ExternalLink className="size-4 shrink-0" />
-            Models.dev
-          </a>
-          <a
-            href="https://huggingface.co"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-            onClick={() => setMenuOpen(false)}
-          >
-            <ExternalLink className="size-4 shrink-0" />
-            {t.nav.huggingFace}
-          </a>
-
-          <Separator className="my-1" />
-          <a
-            href="https://buymeacoffee.com/scorpion7slayer"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-            onClick={() => setMenuOpen(false)}
-          >
-            <Coffee className="size-4 shrink-0" />
-            {t.nav.buyMeACoffee}
-          </a>
-          <a
-            href="https://github.com/scorpion7slayer/benchsift/issues"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-            onClick={() => setMenuOpen(false)}
-          >
-            <MessageSquarePlus className="size-4 shrink-0" />
-            {t.nav.feedback}
-          </a>
-          <a
-            href="https://github.com/scorpion7slayer/benchsift"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-            onClick={() => setMenuOpen(false)}
-          >
-            <GithubIcon className="size-4 shrink-0" />
-            GitHub
-          </a>
+      <MobileSheet open={menuOpen} onOpenChange={setMenuOpen} title={t.brand} returnFocus={menuButton} placement="right">
+        <nav aria-label={lang === "fr" ? "Navigation mobile" : "Mobile navigation"} className="grid gap-1 p-3">
+          <p className="px-3 pt-2 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{t.footer.explore}</p>
+          <Link href="/" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl bg-muted px-3 text-sm font-medium"><BrandMark className="size-5" />{t.mobile.catalog}</Link>
+          <Link href="/compare" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><PanelsTopLeft className="size-5" />{t.compare.compare}</Link>
+          <div className="my-2 border-t" />
+          <p className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{t.nav.otherBenchmarks}</p>
+          <Link href="/agents/coding" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Terminal className="size-5" />{t.nav.codingAgents}</Link>
+          <Link href="/benchmarks/deepswe" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Activity className="size-5" />{t.nav.deepSwe}</Link>
+          <div className="my-2 border-t" />
+          <Link href="/models" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><LibraryBig className="size-5" />{t.nav.allModels}</Link>
+          <Link href="/about" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Info className="size-5" />{t.nav.about}</Link>
+          <a href="https://github.com/scorpion7slayer/benchsift/issues" target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><MessageSquarePlus className="size-5" />{t.nav.feedback}</a>
         </nav>
-      )}
+      </MobileSheet>
     </header>
   );
 }

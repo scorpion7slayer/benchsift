@@ -1,4 +1,5 @@
 import "@tanstack/react-start/server-only";
+import { logEvent } from "./logger";
 
 // Bun 1.3.14 provides the Redis client in the production runtime: no extra SDK.
 // Structural types keep Node builds usable when Redis is not configured.
@@ -65,6 +66,7 @@ export async function redisCommand(
       }),
     ]);
   } catch {
+    logEvent("warn", "cache.redis_unavailable", { retrySeconds: 30, fallback: "disk" });
     retryAfter = Date.now() + 30_000;
     if (connection) void connection.then((c) => c.close()).catch(() => {});
     connection = undefined;

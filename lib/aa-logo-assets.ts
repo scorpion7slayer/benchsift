@@ -419,4 +419,27 @@ export const aaLogoAssets: Record<string, { file: string; color?: string }> = {
   sst: {
     file: "opencode_small.svg",
   },
+  ifm: {
+    file: "ifm_small.svg",
+    color: "#1521a9",
+  },
+  krafton: {
+    file: "krafton.svg",
+  },
+  recraftai: {
+    file: "recraftai.png",
+    color: "#000000",
+  },
+  lumalabs: {
+    file: "lumalabs_small.svg",
+    color: "#3face6",
+  },
+  pruna: {
+    file: "pruna_small.svg",
+    color: "#9334E9",
+  },
+  kokoro: {
+    file: "kokoro_small.jpeg",
+    color: "#C2D5E3",
+  },
 };

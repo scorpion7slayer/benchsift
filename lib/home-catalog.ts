@@ -3,20 +3,32 @@ import { isOpenWeightsModel } from "@/lib/model-metrics";
 import { modelReleaseTime } from "@/lib/model-release";
 import { collapseReasoningVariants } from "@/lib/model-reasoning";
 
+/**
+ * One row of the home ranking. The whole catalogue is serialised into the
+ * page, so absent values are omitted rather than sent as null, and flags are
+ * present only when true.
+ */
 export interface HomeCatalogModel {
   name: string;
   slug: string;
   model_creator: Pick<ModelCreator, "name" | "slug">;
-  evaluations: Pick<
+  evaluations: Partial<Pick<
     Evaluations,
     | "artificial_analysis_intelligence_index"
     | "artificial_analysis_coding_index"
     | "artificial_analysis_math_index"
-  >;
-  pricing: Pick<Pricing, "price_1m_blended_3_to_1">;
-  median_output_tokens_per_second: number | null;
-  is_open_weights: boolean;
-  provider_icon_url?: string | null;
+    | "agentic_index"
+  >>;
+  pricing: Partial<Pick<Pricing, "price_1m_blended_3_to_1">>;
+  median_output_tokens_per_second?: number;
+  context_window_tokens?: number;
+  release_date?: string;
+  is_open_weights?: true;
+  reasoning_model?: true;
+  is_stealth?: true;
+  search_aliases?: LLMModel["search_aliases"];
+  stealth_history?: LLMModel["stealth_history"];
+  provider_icon_url?: string;
 }
 
 export interface LatestModelSummary {
@@ -70,25 +82,42 @@ export function buildHomeCatalogData(models: LLMModel[]): HomeCatalogData {
         creators.set(creatorSlug, creator);
       }
 
-      return {
-        name: model.name,
-        slug: model.slug,
-        model_creator: creator,
-        evaluations: {
-          artificial_analysis_intelligence_index:
-            model.evaluations.artificial_analysis_intelligence_index,
-          artificial_analysis_coding_index:
-            model.evaluations.artificial_analysis_coding_index,
-          artificial_analysis_math_index:
-            model.evaluations.artificial_analysis_math_index,
-        },
-        pricing: {
-          price_1m_blended_3_to_1: model.pricing.price_1m_blended_3_to_1,
-        },
-        median_output_tokens_per_second: model.median_output_tokens_per_second,
-        is_open_weights: isOpenWeightsModel(model),
-        provider_icon_url: model.provider_icon_url,
-      };
+      return compactModel(model, creator);
     }),
   };
+}
+
+function present<T>(value: T | null | undefined): value is T {
+  return value !== null && value !== undefined && (typeof value !== "number" || Number.isFinite(value));
+}
+
+/** Copies only the values a row can show; a missing one stays absent, never zero. */
+function compactModel(model: LLMModel, creator: Pick<ModelCreator, "name" | "slug">): HomeCatalogModel {
+  const row: HomeCatalogModel = {
+    name: model.name,
+    slug: model.slug,
+    model_creator: creator,
+    evaluations: {},
+    pricing: {},
+  };
+  for (const key of [
+    "artificial_analysis_intelligence_index",
+    "artificial_analysis_coding_index",
+    "artificial_analysis_math_index",
+    "agentic_index",
+  ] as const) {
+    const value = model.evaluations[key];
+    if (present(value)) row.evaluations[key] = value;
+  }
+  if (present(model.pricing.price_1m_blended_3_to_1)) row.pricing.price_1m_blended_3_to_1 = model.pricing.price_1m_blended_3_to_1;
+  if (present(model.median_output_tokens_per_second)) row.median_output_tokens_per_second = model.median_output_tokens_per_second;
+  if (present(model.context_window_tokens)) row.context_window_tokens = model.context_window_tokens;
+  if (model.release_date) row.release_date = model.release_date;
+  if (isOpenWeightsModel(model)) row.is_open_weights = true;
+  if (model.reasoning_model) row.reasoning_model = true;
+  if (model.is_stealth) row.is_stealth = true;
+  if (model.search_aliases?.length) row.search_aliases = model.search_aliases;
+  if (model.stealth_history?.length) row.stealth_history = model.stealth_history;
+  if (model.provider_icon_url) row.provider_icon_url = model.provider_icon_url;
+  return row;
 }

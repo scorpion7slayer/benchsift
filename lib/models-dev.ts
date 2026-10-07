@@ -4,6 +4,7 @@ import {
   getCreatorDisplayName,
 } from "@/lib/provider-map";
 import { isExcludedOpenRouterModelId } from "@/lib/openrouter-model-filter";
+import { mergeIdentityMetadata } from "./model-identity";
 
 type RecordValue = Record<string, unknown>;
 function record(value: unknown): RecordValue {
@@ -133,7 +134,7 @@ export function mergeModelsDev(
       m.id.replace(/^(openrouter:|modelsdev:)/, ""),
     ]
       .filter((id): id is string => Boolean(id?.includes("/")))
-      .map((id) => `id:${id.toLowerCase()}`)
+      .map((id) => { const [lab, ...parts] = id.toLowerCase().split("/"); return `id:${owner(lab)}/${parts.join("/")}`; })
       .concat([
         `${prefix}${key(m.name)}`,
         `${prefix}${key(m.slug.replace(/^modelsdev-[^-]+-/, ""))}`,
@@ -154,7 +155,8 @@ export function mergeModelsDev(
     keys.push(
       `${owner(extra.model_creator.slug)}:${key(extra.models_dev_id.split("/")[1])}`,
     );
-    const exact = identities.get(`id:${extra.models_dev_id.toLowerCase()}`);
+    const [lab, ...parts] = extra.models_dev_id.toLowerCase().split("/");
+    const exact = identities.get(`id:${owner(lab)}/${parts.join("/")}`);
     const candidates =
       exact ?? new Set(keys.flatMap((k) => [...(identities.get(k) ?? [])]));
     if (candidates.size > 1) continue; // Ambiguous variant: do not add a duplicate or guess.
@@ -188,8 +190,8 @@ export function mergeModelsDev(
     for (const field of fields)
       if (merged[field] == null && extra[field] != null)
         Object.assign(merged, { [field]: extra[field] });
-    result[i] = merged;
-    index(merged, i);
+    result[i] = mergeIdentityMetadata(merged, extra);
+    index(result[i], i);
   }
   return result;
 }

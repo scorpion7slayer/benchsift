@@ -1,10 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Terminal } from "@/components/icons";
 import { fetchCodingAgents } from "@/lib/server-fns";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { CodingAgentsTable } from "@/components/coding-agents-table";
-import { CodingAgentsPageTitle } from "@/components/coding-agents-page-title";
+import { CodingAgentsView } from "@/components/coding-agents/coding-agents-view";
 import { absoluteUrl, seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/agents/coding")({
@@ -27,20 +25,11 @@ export const Route = createFileRoute("/agents/coding")({
 
 function CodingAgentsPage() {
   const agents = Route.useLoaderData();
-
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-1 flex-col">
       <SiteHeader />
-      <main id="main-content" tabIndex={-1} className="flex-1 flex flex-col max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        <div className="flex items-start gap-3">
-          <div className="size-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-            <Terminal className="size-5 text-muted-foreground" />
-          </div>
-          <div className="space-y-1">
-            <CodingAgentsPageTitle />
-          </div>
-        </div>
-        <CodingAgentsTable agents={agents} />
+      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <CodingAgentsView agents={agents} />
       </main>
       <SiteFooter />
     </div>

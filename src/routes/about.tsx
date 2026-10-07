@@ -17,6 +17,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { absoluteUrl, seo } from "@/lib/seo";
+import { PageCat } from "@/components/pixel-art/page-cats";
 
 export const Route = createFileRoute("/about")({
   head: () =>
@@ -97,8 +98,9 @@ function AboutPage() {
 
           <section
             aria-labelledby="what-is-benchsift"
-            className="grid gap-10 border-t pt-10 sm:pt-12 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.72fr)]"
+            className="relative grid gap-10 border-t pt-10 sm:pt-12 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.72fr)]"
           >
+            <PageCat kind="about" className="absolute bottom-[calc(100%+1px)] right-2" />
             <div className="space-y-8">
               <div>
                 <h2 id="what-is-benchsift" className="text-2xl font-semibold tracking-tight">
