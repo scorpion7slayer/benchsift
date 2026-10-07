@@ -22,7 +22,7 @@ import {
   mergeAAMediaDuplicateModels,
   mergeAAMediaModels,
 } from "@/lib/aa-media";
-import { extractAAAvailabilityStatus, type ModelAvailabilityStatus } from "@/lib/model-availability";
+import { extractAAAvailabilityStatus } from "@/lib/model-availability";
 import {
   extractAACapabilities,
   extractAAPartialModelData,
@@ -34,7 +34,10 @@ import {
   getFetchRetryCount,
 } from "@/lib/fetch-with-retry";
 import { mergeModelHistory } from "@/lib/model-history";
-import { isExcludedOpenRouterModelId } from "@/lib/openrouter-model-filter";
+import { mergeIdentityMetadata, mergeRevealedStealthModels, restoreStealthIdentity } from "./model-identity";
+import { enrichStealthModels } from "./stealth-source";
+import { logEvent } from "./logger";
+import { isExcludedOpenRouterModelId, isOpenRouterFreeVariantId } from "@/lib/openrouter-model-filter";
 import {
   AA_LEGACY_LANGUAGE_MODELS_ENDPOINT,
   AA_LANGUAGE_MODELS_ENDPOINT,
@@ -97,126 +100,8 @@ function getHuggingFaceApiKey(): string | undefined {
 }
 
 
-export interface ModelCreator {
-  id: string;
-  name: string;
-  slug: string;
-}
-
-export interface Evaluations {
-  // AA composite indices — scale 0-100 / indices composites — échelle 0-100
-  artificial_analysis_intelligence_index: number | null;
-  artificial_analysis_coding_index: number | null;
-  artificial_analysis_math_index: number | null;
-  // Standard benchmarks — decimal 0-1 (× 100 to display as %) / décimal 0-1
-  mmlu_pro: number | null;
-  gpqa: number | null;
-  hle: number | null;
-  livecodebench: number | null;
-  scicode: number | null;
-  math_500: number | null;
-  aime: number | null;
-  aime_25: number | null;
-  ifbench: number | null;
-  lcr: number | null;
-  terminalbench_hard: number | null;
-  terminalbench_v2_1: number | null;
-  tau2: number | null;
-  tau_banking: number | null;
-  // Newer AA benchmarks / Benchmarks AA plus récents
-  apex_agents?: number | null;          // APEX-Agents-AA (long-horizon agentic)
-  omniscience_non_hallucination?: number | null; // AA-Omniscience non-hallucination rate
-  // Catch-all for any other field returned by the API / pour tout autre champ
-  [key: string]: number | null | undefined;
-}
-
-export interface Pricing {
-  price_1m_blended_3_to_1: number | null;
-  price_1m_input_tokens: number | null;
-  price_1m_output_tokens: number | null;
-  price_1m_cache_write_tokens?: number | null;
-  price_1m_reasoning_tokens?: number | null;
-  price_web_search?: number | null;
-  openrouter_display_prices?: {
-    label: string;
-    price: number;
-    unit: string;
-    kind?: string;
-  }[];
-  // New AA fields / Nouveaux champs AA
-  price_1m_cache_hit_tokens?: number | null;       // cache hit price
-  price_1m_blended_7_2_1?: number | null;          // blended cache:input:output 7:2:1
-}
-
-export interface LLMModel {
-  id: string;
-  name: string;
-  slug: string;
-  release_date: string | null;
-  release_timestamp?: string | null;
-  model_creator: ModelCreator;
-  evaluations: Evaluations;
-  pricing: Pricing;
-  // Performance (from the API) / depuis l'API
-  median_output_tokens_per_second: number | null;
-  median_time_to_first_token_seconds: number | null;
-  median_time_to_first_answer_token: number | null;
-  // End-to-end latency for 500-token response (seconds) / latence bout en bout pour 500 tokens
-  end_to_end_response_time_seconds?: number | null;
-  // Additional capabilities (AA scraping — detail page only) / disponibles sur la page détail
-  context_window_tokens?: number | null;
-  total_parameters_b?: number | null;   // total parameters in billions / en milliards
-  active_parameters_b?: number | null;  // active parameters in billions / en milliards
-  is_open_weights?: boolean;
-  input_modality_text?: boolean;
-  input_modality_image?: boolean;
-  input_modality_speech?: boolean;
-  input_modality_video?: boolean;
-  output_modality_text?: boolean;
-  output_modality_image?: boolean;
-  output_modality_speech?: boolean;
-  output_modality_video?: boolean;
-  openrouter_input_modalities?: string[];
-  openrouter_output_modalities?: string[];
-  openrouter_supported_voices?: string[];
-  openrouter_supported_parameters?: string[];
-  openrouter_max_completion_tokens?: number | null;
-  openrouter_expiration_date?: string | null;
-  reasoning_model?: boolean;
-  reasoning_properties?: { style: string } | null;
-  // New scraped fields from AA model detail page / Nouveaux champs scrapés
-  knowledge_cutoff?: string | null;            // ISO date string (e.g. "2024-09-30") / date ISO
-  openness_index?: number | null;              // 0-100 scale / échelle 0-100
-  intelligence_index_tokens?: number | null;   // tokens used to run AA Intelligence Index (verbosity)
-  intelligence_index_cost_usd?: number | null; // USD cost to run AA Intelligence Index
-  openrouter_weekly_rank?: number | null;       // OpenRouter weekly Top Models rank
-  openrouter_weekly_tokens?: number | null;     // OpenRouter weekly usage ranking tokens
-  openrouter_weekly_requests?: number | null;   // OpenRouter weekly request count
-  openrouter_weekly_tool_calls?: number | null; // OpenRouter weekly tool-call count
-  openrouter_weekly_images?: number | null;     // OpenRouter weekly image prompt/completion count
-  openrouter_weekly_audio_inputs?: number | null; // OpenRouter weekly audio input count
-  openrouter_variant?: string | null;           // OpenRouter ranking variant (free/standard)
-  openrouter_api_id?: string | null;             // Structured AA V2 link to OpenRouter
-  huggingface_id?: string | null;
-  huggingface_url?: string | null;
-  huggingface_official?: boolean | null;
-  huggingface_source?: string | null;
-  huggingface_license?: string | null;
-  huggingface_downloads?: number | null;
-  huggingface_likes?: number | null;
-  huggingface_pipeline_tag?: string | null;
-  huggingface_library_name?: string | null;
-  huggingface_tags?: string[];
-  huggingface_gated?: string | null;
-  huggingface_private?: boolean | null;
-  huggingface_inference_providers?: string[];
-  huggingface_created_at?: string | null;
-  huggingface_last_modified?: string | null;
-  models_dev_id?: string;
-  models_dev_url?: string;
-  provider_icon_url?: string | null;
-  availability_status?: ModelAvailabilityStatus | null;
-}
+import type { LLMModel, Pricing } from "./model-types";
+export type { Evaluations, LLMModel, ModelCreator, Pricing } from "./model-types";
 
 let lastSuccessfulModels: LLMModel[] | null = null;
 
@@ -236,7 +121,10 @@ function errorMessage(error: unknown): string {
 async function apiFetchPage<T>(endpoint: string): Promise<AAApiEnvelope<T>> {
   const keys = getApiKeys();
 
-  if (keys.length === 0) throw new Error("No ARTIFICIAL_ANALYSIS_API_KEY set");
+  if (keys.length === 0) {
+    logEvent("error", "source.aa_not_configured");
+    throw new Error("No ARTIFICIAL_ANALYSIS_API_KEY set");
+  }
 
   let lastError: Error | null = null;
 
@@ -250,6 +138,7 @@ async function apiFetchPage<T>(endpoint: string): Promise<AAApiEnvelope<T>> {
       );
 
       if (!res.ok) {
+        logEvent("warn", "source.aa_request_failed", { status: res.status, attempt: i + 1 });
         const snippet = await responseErrorSnippet(res);
         lastError = new Error(
           `Artificial Analysis ${endpoint} failed with HTTP ${res.status}`
@@ -260,6 +149,7 @@ async function apiFetchPage<T>(endpoint: string): Promise<AAApiEnvelope<T>> {
 
       const json = await res.json() as AAApiEnvelope<T>;
       if (!json || typeof json !== "object" || !("data" in json)) {
+        logEvent("warn", "source.aa_invalid_response", { attempt: i + 1 });
         lastError = new Error(
           `Artificial Analysis ${endpoint} returned an invalid response envelope`,
         );
@@ -267,6 +157,7 @@ async function apiFetchPage<T>(endpoint: string): Promise<AAApiEnvelope<T>> {
       }
       return json;
     } catch (e) {
+      logEvent("warn", "source.aa_request_interrupted", { attempt: i + 1 });
       lastError = new Error(
         `Artificial Analysis ${endpoint} failed with key ${i + 1}/${keys.length}: ${errorMessage(e)}`,
         { cause: e },
@@ -348,6 +239,7 @@ async function scrapeAllModelSlugs(): Promise<string[]> {
     SITEMAP_FETCH_TIMEOUT_MS
   );
   if (!res.ok) {
+    logEvent("error", "source.aa_sitemap_failed", { status: res.status });
     throw new Error(`AA sitemap request failed with HTTP ${res.status}`);
   }
 
@@ -364,6 +256,7 @@ async function scrapeAllModelSlugs(): Promise<string[]> {
   }
 
   if (slugs.size < MIN_SITEMAP_MODEL_SLUGS) {
+    logEvent("error", "source.aa_sitemap_incomplete", { models: slugs.size, minimum: MIN_SITEMAP_MODEL_SLUGS });
     throw new Error(`AA sitemap returned only ${slugs.size} model slugs`);
   }
 
@@ -405,7 +298,7 @@ async function buildPartialModel(slug: string, includeCapabilities = true): Prom
     // Reuse the page already fetched above instead of issuing a second request.
     const caps = includeCapabilities
       ? {
-          ...extractAACapabilities(document),
+          ...extractAACapabilities(document, slug),
           availability_status: extractAAAvailabilityStatus(html, slug),
         }
       : {};
@@ -441,7 +334,7 @@ async function scrapeAACapabilities(slug: string): Promise<Partial<LLMModel>> {
     if (!res.ok) return {};
     const html = await res.text();
     return {
-      ...extractAACapabilities(html),
+      ...extractAACapabilities(html, slug),
       availability_status: extractAAAvailabilityStatus(html, slug),
     };
   } catch {
@@ -483,6 +376,7 @@ const scrapeModelCapabilities = cached(
       output_modality_image:  or.output_modality_image  ?? aa.output_modality_image,
       output_modality_speech: or.output_modality_speech ?? aa.output_modality_speech,
       output_modality_video:  or.output_modality_video  ?? aa.output_modality_video,
+      openrouter_output_modalities: or.openrouter_output_modalities,
       knowledge_cutoff:           aa.knowledge_cutoff ?? or.knowledge_cutoff ?? null,
       openrouter_supported_parameters: or.openrouter_supported_parameters,
       openrouter_max_completion_tokens: or.openrouter_max_completion_tokens ?? null,
@@ -490,6 +384,7 @@ const scrapeModelCapabilities = cached(
       openness_index:             aa.openness_index ?? null,
       intelligence_index_tokens:  aa.intelligence_index_tokens ?? null,
       intelligence_index_cost_usd: aa.intelligence_index_cost_usd ?? null,
+      intelligence_index_cost_per_task_usd: aa.intelligence_index_cost_per_task_usd ?? null,
       end_to_end_response_time_seconds: aa.end_to_end_response_time_seconds ?? null,
     };
   },
@@ -549,18 +444,26 @@ function fetchLightModelsShared(): Promise<LLMModel[]> {
   return coldFetch;
 }
 
-async function enrichCronModelsWithSources(models: LLMModel[]): Promise<LLMModel[]> {
+async function enrichCronModelsWithSources(
+  models: LLMModel[],
+  aaPageSlugs: ReadonlySet<string>,
+): Promise<LLMModel[]> {
+  logEvent("info", "refresh.openrouter_started", { models: models.length });
   const enriched = await enrichModelsWithOpenRouter(models, {
     apiKey: process.env.OPENROUTER_API_KEY,
     includeUsageRankings: true,
     includeOpenRouterOnly: true,
   });
+  logEvent("info", "refresh.capabilities_started", { models: enriched.length });
   const withCapabilities = await enrichModelsWithScrapedCapabilities(
     removeExcludedOpenRouterModels(enriched),
+    aaPageSlugs,
   );
+  logEvent("info", "refresh.huggingface_started", { models: withCapabilities.length });
   const hfEnriched = await enrichModelsWithHuggingFace(withCapabilities, {
     apiKey: getHuggingFaceApiKey(),
   });
+  logEvent("info", "refresh.modelsdev_started", { models: hfEnriched.length });
   return normaliseUnavailableMetrics(await enrichModelsWithModelsDev(hfEnriched));
 }
 
@@ -594,6 +497,7 @@ interface CronFetchResult {
 }
 
 async function fetchModelsForCron(): Promise<CronFetchResult> {
+  logEvent("info", "refresh.sources_started");
   const retriesBefore = getFetchRetryCount();
   const [apiModels, validSlugs, mediaModels] = await Promise.all([
     fetchAALanguageModels(),
@@ -616,8 +520,9 @@ async function fetchModelsForCron(): Promise<CronFetchResult> {
     missingSitemapSlugs: missingSlugs.length,
   };
 
+  logEvent("info", "refresh.sources_received", statsBase);
   if (missingSlugs.length === 0) {
-    const models = await enrichCronModelsWithSources(apiAndMediaModels);
+    const models = await enrichCronModelsWithSources(apiAndMediaModels, validSlugSet);
     return {
       models,
       stats: {
@@ -638,6 +543,7 @@ async function fetchModelsForCron(): Promise<CronFetchResult> {
   }
 
   if (extraModels.length < missingSlugs.length * 0.5) {
+    logEvent("error", "refresh.incomplete_sitemap_models", { built: extraModels.length, expected: missingSlugs.length });
     throw new Error(
       `Only built ${extraModels.length}/${missingSlugs.length} partial sitemap models`,
     );
@@ -646,7 +552,7 @@ async function fetchModelsForCron(): Promise<CronFetchResult> {
   const models = await enrichCronModelsWithSources([
     ...apiAndMediaModels,
     ...extraModels,
-  ]);
+  ], validSlugSet);
   return {
     models,
     stats: {
@@ -686,7 +592,17 @@ function sourceCoverageStats(models: LLMModel[]) {
  */
 let refreshing: Promise<{ count: number; stats: CronFetchStats }> | undefined;
 export function refreshModelsCache(): Promise<{ count: number; stats: CronFetchStats }> {
-  refreshing ??= performModelsRefresh().finally(() => { refreshing = undefined; });
+  if (!refreshing) {
+    const started = Date.now();
+    logEvent("info", "refresh.started");
+    refreshing = performModelsRefresh().then((result) => {
+      logEvent("info", "refresh.completed", { models: result.count, durationMs: Date.now() - started, ...result.stats });
+      return result;
+    }).catch((error) => {
+      logEvent("error", "refresh.failed", { durationMs: Date.now() - started, previousCachePreserved: true });
+      throw error;
+    }).finally(() => { refreshing = undefined; });
+  } else logEvent("info", "refresh.joined_existing_job");
   return refreshing;
 }
 async function performModelsRefresh(): Promise<{ count: number; stats: CronFetchStats }> {
@@ -701,7 +617,8 @@ async function performModelsRefresh(): Promise<{ count: number; stats: CronFetch
     previousModels,
     mergeHistoricalModelData,
   );
-  const models = normaliseCatalogModels(mergedCatalog.models);
+  logEvent("info", "refresh.stealth_started");
+  const models = normaliseCatalogModels(await enrichStealthModels(mergedCatalog.models));
   const completeStats: CronFetchStats = {
     ...stats,
     previousModels: previousModels.length,
@@ -718,7 +635,7 @@ function mergeHistoricalModelData(
   previous: LLMModel,
 ): LLMModel {
   const merged = mergeDefinedModel(previous, fresh);
-  return {
+  return mergeIdentityMetadata({
     ...merged,
     id: fresh.id,
     name: fresh.name,
@@ -726,7 +643,7 @@ function mergeHistoricalModelData(
     model_creator: fresh.model_creator,
     evaluations: mergeDefinedModel(previous.evaluations, fresh.evaluations),
     pricing: mergeDefinedModel(previous.pricing, fresh.pricing),
-  };
+  }, previous);
 }
 
 /**
@@ -749,7 +666,7 @@ function removeExcludedOpenRouterModels(models: LLMModel[]): LLMModel[] {
       !isOpenRouterOnlyMovingAliasModel(model) &&
       !(
         model.id.startsWith("openrouter:") &&
-        isExcludedOpenRouterModelId(model.id)
+        (isOpenRouterFreeVariantId(model.id) || (!model.is_stealth && isExcludedOpenRouterModelId(model.id)))
       ),
   );
 }
@@ -758,14 +675,15 @@ const normalizedSnapshots = new WeakMap<LLMModel[], LLMModel[]>();
 function normaliseCatalogModels(models: LLMModel[]): LLMModel[] {
   const existing = normalizedSnapshots.get(models);
   if (existing) return existing;
-  const primary = models.filter((model) => !model.id.startsWith("modelsdev:"));
-  const supplemental = models.filter((model) => model.id.startsWith("modelsdev:"));
+  const restored = models.map(restoreStealthIdentity);
+  const primary = restored.filter((model) => !model.id.startsWith("modelsdev:"));
+  const supplemental = restored.filter((model) => model.id.startsWith("modelsdev:"));
   const merged = mergeModelsDev(primary, supplemental);
-  const result = dedupeOpenRouterVariantModels(
+  const result = mergeRevealedStealthModels(dedupeOpenRouterVariantModels(
     normaliseCreatorNames(
       mergeAAMediaDuplicateModels(removeExcludedOpenRouterModels(merged)),
     ),
-  );
+  ));
   normalizedSnapshots.set(models, result);
   return result;
 }
@@ -822,6 +740,8 @@ async function chunkedScrape(
     const chunk = models.slice(i, i + chunkSize);
     const settled = await Promise.allSettled(chunk.map((model) => scrape(model.slug)));
     results.push(...settled.map((r) => (r.status === "fulfilled" ? r.value : {})));
+    if (i % (chunkSize * 10) === 0 || results.length === models.length)
+      logEvent("info", "refresh.capabilities_progress", { processed: results.length, total: models.length });
   }
   return results;
 }
@@ -884,10 +804,21 @@ function normaliseUnavailableMetrics(models: LLMModel[]): LLMModel[] {
   return models.map(normaliseUnavailableModel);
 }
 
-async function enrichModelsWithScrapedCapabilities(models: LLMModel[]): Promise<LLMModel[]> {
+/** OpenRouter-only rows have an AA page only when AA's sitemap lists their slug. */
+function hasAAModelPage(model: LLMModel, aaPageSlugs: ReadonlySet<string>): boolean {
+  return !model.id.startsWith("openrouter:") || aaPageSlugs.has(model.slug);
+}
+
+async function enrichModelsWithScrapedCapabilities(
+  models: LLMModel[],
+  aaPageSlugs: ReadonlySet<string>,
+): Promise<LLMModel[]> {
   const normalised = normaliseUnavailableMetrics(models);
-  const capabilities = await chunkedScrape(normalised, scrapeAACapabilities);
-  return normalised.map((model, i) => mergeDefinedModel(model, capabilities[i]));
+  const scrapable = normalised.filter((model) => hasAAModelPage(model, aaPageSlugs));
+  const capabilities = new Map(
+    (await chunkedScrape(scrapable, scrapeAACapabilities)).map((patch, i) => [scrapable[i], patch]),
+  );
+  return normalised.map((model) => mergeDefinedModel(model, capabilities.get(model) ?? {}));
 }
 
 const HUGGINGFACE_PATCH_KEYS: Array<keyof LLMModel> = [

@@ -232,16 +232,47 @@ export function normalizeComparison(
   };
 }
 
-export type DeepSweSort = "score" | "cost" | "time";
+export type DeepSweSort = "score" | "pass4" | "cost" | "time" | "tokens";
+export type DeepSweSortDirection = "asc" | "desc";
 
+const SORT_FIELDS: Record<DeepSweSort, keyof DeepSweRow> = {
+  score: "pass_at_1",
+  pass4: "pass_at_4",
+  cost: "mean_cost_usd",
+  time: "mean_duration_seconds",
+  tokens: "mean_output_tokens",
+};
+
+/** Best value first: scores descend, cost, time and tokens ascend. */
+export const DEEPSWE_DEFAULT_DIRECTION: Record<DeepSweSort, DeepSweSortDirection> = {
+  score: "desc",
+  pass4: "desc",
+  cost: "asc",
+  time: "asc",
+  tokens: "asc",
+};
+
+/**
+ * Rows to display: optionally the best configuration of each model and
+ * harness, filtered by a query, then sorted with missing values last. Ties
+ * keep the pass@1 order.
+ */
 export function selectDeepSweRows(
   rows: DeepSweRow[],
-  options: { query: string; bestOnly: boolean; sort: DeepSweSort },
+  options: {
+    query: string;
+    bestOnly: boolean;
+    sort: DeepSweSort;
+    direction?: DeepSweSortDirection;
+    /** Extra searchable text per row, such as the catalogue name. */
+    searchText?: (row: DeepSweRow) => string;
+  },
 ) {
   const ranked = [...rows].sort(
     (a, b) => (b.pass_at_1 ?? -1) - (a.pass_at_1 ?? -1),
   );
   const seen = new Set<string>();
+  const query = options.query.trim().toLowerCase();
   const selected = ranked
     .filter((row) => {
       const identity = JSON.stringify([row.provider, row.model, row.harness]);
@@ -250,14 +281,16 @@ export function selectDeepSweRows(
       return true;
     })
     .filter((row) =>
-      `${row.model} ${row.harness ?? ""} ${row.reasoning_effort ?? ""}`
+      `${row.model} ${row.harness ?? ""} ${row.reasoning_effort ?? ""} ${options.searchText?.(row) ?? ""}`
         .toLowerCase()
-        .includes(options.query.trim().toLowerCase()),
+        .includes(query),
     );
-  if (options.sort !== "score") {
-    const key =
-      options.sort === "cost" ? "mean_cost_usd" : "mean_duration_seconds";
-    selected.sort((a, b) => (a[key] ?? Infinity) - (b[key] ?? Infinity));
-  }
-  return selected;
+  const field = SORT_FIELDS[options.sort];
+  const sign = (options.direction ?? DEEPSWE_DEFAULT_DIRECTION[options.sort]) === "asc" ? 1 : -1;
+  return selected.sort((a, b) => {
+    const left = a[field] as number | null;
+    const right = b[field] as number | null;
+    if (left === null || right === null) return left === right ? 0 : left === null ? 1 : -1;
+    return sign * (left - right);
+  });
 }

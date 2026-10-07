@@ -16,6 +16,7 @@ export function PageTransitionProvider({
     animation.current = animateContent(
       root.current?.querySelector("main") ?? null,
       animation.current,
+      { rise: 6, duration: 220 },
     );
     return () => animation.current?.cancel();
   }, [pathname]);

@@ -1,25 +1,7 @@
 import { ModelProviderIcon } from "@/components/model-provider-icon";
+import { harnessProvider } from "@/lib/coding-agents";
 
-const harnessProviders: Record<string, string> = {
-  claudecode: "anthropic",
-  "claude-code": "anthropic",
-  "cursor-cli": "cursor",
-  cursorcli: "cursor",
-  codex: "openai",
-  "codex-cli": "openai",
-  geminicli: "google",
-  "gemini-cli": "google",
-  githubcopilot: "github-copilot",
-  copilot: "github-copilot",
-  "grok-build": "xai",
-  grok: "xai",
-  "kimi-code": "moonshotai",
-  "kimi-code-cli": "moonshotai",
-  kimi: "moonshotai",
-  "devin-fusion-cli": "cognition",
-  "muse-code": "meta",
-  opencode: "opencode",
-};
+/** Logo of a coding-agent harness, from its provider. */
 export function HarnessIcon({
   slug,
   size = 20,
@@ -29,12 +11,5 @@ export function HarnessIcon({
   size?: number;
   creator?: string | null;
 }) {
-  return (
-    <ModelProviderIcon
-      provider={
-        creator ?? harnessProviders[slug.toLowerCase()] ?? slug.toLowerCase()
-      }
-      size={size}
-    />
-  );
+  return <ModelProviderIcon provider={harnessProvider(slug, creator)} size={size} />;
 }

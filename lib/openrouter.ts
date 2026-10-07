@@ -5,7 +5,9 @@ import {
   getCanonicalCreatorSlug,
   getModelProviderKey,
 } from "@/lib/provider-map";
-import { filterOpenRouterCatalogEntries } from "@/lib/openrouter-model-filter";
+import { filterOpenRouterCatalogEntries, isOpenRouterStealthEntry } from "@/lib/openrouter-model-filter";
+import { mergeIdentityMetadata } from "./model-identity";
+import { logEvent } from "./logger";
 
 const OR_BASE = "https://openrouter.ai/api/v1";
 const OPENROUTER_APP_REFERER = "https://benchsift.nxtaigen.com";
@@ -32,6 +34,7 @@ interface OpenRouterDisplayPricingRow {
 }
 
 export interface OpenRouterModel {
+  description?: string;
   id: string;
   canonical_slug: string;
   hugging_face_id: string | null;
@@ -86,15 +89,6 @@ interface OpenRouterRankingRow {
   model_permaslug?: string;
   variant?: string;
   variant_permaslug?: string;
-  total_completion_tokens?: number;
-  total_prompt_tokens?: number;
-  total_native_tokens_reasoning?: number;
-  total_native_tokens_cached?: number;
-  total_tool_calls?: number;
-  num_media_prompt?: number;
-  num_media_completion?: number;
-  num_audio_prompt?: number;
-  count?: number;
   change?: number | null;
 }
 
@@ -131,12 +125,17 @@ export async function getOpenRouterModels(
       `${OR_BASE}/models?output_modalities=all`,
       { headers },
     );
-    if (!res.ok) return [];
+    if (!res.ok) {
+      logEvent("warn", "source.openrouter_unavailable", { status: res.status });
+      return [];
+    }
     const json = (await res.json()) as { data?: OpenRouterModel[] };
     const models = filterOpenRouterCatalogEntries(json.data ?? []);
     await enrichOpenRouterDisplayPricing(models);
+    logEvent("info", "source.openrouter_received", { models: models.length });
     return models;
   } catch {
+    logEvent("warn", "source.openrouter_unavailable");
     return [];
   }
 }
@@ -617,36 +616,15 @@ function mergeOpenRouterData(
     }
   }
 
-  const usageRankings = usageRows.map((row, index) => {
-    const tokenParts = [
-      row.total_prompt_tokens,
-      row.total_completion_tokens,
-      row.total_native_tokens_reasoning,
-    ];
-    return {
-      row,
-      rank: index + 1,
-      tokens: tokenParts.some((value) => typeof value === "number")
-        ? tokenParts
-            .filter((value): value is number => typeof value === "number")
-            .reduce((sum, value) => sum + value, 0)
-        : null,
-    };
-  });
-  const usage = usageRankings.find(({ row }) => matchesModel(modelIds, row));
-  if (!usage) return { ...model, evaluations };
+  // OpenRouter's popularity order is the only usage signal it publishes.
+  const usageIndex = usageRows.findIndex((row) => matchesModel(modelIds, row));
+  if (usageIndex < 0) return { ...model, evaluations };
 
   return {
     ...model,
     evaluations,
-    openrouter_weekly_rank: usage.rank,
-    openrouter_weekly_tokens: usage.tokens,
-    openrouter_weekly_requests: usage.row.count ?? null,
-    openrouter_weekly_tool_calls: usage.row.total_tool_calls ?? null,
-    openrouter_weekly_images:
-      (usage.row.num_media_prompt ?? 0) + (usage.row.num_media_completion ?? 0),
-    openrouter_weekly_audio_inputs: usage.row.num_audio_prompt ?? null,
-    openrouter_variant: usage.row.variant ?? null,
+    openrouter_weekly_rank: usageIndex + 1,
+    openrouter_variant: usageRows[usageIndex].variant ?? null,
   };
 }
 
@@ -679,20 +657,15 @@ const OPENROUTER_OWNED_MODEL_FIELDS = [
   "openrouter_max_completion_tokens",
   "openrouter_expiration_date",
   "openrouter_weekly_rank",
-  "openrouter_weekly_tokens",
-  "openrouter_weekly_requests",
-  "openrouter_weekly_tool_calls",
-  "openrouter_weekly_images",
-  "openrouter_weekly_audio_inputs",
   "openrouter_variant",
 ] as const satisfies ReadonlyArray<keyof LLMModel>;
 
 function mergeMissingCatalogData(primary: LLMModel, fallback: LLMModel): LLMModel {
-  return {
+  return mergeIdentityMetadata({
     ...mergeDefined(fallback, primary),
     evaluations: mergeDefined(fallback.evaluations, primary.evaluations),
     pricing: mergeDefined(fallback.pricing, primary.pricing),
-  };
+  }, fallback);
 }
 
 function mergeOpenRouterIntoFirstParty(
@@ -953,12 +926,17 @@ function uniqueSlug(baseSlug: string, provider: string, used: Set<string>): stri
 }
 
 function openRouterOnlyModel(or: OpenRouterModel, usedSlugs: Set<string>): LLMModel {
-  const creatorSlug = providerSlug(or);
+  const creatorSlug = isOpenRouterStealthEntry(or) ? "stealth" : providerSlug(or);
   const creatorName = titleFromSlug(creatorSlug);
   const slug = uniqueSlug(openRouterModelPart(or), creatorSlug, usedSlugs);
 
   return {
     id: `openrouter:${or.id}`,
+    openrouter_api_id: or.id,
+    ...(isOpenRouterStealthEntry(or) ? { is_stealth: true, stealth_history: [{
+      id: or.id, name: or.name, sourceUrl: `https://openrouter.ai/${or.id.split("/").map(encodeURIComponent).join("/")}`,
+      listedAt: releaseDate(or), firstSeenAt: new Date().toISOString(),
+    }] } : {}),
     name: displayName(or, creatorName),
     slug,
     release_date: releaseDate(or),
@@ -1088,7 +1066,7 @@ export async function enrichModelsWithOpenRouter(
   const enrichedModels = models.map((model) => {
     const orModel = findOpenRouterModelForCatalogModel(model, orModels);
     const caps = orModel ? openRouterCapabilities(orModel) : {};
-    const enriched = mergeDefined(model, caps);
+    const enriched = mergeDefined(model, { ...caps, ...(orModel ? { openrouter_api_id: orModel.id } : {}) });
     return mergeOpenRouterData(
       enriched,
       modelCandidates(model, orModel),

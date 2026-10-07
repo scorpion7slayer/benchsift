@@ -4,7 +4,7 @@ This is implementation guidance, not a claim of legal compliance or immunity.
 The publisher identified himself as Théo Darville and confirmed that BenchSift
 is a free personal solo project in Belgium, without a company. The site runs on
 an OVH VPS in Gravelines (GRA), France, and uses Rybbit analytics. The confirmed
-public contact is support@contact.nxtaigen.com, linked from the legal and privacy
+public contact is contact@nxtaigen.com, linked from the legal and privacy
 pages. The publisher confirmed Resend receiving is enabled for contact.nxtaigen.com;
 no test email was sent. No postal address or hosting legal entity has been invented. The publisher also confirmed that Rybbit runs on this same VPS.
 The publisher reports the default Rybbit configuration, plus 30-day retention

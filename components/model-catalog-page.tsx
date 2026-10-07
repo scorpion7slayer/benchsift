@@ -18,6 +18,7 @@ import type {
 } from "@/lib/model-catalog";
 import { getModelProviderKey } from "@/lib/provider-map";
 import { cn } from "@/lib/utils";
+import { PageCat } from "@/components/pixel-art/page-cats";
 
 function pageHref(page: number): string {
   return page === 1 ? "/models" : `/models/page/${page}`;
@@ -159,7 +160,8 @@ export function ModelCatalogPage({
 
   return (
     <main id="main-content" tabIndex={-1} className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pb-24 pt-7 sm:px-6 sm:pt-9 lg:px-8">
-      <header className="flex flex-col gap-5 border-b border-border/70 pb-7 sm:flex-row sm:items-start sm:justify-between">
+      <header className="relative flex flex-col gap-5 border-b border-border/70 pb-7 sm:flex-row sm:items-start sm:justify-between">
+        <PageCat kind="catalog" className="absolute bottom-0 right-4" />
         <div className="flex min-w-0 items-start gap-3">
           <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-chart-1/12 text-chart-1">
             <LibraryBig className="size-5" />

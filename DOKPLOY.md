@@ -74,15 +74,25 @@ to refresh every 30 minutes:
 ```
 
 Dokploy requires the target container to be running for Application Schedule
-Jobs. The Docker image installs `bash` because Dokploy executes the command in
-the running container through `bash -c`. The `refresh-cache` script uses the
+Jobs. Use the container's `sh` shell if your Dokploy version exposes a shell
+setting; this image does not install Bash. The `refresh-cache` script uses the
 Node-compatible HTTP client provided by Bun with a configurable timeout because
 the full upstream refresh can take longer than the default request timeout.
 
-The command prints the refresh response (`ok`, `count`, and `stats`), then the
-result of `GET /api/cron/status`. Both endpoints require the bearer secret.
-Compare counters and `refreshedAt` with the previous cache; counts depend on
-upstream coverage and are not fixed deployment targets.
+The command prints timestamped progress, the total duration, model counts by
+source, retry counts, and a final persisted-cache check. During long refreshes it
+prints a heartbeat every 30 seconds. It exits with a failure if the refresh or
+cache verification fails, including an empty catalogue, stale cache or mismatched
+count. Both endpoints require the bearer secret. For automation that consumes
+JSON, use `bun run refresh-cache --json` for one sanitized success summary.
+Counts depend on upstream coverage and are not fixed deployment targets.
+
+The application logs show `server.started`, `catalogue.cache`, HTTP status and
+duration, each refresh stage, capability-scraping progress, and
+`refresh.completed` or `refresh.failed`. Successful health checks and static
+asset requests are omitted to keep the logs readable. Requests are grouped by
+route; query strings, model search terms, credentials and cache paths are not
+logged. Optional-source failures and Redis fallback are warnings.
 
 If the Artificial Analysis sitemap cannot be fetched, the job fails instead
 of writing the smaller cold-start cache. The sitemap is used only to add missing
@@ -94,7 +104,7 @@ For a Swarm liveness check, configure Dokploy's Advanced health check with:
 
 ```json
 {
-  "Test": ["CMD", "curl", "-f", "http://localhost:3000/health"],
+  "Test": ["CMD", "bun", "-e", "const r = await fetch('http://127.0.0.1:3000/health'); process.exit(r.ok ? 0 : 1)"],
   "Interval": 30000000000,
   "Timeout": 10000000000,
   "StartPeriod": 30000000000,

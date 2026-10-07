@@ -3,6 +3,7 @@ import type { LLMModel } from "@/lib/api";
 import { cached } from "@/lib/revalidate-cache";
 import { fetchWithRetry } from "@/lib/fetch-with-retry";
 import { mergeModelsDev, parseModelsDev } from "@/lib/models-dev";
+import { logEvent } from "./logger";
 
 const fetchCatalog = cached(
   async () => {
@@ -27,6 +28,7 @@ export async function enrichModelsWithModelsDev(
   try {
     return mergeModelsDev(models, await fetchCatalog());
   } catch {
+    logEvent("warn", "source.modelsdev_unavailable", { historicalDataPreserved: true });
     return models;
   } // Optional source: keep AA/OpenRouter and historical data.
 }

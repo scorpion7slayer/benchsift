@@ -381,6 +381,44 @@ function extractParameterBillions(
   return match ? toBillions(Number.parseFloat(match[1]), match[2]) : null;
 }
 
+const JSON_QUOTE = String.raw`\\?"`;
+const AA_MODEL_OBJECT_START = String.raw`\{${JSON_QUOTE}id${JSON_QUOTE}:${JSON_QUOTE}[0-9a-f-]{36}${JSON_QUOTE},${JSON_QUOTE}slug${JSON_QUOTE}:`;
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * AA pages embed several models; parameters are read only from the object
+ * whose slug is the page's own, e.g. {"id":"…","slug":"gpt-oss-120b",…,
+ * "parameters":117,"inferenceParametersActiveBillions":5.1}. Values are in
+ * billions; `null` means AA does not publish the count.
+ */
+function extractPageModelParameters(
+  input: AAHtmlInput,
+  slug: string,
+): { total: number | null; active: number | null } | null {
+  const start = new RegExp(`${AA_MODEL_OBJECT_START}${JSON_QUOTE}${escapeRegExp(slug)}${JSON_QUOTE}`);
+  const nextModel = new RegExp(AA_MODEL_OBJECT_START, "g");
+  const field = (object: string, key: string): number | null => {
+    const match = object.match(new RegExp(`${JSON_QUOTE}${key}${JSON_QUOTE}:(null|[\\d.]+)`));
+    const value = match && match[1] !== "null" ? Number.parseFloat(match[1]) : null;
+    return value != null && Number.isFinite(value) ? value : null;
+  };
+  for (const html of structuredSources(input)) {
+    const match = start.exec(html);
+    if (!match) continue;
+    nextModel.lastIndex = match.index + match[0].length;
+    const end = nextModel.exec(html)?.index ?? html.length;
+    const object = html.slice(match.index, Math.min(end, match.index + 8_000));
+    return {
+      total: field(object, "parameters"),
+      active: field(object, "inferenceParametersActiveBillions"),
+    };
+  }
+  return null;
+}
+
 function extractKnowledgeCutoff(input: AAHtmlInput): string | null {
   const iso = extractJsonString(
     input,
@@ -433,6 +471,14 @@ function extractIntelligenceIndexCost(input: AAHtmlInput): number | null {
   return textMatch ? Number.parseFloat(textMatch[1].replace(/,/g, "")) : null;
 }
 
+function extractIntelligenceIndexCostPerTask(input: AAHtmlInput): number | null {
+  const match = firstStructuredMatch(
+    input,
+    /\\?"intelligence_index_cost\\?"\s*:\s*\{[\s\S]{0,800}?\\?"cost_per_task\\?"\s*:\s*\{[\s\S]{0,300}?\\?"total_cost\\?"\s*:\s*([\d.]+)/,
+  );
+  return match ? Number.parseFloat(match[1]) : null;
+}
+
 function extractEndToEndResponseTime(input: AAHtmlInput): number | null {
   const match = firstStructuredMatch(
     input,
@@ -450,21 +496,18 @@ function extractEndToEndResponseTime(input: AAHtmlInput): number | null {
 }
 
 /** Parses the capability fields embedded in an Artificial Analysis model page. */
-export function extractAACapabilities(input: AAHtmlInput) {
+export function extractAACapabilities(input: AAHtmlInput, slug?: string) {
   const document =
     typeof input === "string" ? parseAAHtmlDocument(input) : input;
+  const pageParameters = slug ? extractPageModelParameters(document, slug) : null;
   return {
     context_window_tokens: extractContextWindow(document),
-    total_parameters_b: extractParameterBillions(
-      document,
-      "Total parameters",
-      "totalParameters",
-    ),
-    active_parameters_b: extractParameterBillions(
-      document,
-      "Active parameters",
-      "activeParameters",
-    ),
+    total_parameters_b: pageParameters
+      ? pageParameters.total
+      : extractParameterBillions(document, "Total parameters", "totalParameters"),
+    active_parameters_b: pageParameters
+      ? pageParameters.active
+      : extractParameterBillions(document, "Active parameters", "activeParameters"),
     reasoning_model: extractJsonBoolean(document, "reasoning_model", "isReasoning"),
     reasoning_properties: null,
     is_open_weights: extractJsonBoolean(document, "is_open_weights", "isOpenWeights"),
@@ -512,6 +555,7 @@ export function extractAACapabilities(input: AAHtmlInput) {
     openness_index: extractOpenness(document),
     intelligence_index_tokens: extractIntelligenceIndexTokens(document),
     intelligence_index_cost_usd: extractIntelligenceIndexCost(document),
+    intelligence_index_cost_per_task_usd: extractIntelligenceIndexCostPerTask(document),
     end_to_end_response_time_seconds: extractEndToEndResponseTime(document),
   };
 }

@@ -8,6 +8,7 @@ export type ModelPrimaryCategory =
   | "embeddings"
   | "rerank"
   | "transcription"
+  | "decisions"
   | "unknown";
 
 const AA_INDEX_KEYS = new Set([
@@ -84,6 +85,14 @@ export const AA_MEDIA_BENCHMARK_DEFS = [
     appearancesKey: "artificial_analysis_media_text_to_speech_appearances",
     label: { fr: "Texte vers voix ELO", en: "Text-to-speech ELO" },
   },
+] as const;
+
+/** Benchmarks Artificial Analysis publishes as 0–1 fractions, in display order. */
+export const FRACTION_BENCHMARK_KEYS = [
+  "mmlu_pro", "gpqa", "hle", "livecodebench", "scicode", "math_500", "aime", "aime_25",
+  "ifbench", "lcr", "terminalbench_hard", "terminalbench_v2_1", "tau2", "tau_banking",
+  "humaneval", "omniscience", "multilingual_aa", "mmmu_pro", "critpt", "gdpval_normalized",
+  "apex_agents", "itbench_aa", "omniscience_non_hallucination",
 ] as const;
 
 export function createEmptyEvaluations(): Evaluations {
@@ -200,6 +209,7 @@ export function getPrimaryCategory(model: LLMModel): ModelPrimaryCategory {
   if (output.has("transcription")) return "transcription";
   if (output.has("embeddings")) return "embeddings";
   if (output.has("rerank")) return "rerank";
+  if (output.has("decisions")) return "decisions";
 
   const input = inputModalities(model);
   if (input.has("image")) return "image";
@@ -283,14 +293,7 @@ function hasPerformanceData(model: LLMModel): boolean {
 }
 
 function hasOpenRouterUsageData(model: LLMModel): boolean {
-  return Boolean(
-    model.openrouter_weekly_rank != null ||
-    model.openrouter_weekly_tokens != null ||
-    model.openrouter_weekly_requests != null ||
-    model.openrouter_weekly_tool_calls != null ||
-    model.openrouter_weekly_images != null ||
-    model.openrouter_weekly_audio_inputs != null,
-  );
+  return model.openrouter_weekly_rank != null;
 }
 
 function hasHuggingFaceSignal(model: LLMModel): boolean {

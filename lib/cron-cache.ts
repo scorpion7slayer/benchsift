@@ -11,6 +11,7 @@ import {
 } from "@/lib/models-cache-keys";
 
 import { redisCommand } from "@/lib/redis-cache";
+import { logEvent } from "./logger";
 
 interface ModelsCacheEntry {
   key: string;
@@ -69,6 +70,7 @@ let sharedSnapshot: ModelsCacheEntry | null = null;
 let sharedDigest: string | null = null;
 let nextSharedCheck = 0;
 let reading: Promise<ModelsCacheEntry | null> | undefined;
+let lastReportedState: string | undefined;
 
 function digest(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");
@@ -129,6 +131,14 @@ export async function readModelsCache(
     reading = undefined;
   });
   const entry = await reading;
+  const state = entry ? (isFresh(entry) ? "fresh" : "stale") : "unavailable";
+  const reportKey = `${state}:${entry?.refreshedAt ?? ""}`;
+  if (reportKey !== lastReportedState) {
+    logEvent(state === "fresh" ? "info" : "warn", "catalogue.cache", {
+      state, models: entry?.models.length, ageSeconds: entry ? Math.max(0, Math.round((Date.now() - entry.refreshedAt) / 1000)) : undefined,
+    });
+    lastReportedState = reportKey;
+  }
   return entry && (options.allowStale || isFresh(entry)) ? entry : null;
 }
 
@@ -205,6 +215,7 @@ export async function writeModelsCache(
     sharedSnapshot = process.env.REDIS_URL ? entry : null;
     sharedDigest = process.env.REDIS_URL ? hash : null;
     nextSharedCheck = 0;
+    logEvent("info", "catalogue.persisted", { models: models.length, redisConfigured: Boolean(process.env.REDIS_URL) });
   } catch (error) {
     await rm(temporaryFile, { force: true }).catch(() => undefined);
     throw error;
@@ -217,6 +228,6 @@ export async function writeModelsCache(
  */
 export function scheduleWriteModelsCache(models: LLMModel[]): void {
   void writeModelsCache(models).catch(() => {
-    // Best-effort - the next refresh call can repopulate the cache.
+    logEvent("error", "catalogue.background_write_failed");
   });
 }

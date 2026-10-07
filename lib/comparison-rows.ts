@@ -7,6 +7,15 @@ import {
   textMetricValue,
   numericEval,
 } from "./model-metrics";
+import {
+  MISSING,
+  formatMoney,
+  formatNumber,
+  formatPercent,
+  formatSeconds,
+  formatSpeed,
+  formatTokens,
+} from "./format";
 
 export type ComparisonValue = number | string | boolean | null;
 export type ComparisonGroup =
@@ -18,6 +27,7 @@ export type ComparisonGroup =
 export type ComparisonFormat =
   | "number"
   | "percent"
+  | "points"
   | "money"
   | "tokens"
   | "seconds"
@@ -32,6 +42,8 @@ export interface ComparisonRow {
   direction?: "higher" | "lower";
   format?: ComparisonFormat;
   essential?: boolean;
+  /** Short definition shown next to the row label. */
+  hint?: string;
 }
 
 export function bestComparisonValue(row: ComparisonRow): number | null {
@@ -46,6 +58,70 @@ export function bestComparisonValue(row: ComparisonRow): number | null {
 }
 export function comparisonHasDifferences(row: ComparisonRow): boolean {
   return new Set(row.values).size > 1;
+}
+
+function numericValues(row: ComparisonRow): number[] {
+  return row.values.filter(
+    (value): value is number => typeof value === "number" && Number.isFinite(value),
+  );
+}
+
+/**
+ * Position of a value relative to the best one in its row, in (0, 1]. Drives
+ * the small bars; rows without a direction or a second value have none.
+ */
+export function comparisonShare(row: ComparisonRow, value: ComparisonValue): number | null {
+  if (!row.direction || typeof value !== "number" || !Number.isFinite(value) || value < 0) return null;
+  const values = numericValues(row);
+  if (values.length < 2 || values.some((item) => item < 0)) return null;
+  if (row.direction === "higher") {
+    const max = Math.max(...values);
+    return max > 0 ? value / max : null;
+  }
+  const min = Math.min(...values);
+  return value > 0 ? min / value : null;
+}
+
+/** How many times the lowest compared price this price is, when it is not the lowest. */
+export function comparisonPriceRatio(row: ComparisonRow, value: ComparisonValue): number | null {
+  if (row.format !== "money" || typeof value !== "number" || !Number.isFinite(value)) return null;
+  const values = numericValues(row);
+  if (values.length < 2) return null;
+  const min = Math.min(...values);
+  if (min <= 0) return null;
+  const ratio = value / min;
+  return ratio >= 1.05 ? ratio : null;
+}
+
+export function formatComparisonValue(
+  value: ComparisonValue,
+  row: Pick<ComparisonRow, "format">,
+  lang: Lang,
+  labels: { yes: string; no: string },
+): string {
+  if (value === null) return MISSING;
+  if (typeof value === "boolean") return value ? labels.yes : labels.no;
+  if (typeof value === "string") return value || MISSING;
+  switch (row.format) {
+    case "percent":
+      return formatPercent(value, lang);
+    case "points":
+      return formatPercent(value / 100, lang);
+    case "money":
+      return formatMoney(value, lang);
+    case "seconds":
+      return formatSeconds(value, lang);
+    case "speed":
+      return formatSpeed(value, lang);
+    case "tokens":
+      return formatTokens(value, lang);
+    case "elo":
+      return `${formatNumber(value, lang, 0)} Elo`;
+    case "rank":
+      return `#${value}`;
+    default:
+      return formatNumber(value, lang, Number.isInteger(value) || Math.abs(value) >= 1000 ? 0 : 1);
+  }
 }
 const benchmarkLabels = (key: string, t: Translations): string => {
   const labels = t.benchmarks as unknown as Record<string, string>;
@@ -107,6 +183,14 @@ export function buildComparisonRows(
     "tau_banking",
     "gdpval_normalized",
     "itbench_aa",
+    // AA publishes these as 0–1 fractions, like the benchmarks above.
+    "humaneval",
+    "omniscience",
+    "omniscience_non_hallucination",
+    "multilingual_aa",
+    "mmmu_pro",
+    "critpt",
+    "apex_agents",
   ];
   for (const key of [...indices, ...percentages])
     add(
@@ -149,13 +233,16 @@ export function buildComparisonRows(
   ].sort();
   for (const key of keys) {
     if (rows.some((row) => row.id === key)) continue;
-    // Unknown source fields keep their raw numeric units, without guessed percentages or direction.
+    // Design Arena win rates are published in percentage points; other
+    // unknown fields keep their raw units, without guessed direction.
     add(
       key,
       benchmarkLabels(key, t),
       "benchmarks",
       (m) => extra.get(m.slug)?.get(key),
-      { format: "number" },
+      key.startsWith("openrouter_da_")
+        ? { format: "points", direction: "higher" }
+        : { format: "number" },
     );
   }
   const f = t.compare.fields;
@@ -284,7 +371,9 @@ export function buildComparisonRows(
   add("release", f.releaseDate, "info", (m) => m.release_date);
   add("knowledge", f.knowledgeCutoff, "info", (m) => m.knowledge_cutoff);
   add("openness", f.opennessIndex, "info", (m) => m.openness_index);
-  add("verbosity", f.verbosity, "info", (m) => m.intelligence_index_tokens);
+  add("verbosity", f.verbosity, "info", (m) => m.intelligence_index_tokens, {
+    format: "tokens",
+  });
   add(
     "evaluation-cost",
     f.evalCost,
@@ -292,17 +381,35 @@ export function buildComparisonRows(
     (m) => m.intelligence_index_cost_usd,
     { format: "money" },
   );
-  const usage = [
-    ["openrouter_weekly_rank", f.openrouterWeeklyRank],
-    ["openrouter_weekly_tokens", f.openrouterWeeklyTokens],
-    ["openrouter_weekly_requests", f.openrouterWeeklyRequests],
-    ["openrouter_weekly_tool_calls", f.openrouterWeeklyToolCalls],
-    ["openrouter_weekly_images", f.openrouterWeeklyImages],
-    ["openrouter_weekly_audio_inputs", f.openrouterWeeklyAudioInputs],
-  ] as const;
-  for (const [key, label] of usage)
-    add(key, label, "info", (m) => m[key], {
-      format: key === "openrouter_weekly_rank" ? "rank" : "tokens",
-    });
-  return rows;
+  add(
+    "cost-per-task",
+    f.costPerTask,
+    "pricing",
+    (m) => m.intelligence_index_cost_per_task_usd,
+    { format: "money", direction: "lower", essential: true },
+  );
+  add(
+    "openrouter_weekly_rank",
+    f.openrouterWeeklyRank,
+    "info",
+    (m) => m.openrouter_weekly_rank,
+    { format: "rank" },
+  );
+  const g = t.glossary;
+  const hints: Record<string, string> = {
+    artificial_analysis_intelligence_index: g.intelligence,
+    artificial_analysis_coding_index: g.coding,
+    artificial_analysis_math_index: g.math,
+    agentic_index: g.agentic,
+    speed: g.outputSpeed,
+    ttft: g.ttft,
+    "first-answer": g.firstAnswer,
+    "end-to-end": g.endToEnd,
+    price_1m_blended_3_to_1: t.detail.blendedTooltip,
+    price_1m_blended_7_2_1: t.detail.blended721Tooltip,
+    context: g.contextWindow,
+    "open-weights": g.openWeights,
+    openrouter_weekly_rank: g.openrouterRank,
+  };
+  return rows.map((row) => (hints[row.id] ? { ...row, hint: hints[row.id] } : row));
 }

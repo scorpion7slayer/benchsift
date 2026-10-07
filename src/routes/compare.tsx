@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { fetchCompareData } from "@/lib/server-fns";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { CompareTable } from "@/components/compare-table";
+import { CompareWorkspace } from "@/components/compare/compare-workspace";
 import { ChevronLeft, GitCompareArrows } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -113,7 +113,7 @@ function ComparePending() {
 }
 
 function ComparePage() {
-  const { allModels, selected } = Route.useLoaderData();
+  const { allModels, selected, families } = Route.useLoaderData();
 
   return (
     <div className="flex flex-col flex-1">
@@ -123,7 +123,7 @@ function ComparePage() {
         tabIndex={-1}
         className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 py-6 pb-20 sm:px-6 sm:py-8 lg:px-8"
       >
-        <CompareTable models={selected} allModels={allModels} />
+        <CompareWorkspace models={selected} allModels={allModels} families={families} />
       </main>
       <SiteFooter />
     </div>

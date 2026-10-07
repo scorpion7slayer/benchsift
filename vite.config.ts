@@ -16,6 +16,7 @@ export default defineConfig({
     tanstackStart(),
     nitro({
       preset: "node-server",
+      plugins: ["./server/plugins/logging.ts"],
       routeRules: {
         "/**": { headers: {
           "X-Content-Type-Options": "nosniff",

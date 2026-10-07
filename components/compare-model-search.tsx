@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/model-grid-logic";
 import { useId, useMemo, useRef, useState } from "react";
 import { Search, X } from "@/components/icons";
 import { Input } from "@/components/ui/input";
@@ -13,12 +14,15 @@ export function CompareModelSearch({
   onAdd,
   disabled,
   inputRef,
+  compact = false,
 }: {
   options: CompareModelOption[];
   selected: string[];
   onAdd: (slug: string) => void;
   disabled: boolean;
   inputRef: React.RefObject<HTMLInputElement | null>;
+  /** Fits a narrow table column; the result list then opens wider, aligned right. */
+  compact?: boolean;
 }) {
   const { t } = useI18n();
   const id = useId();
@@ -32,9 +36,7 @@ export function CompareModelSearch({
         .filter(
           (model) =>
             !selected.includes(model.slug) &&
-            `${model.name} ${model.model_creator.name}`
-              .toLowerCase()
-              .includes(query.trim().toLowerCase()),
+            matchesSearch(model, query),
         )
         .slice(0, 8),
     [options, selected, query],
@@ -63,7 +65,10 @@ export function CompareModelSearch({
       }}
     >
       <Search
-        className="pointer-events-none absolute left-3 top-3.5 size-4 text-muted-foreground"
+        className={cn(
+          "pointer-events-none absolute left-3 size-4 text-muted-foreground",
+          compact ? "top-3" : "top-4 sm:top-3.5",
+        )}
         aria-hidden="true"
       />
       <Input
@@ -79,8 +84,11 @@ export function CompareModelSearch({
         disabled={disabled}
         autoComplete="off"
         value={query}
-        placeholder={t.compareWorkspace.search}
-        className="h-11 bg-background pl-9 pr-11"
+        placeholder={compact ? t.compareWorkspace.searchShort : t.compareWorkspace.search}
+        className={cn(
+          "bg-background pl-9 pr-11",
+          compact ? "h-10 text-sm" : "h-12 text-base sm:h-11 sm:text-sm",
+        )}
         onFocus={() => setOpen(true)}
         onChange={(event) => {
           setQuery(event.target.value);
@@ -113,7 +121,10 @@ export function CompareModelSearch({
       {query && (
         <button
           type="button"
-          className="absolute right-0 top-0 flex size-11 items-center justify-center"
+          className={cn(
+            "absolute right-0 top-0 flex items-center justify-center text-muted-foreground hover:text-foreground",
+            compact ? "size-10" : "size-12 sm:size-11",
+          )}
           aria-label={t.compare.clear}
           onClick={() => {
             setQuery("");
@@ -125,7 +136,12 @@ export function CompareModelSearch({
         </button>
       )}
       {expanded && (
-        <div className="compare-picker absolute inset-x-0 top-full z-40 mt-2 rounded-xl border bg-popover text-popover-foreground shadow-lg">
+        <div
+          className={cn(
+            "compare-picker absolute top-full z-40 mt-2 rounded-xl border bg-popover text-popover-foreground shadow-lg",
+            compact ? "right-0 w-[min(22rem,80vw)]" : "inset-x-0",
+          )}
+        >
           <div
             id={id}
             role="listbox"

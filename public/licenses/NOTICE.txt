@@ -2,6 +2,9 @@ Rune Icons normal SVGs from Nexvyn/runeicons, commit f649e467d1bc9f272aae3f8daa3
 Models.dev logos from https://models.dev/; trademarks belong to their respective owners.
 
 Licence texts: /licenses/rune-icons.txt (Apache-2.0), /licenses/models-dev.txt (MIT), /licenses/geist.txt (OFL-1.1).
+Geist and Geist Mono (OFL-1.1, no Reserved Font Name) are served as Modified Versions:
+weight axis limited to 400-700 and characters subset to Latin, Latin-1, Latin Extended-A,
+punctuation, currency, arrows and common math signs (fonttools varLib.instancer + pyftsubset).
 Models.dev logos snapshot: c28ce719c50a6de8135eb51c8508a28853b45065.
 
 Artificial Analysis brand logos and published brand colors: https://artificialanalysis.ai/img/logos/
@@ -10,3 +13,10 @@ published branding map on /agents/coding-agents. Files are hosted locally and
 their original artwork is preserved. Brand trademarks belong to their owners;
 these third-party marks are not covered by the application's MIT licence.
 The filename/provider/color mapping is in lib/aa-logo-assets.ts.
+
+Additional Artificial Analysis creator logos (IFM, Krafton, Kokoro, Recraft,
+Luma Labs, Pruna AI): /models, retrieved 2026-09-21.
+Additional local brand SVGs from Lobe Icons, commit
+2e76c48721e91b9aaa40803a0fa2eb8aca7399c4, packages/static-svg/icons.
+MIT license: /licenses/lobe-icons.txt. Trademarks belong to their owners.
+Rune normal/git-branch and normal/eye use the same pinned Rune commit above.

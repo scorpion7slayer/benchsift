@@ -1,14 +1,16 @@
 /// <reference types="vite/client" />
 import {
+  Asset,
   Outlet,
   createRootRoute,
-  HeadContent,
   Scripts,
+  useRouter,
+  useTags,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Providers } from "@/components/providers";
 import { PageTransitionProvider } from "@/components/page-transition-provider";
-import { DefaultCatchBoundary } from "@/components/default-catch-boundary";
+import { RouteError } from "@/components/error-page";
 import { WebMcpProvider } from "@/components/webmcp-provider";
 import { fetchPreferences } from "@/lib/server-fns";
 import { useI18n } from "@/lib/i18n";
@@ -28,6 +30,9 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      // The text font is discovered only once the stylesheet parses; preloading
+      // it saves a round trip on slow connections. Geist Mono stays lazy.
+      { rel: "preload", href: "/fonts/Geist.woff2", as: "font", type: "font/woff2", crossOrigin: "anonymous" },
       {
         rel: "icon",
         type: "image/png",
@@ -49,7 +54,7 @@ export const Route = createRootRoute({
   errorComponent: (props) => (
     <RootDocument>
       <Providers initialLang="en" initialTheme="system">
-        <DefaultCatchBoundary {...props} />
+        <RouteError {...props} />
       </Providers>
     </RootDocument>
   ),
@@ -81,7 +86,7 @@ function RootDocument({
   return (
     <html lang={lang} className="h-full" suppressHydrationWarning>
       <head>
-        <HeadContent />
+        <DocumentHead />
 
       </head>
       <body
@@ -92,6 +97,25 @@ function RootDocument({
         <Scripts />
       </body>
     </html>
+  );
+}
+
+/**
+ * HeadContent, except that route chunks preload at low priority: the
+ * server-rendered page is readable before they run, so the stylesheet, fonts
+ * and images it shows first get the bandwidth.
+ */
+function DocumentHead() {
+  const tags = useTags();
+  const nonce = useRouter().options.ssr?.nonce;
+  return (
+    <>
+      {tags.map((tag) => {
+        const key = `tsr-meta-${JSON.stringify(tag)}`;
+        const preload = tag.tag === "link" && tag.attrs?.rel === "modulepreload";
+        return <Asset {...tag} attrs={preload ? { ...tag.attrs, fetchPriority: "low" } : tag.attrs} key={key} nonce={nonce} />;
+      })}
+    </>
   );
 }
 

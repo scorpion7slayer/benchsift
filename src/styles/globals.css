@@ -3,6 +3,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@media (max-width: 639px) {
+  .touch-target { min-height: 44px; min-width: 44px; }
+  html { scroll-padding-bottom: 100px; }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -70,12 +75,31 @@
   --border: oklch(0.84 0.012 88);
   --input: oklch(0.82 0.012 88);
   --ring: #245CBC;
+  --scrollbar-thumb: #aaa7a1;
+  --scrollbar-thumb-hover: #77736e;
   --chart-1: oklch(0.55 0.19 160);
   --chart-1-soft: oklch(0.92 0.05 160);
   --chart-2: oklch(0.56 0.20 248);
   --chart-3: oklch(0.68 0.19 72);
   --chart-4: oklch(0.60 0.22 30);
   --chart-5: oklch(0.45 0.006 85);
+  /* Compared models (column markers and chart lines); white text reads on each. */
+  --series-1: oklch(0.53 0.15 255);
+  --series-2: oklch(0.56 0.15 45);
+  --series-3: oklch(0.53 0.12 158);
+  --series-4: oklch(0.53 0.17 322);
+  /* Provider hues for multi-model charts (DeepSWE, coding agents). */
+  --provider-anthropic: oklch(0.55 0.14 45);
+  --provider-openai: oklch(0.55 0.13 158);
+  --provider-google: oklch(0.55 0.15 255);
+  --provider-xai: oklch(0.55 0.05 275);
+  --provider-zai: oklch(0.55 0.11 195);
+  --provider-moonshotai: oklch(0.55 0.16 25);
+  --provider-deepseek: oklch(0.55 0.14 295);
+  --provider-alibaba: oklch(0.55 0.12 215);
+  --provider-meta: oklch(0.55 0.14 340);
+  --provider-mistral: oklch(0.55 0.14 75);
+  --provider-other: oklch(0.55 0.01 85);
   --radius: 0.625rem;
   --sidebar: #FFFFFF;
   --sidebar-foreground: oklch(0.18 0.006 85);
@@ -85,11 +109,13 @@
   --sidebar-accent-foreground: oklch(0.22 0.006 85);
   --sidebar-border: oklch(0.84 0.012 88);
   --sidebar-ring: oklch(0.62 0.01 88);
-  --stagger-dur: 500ms;
-  --stagger-distance: 12px;
-  --stagger-stagger: 40ms;
-  --stagger-blur: 3px;
-  --stagger-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Motion: one curve and three durations shared by every interaction. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 140ms;
+  --duration-base: 200ms;
+  --duration-slow: 420ms;
+  --site-header-height: calc(3.5rem + 1px);
 }
 
 .dark {
@@ -111,12 +137,31 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: #92B8FF;
+  --scrollbar-thumb: #666461;
+  --scrollbar-thumb-hover: #928e89;
   --chart-1: oklch(0.72 0.18 160);
   --chart-1-soft: oklch(0.27 0.045 160);
   --chart-2: oklch(0.69 0.19 248);
   --chart-3: oklch(0.77 0.18 72);
   --chart-4: oklch(0.70 0.20 30);
   --chart-5: oklch(0.708 0 0);
+  /* Compared models; the dark card colour reads on each. */
+  --series-1: oklch(0.76 0.12 255);
+  --series-2: oklch(0.78 0.12 50);
+  --series-3: oklch(0.78 0.12 158);
+  --series-4: oklch(0.76 0.14 322);
+  /* Provider hues for multi-model charts. */
+  --provider-anthropic: oklch(0.75 0.14 45);
+  --provider-openai: oklch(0.75 0.13 158);
+  --provider-google: oklch(0.75 0.15 255);
+  --provider-xai: oklch(0.75 0.05 275);
+  --provider-zai: oklch(0.75 0.11 195);
+  --provider-moonshotai: oklch(0.75 0.16 25);
+  --provider-deepseek: oklch(0.75 0.14 295);
+  --provider-alibaba: oklch(0.75 0.12 215);
+  --provider-meta: oklch(0.75 0.14 340);
+  --provider-mistral: oklch(0.75 0.14 75);
+  --provider-other: oklch(0.75 0.01 85);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -130,6 +175,26 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  *::-webkit-scrollbar-track,
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: var(--scrollbar-thumb);
+    background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+    background-clip: padding-box;
   }
   body {
     @apply bg-background text-foreground;
@@ -158,27 +223,33 @@
   }
 }
 
-/* Preference changes */
-@keyframes theme-root-out {
-  to {
-    opacity: 0;
-  }
+/* Preference changes (lib/view-transition.ts). A theme grows as a circle from
+   the toggle; a language swap crossfades the text through a light blur. */
+@keyframes theme-reveal {
+  from { clip-path: circle(0 at var(--vt-x, 100%) var(--vt-y, 0)); }
+  to { clip-path: circle(var(--vt-r, 150vmax) at var(--vt-x, 100%) var(--vt-y, 0)); }
 }
+@keyframes language-out { to { opacity: 0; filter: blur(3px); } }
+@keyframes language-in { from { opacity: 0; filter: blur(3px); } }
 
-@keyframes theme-root-in {
-  from {
-    opacity: 0;
-  }
-}
-
-::view-transition-old(root) {
-  animation: theme-root-out 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
-  mix-blend-mode: normal;
-}
-
+::view-transition-old(root),
 ::view-transition-new(root) {
-  animation: theme-root-in 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
   mix-blend-mode: normal;
+}
+html[data-transition="theme"]::view-transition-old(root) { animation: none; }
+html[data-transition="theme"]::view-transition-new(root) {
+  animation: theme-reveal 560ms var(--ease-in-out) both;
+}
+html[data-transition="language"]::view-transition-old(root) {
+  animation: language-out 160ms ease-in both;
+}
+html[data-transition="language"]::view-transition-new(root) {
+  animation: language-in 280ms var(--ease-out) 60ms both;
+}
+@keyframes language-label-in { from { opacity: 0; transform: translateY(60%); } }
+.language-label { display: inline-block; animation: language-label-in var(--duration-base) var(--ease-out); }
+@media (prefers-reduced-motion: reduce) {
+  .language-label { animation: none; }
 }
 
 input[type="search"]::-webkit-search-cancel-button,
@@ -212,28 +283,10 @@ input[type="search"]::-ms-clear {
   contain-intrinsic-size: auto 460px;
 }
 
-.model-category-bar {
-  scrollbar-width: none;
-}
-
-.model-category-bar::-webkit-scrollbar {
-  display: none;
-}
-
-.model-category-indicator {
-  transition:
-    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.15s ease-out;
-}
-
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(root),
   ::view-transition-new(root) {
     animation: none;
-  }
-
-  .model-category-indicator {
-    transition: none;
   }
 }
 
@@ -250,190 +303,110 @@ input[type="search"]::-ms-clear {
   }
 }
 
-.compare-bubble {
-  opacity: 0;
-  pointer-events: none;
-  transform-origin: top left;
-  transition:
-    opacity 0.15s ease,
-    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.compare-bubble[data-state="visible"] {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* Shared 404 state */
-
-/* Lines start translated down + blurred + invisible; .is-shown
-   on the parent flips them to their resting state. The second
-   line's transition-delay holds it back by --stagger-stagger
-   so the eye lands on the headline first. */
-.t-stagger-line {
+/* Pixel cats (components/pixel-art): one palette per theme for the error
+   scenes and the small cat on each page. The keyframes live with each scene and rest on their final pose, which is what
+   reduced motion shows. */
+.px-scene {
   display: block;
-  opacity: 0;
-  transform: translateY(var(--stagger-distance));
-  filter: blur(var(--stagger-blur));
-  transition:
-    opacity   var(--stagger-dur) var(--stagger-ease),
-    transform var(--stagger-dur) var(--stagger-ease),
-    filter    var(--stagger-dur) var(--stagger-ease);
-  will-change: transform, opacity, filter;
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+  --px-ink: var(--foreground);
+  --px-dim: color-mix(in oklch, var(--foreground) 28%, var(--background));
+  --px-floor: var(--border);
+  --px-prop: color-mix(in oklch, var(--foreground) 42%, var(--background));
+  --px-prop-dark: color-mix(in oklch, var(--foreground) 62%, var(--background));
+  --px-light: #ffc861;
+  --px-paper: #fffdf8;
+  --px-glass: rgb(190 220 255 / 0.55);
+  --px-cat: #d97a3c;
+  --px-cat-dark: #a8582a;
+  --px-eye: #221a15;
+  --px-pink: #ec978d;
+  --px-yarn: #5b8def;
+  --px-led: oklch(0.7 0.17 150);
+  --px-alert: oklch(0.62 0.21 28);
+  --px-star: #f2bf3a;
 }
-.t-stagger-line--2 { transition-delay: var(--stagger-stagger); }
+.dark .px-scene {
+  --px-light: #ffd98a;
+  --px-paper: #ece7dd;
+  --px-glass: rgb(190 220 255 / 0.35);
+  --px-cat: #e68c4e;
+  --px-cat-dark: #b9682f;
+  --px-pink: #f2a69c;
+  --px-yarn: #7ea6ff;
+}
+.px-ink { fill: var(--px-ink); }
+.px-floor { fill: var(--px-floor); }
+.px-prop { fill: var(--px-prop); }
+.px-prop-dark { fill: var(--px-prop-dark); }
+.px-paper { fill: var(--px-paper); }
+.px-glass { fill: var(--px-glass); }
+.px-light { fill: var(--px-light); }
+.px-cat { fill: var(--px-cat); }
+.px-cat-dark { fill: var(--px-cat-dark); }
+.px-eye { fill: var(--px-eye); }
+.px-pink { fill: var(--px-pink); }
+.px-yarn { fill: var(--px-yarn); }
+.px-led { fill: var(--px-led); }
+.px-alert { fill: var(--px-alert); }
+.px-star { fill: var(--px-star); }
+.px-beam-stop { stop-color: var(--px-light); }
 
-.t-stagger.is-shown .t-stagger-line {
-  opacity: 1;
-  transform: translateY(0);
-  filter: blur(0);
-}
-/* Exit decouples from the stagger: same fade for every line,
-   no Y return, no blur — so the disappearance reads as a
-   single quiet fade instead of a reverse reveal. */
-.t-stagger.is-hiding .t-stagger-line {
-  opacity: 0;
-  transform: translateY(0);
-  filter: blur(0);
-  transition:
-    opacity 200ms ease,
-    transform 0s linear,
-    filter 0s linear;
-  transition-delay: 0s;
-}
+/* The small cat on each page (components/pixel-art/page-cats.tsx). */
+.page-cat { display: inline-block; line-height: 0; }
+.page-cat .px-scene { overflow: visible; }
+@media print { .page-cat { display: none; } }
 
-.t-stagger-line--3 {
-  transition-delay: calc(var(--stagger-stagger) * 2);
-}
-
-@keyframes not-found-scan {
-  from {
-    transform: translateX(-102%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes not-found-symbol-in {
-  from {
-    opacity: 0.15;
-    transform: translateY(8px);
-    filter: blur(3px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
-  }
-}
-
-@keyframes not-found-mark-in {
-  from {
-    opacity: 0;
-    transform: scale(0.84);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+/* Registered so the 404 spotlight can grow; an SVG <style> cannot hold this rule. */
+@property --spot {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
 }
 
-@keyframes not-found-trace-in {
-  from {
-    opacity: 0;
-    transform: scaleX(0.2);
-  }
-  to {
-    opacity: 1;
-    transform: scaleX(1);
-  }
-}
-
-.not-found-scan {
-  position: absolute;
+/* 404: the page outside the flashlight's beam (components/pixel-art/spotlight.tsx).
+   Pointer events pass through, and the header brightens while the visitor reaches for it. */
+.scene-dim {
+  --scene-dark: rgb(22 19 15 / 0.5);
+  position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: 40;
   pointer-events: none;
-  transform: translateX(0);
-  border-right: 1px solid color-mix(in oklch, var(--foreground) 28%, transparent);
-  background: color-mix(in oklch, var(--foreground) 2.5%, transparent);
-  animation: not-found-scan 700ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+  background: radial-gradient(
+    ellipse max(1px, calc(var(--spot-rx, 50vw) * var(--spot))) max(1px, calc(var(--spot-ry, 50vh) * var(--spot)))
+      at var(--spot-x, 50%) var(--spot-y, 50%),
+    transparent 0 52%,
+    var(--scene-dark) 100%
+  );
+  transition: opacity 200ms var(--ease-out);
 }
-
-.not-found-symbol,
-.not-found-zero {
-  animation: not-found-symbol-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.not-found-symbol--first {
-  animation-delay: 80ms;
-}
-
-.not-found-zero {
-  display: inline-flex;
-  width: 0.64em;
-  height: 0.82em;
-  align-items: center;
-  justify-content: center;
-  border: 0.075em solid currentColor;
-  border-radius: 50%;
-  animation-delay: 120ms;
-}
-
-.not-found-symbol--last {
-  animation-delay: 160ms;
-}
-
-.not-found-mark {
-  animation: not-found-mark-in 350ms cubic-bezier(0.22, 1, 0.36, 1) 480ms both;
-}
-
-.not-found-trace {
-  transform-origin: left;
-  animation: not-found-trace-in 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.not-found-trace--one {
-  animation-delay: 260ms;
-}
-
-.not-found-trace--two {
-  animation-delay: 300ms;
-}
-
-.not-found-trace--three {
-  animation-delay: 340ms;
-}
+.dark .scene-dim { --scene-dark: rgb(0 0 0 / 0.6); }
+body:has(header:hover, header:focus-within, footer:focus-within) .scene-dim { opacity: 0.3; }
+@keyframes scene-dim-in { from { opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .t-stagger-line { transition: none !important; }
-
-  .not-found-scan,
-  .not-found-symbol,
-  .not-found-zero,
-  .not-found-mark,
-  .not-found-trace {
-    animation: none;
+  .px-scene *,
+  .scene-dim {
+    animation: none !important;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .model-grid-empty-refresh,
-  .compare-bubble {
+  .model-grid-empty-refresh {
     animation: none;
-  }
-  .compare-bubble {
-    transition: none;
   }
 }
 
-@font-face { font-family: Geist; src: url("/fonts/Geist.woff2") format("woff2"); font-style: normal; font-weight: 100 900; font-display: swap; }
-@font-face { font-family: "Geist Mono"; src: url("/fonts/GeistMono.woff2") format("woff2"); font-style: normal; font-weight: 100 900; font-display: swap; }
+/* Subset to Latin and the 400-700 weights the interface uses (see public/licenses/NOTICE.txt);
+   other characters fall back to the system font. */
+@font-face { font-family: Geist; src: url("/fonts/Geist.woff2") format("woff2"); font-style: normal; font-weight: 400 700; font-display: swap; }
+@font-face { font-family: "Geist Mono"; src: url("/fonts/GeistMono.woff2") format("woff2"); font-style: normal; font-weight: 400 700; font-display: swap; }
 .skip-link { position: fixed; top: .5rem; left: .5rem; z-index: 100; padding: .75rem 1rem; background: var(--background); color: var(--foreground); border: 2px solid var(--ring); border-radius: .5rem; transform: translateY(-200%); }
 .skip-link:focus { transform: translateY(0); }
 /* Preserve the original brand colors. Only monochrome fallback assets invert. */
-.brand-logo { background: color-mix(in oklch, var(--brand-color) 12%, var(--card)); box-shadow: 0 0 0 1px color-mix(in oklch, var(--brand-color) 20%, transparent); }
+.brand-logo { background: transparent; }
 .brand-logo img { border-radius: inherit; }
 .dark .brand-logo[data-monochrome] img { filter: invert(1); }
 @media (hover: hover) and (pointer: fine) { .latest-model-link:hover > svg { transform: translateX(2px); } }
@@ -447,8 +420,124 @@ body:has([data-cookie-banner]) [data-scroll-to-top] { visibility: hidden; }
   from { opacity: .65; }
   to { opacity: 1; }
 }
-.compare-picker { transform-origin: top; animation: compare-state-refresh 140ms ease-out; }
-.compare-metrics-enter { animation: comparison-content-in 140ms ease-out; }
+.compare-picker { transform-origin: top; animation: compare-state-refresh var(--duration-fast) var(--ease-out); }
+.compare-metrics-enter { animation: comparison-content-in var(--duration-base) ease-out; }
 @media (prefers-reduced-motion: reduce) {
   .compare-picker, .compare-metrics-enter { animation: none; }
+}
+
+/* A shared interaction language: motion follows changed state, not decoration. */
+@keyframes catalog-sheet-in { from { opacity: .5; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes catalog-sheet-out { to { opacity: 0; transform: translateY(16px); } }
+@keyframes catalog-nav-in { from { opacity: .7; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes catalog-nav-out { to { opacity: 0; transform: translateX(20px); } }
+@keyframes catalog-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes catalog-overlay-out { to { opacity: 0; } }
+@keyframes selection-confirm { from { transform: scale(.7); opacity: .4; } to { transform: scale(1); opacity: 1; } }
+/* Entrances use the shared ease-out curve; exits are shorter and accelerate away. */
+.catalog-sheet[data-state="open"] { animation: catalog-sheet-in 260ms var(--ease-out); }
+.catalog-sheet[data-state="closed"] { animation: catalog-sheet-out var(--duration-fast) ease-in; }
+.catalog-nav-sheet[data-state="open"] { animation: catalog-nav-in 260ms var(--ease-out); }
+.catalog-nav-sheet[data-state="closed"] { animation: catalog-nav-out var(--duration-fast) ease-in; }
+.catalog-sheet-overlay[data-state="open"] { animation: catalog-overlay-in var(--duration-base) ease-out; }
+.catalog-sheet-overlay[data-state="closed"] { animation: catalog-overlay-out var(--duration-fast) ease-in; }
+.compare-selection-dock { animation: catalog-sheet-in 240ms var(--ease-out); }
+.selection-button { transition: background-color var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast), transform 100ms var(--ease-out); }
+.selection-button:active { transform: scale(.94); }
+.selection-button[aria-pressed="true"] > svg { animation: selection-confirm var(--duration-base) var(--ease-out); }
+.catalog-card { transition: border-color var(--duration-base) ease, background-color var(--duration-base) ease, box-shadow var(--duration-base) ease; }
+.catalog-card:focus-within { border-color: var(--ring); }
+.site-footer a, .site-footer button { min-height: 36px; display: inline-flex; align-items: center; transition: color 150ms; }
+.site-footer a:hover, .site-footer button:hover { color: var(--foreground); text-decoration: underline; text-underline-offset: 4px; }
+body:has([data-compare-dock]) .site-footer { padding-bottom: 84px; }
+@media (hover: hover) and (pointer: fine) {
+  .catalog-card:hover { border-color: color-mix(in oklch, var(--foreground) 30%, var(--border)); background-color: color-mix(in oklch, var(--card) 96%, var(--foreground)); box-shadow: 0 8px 26px -20px color-mix(in oklch, var(--foreground) 35%, transparent); }
+}
+@media (max-width: 639px) {
+  .site-footer a, .site-footer button { min-height: 44px; }
+  .latest-models-strip { scrollbar-width: thin; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .catalog-sheet, .catalog-sheet-overlay, .compare-selection-dock, .selection-button > svg { animation: none !important; }
+  .selection-button:active { transform: none; }
+}
+
+
+/* Switching detail sections or opening a disclosure reveals only the new content. */
+@keyframes panel-reveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+.detail-panel, .disclosure-content { animation: panel-reveal var(--duration-base) var(--ease-out); }
+@media (prefers-reduced-motion: reduce) {
+  .detail-panel, .disclosure-content { animation: none; }
+}
+
+/* Catalogue sorting and filters */
+.model-table-head th {
+  position: sticky;
+  top: var(--site-header-height);
+  z-index: 5;
+  background: color-mix(in oklch, var(--muted) 30%, var(--card));
+  box-shadow: inset 0 -1px 0 var(--border);
+}
+@keyframes sort-icon-in { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+.sort-direction-icon { animation: sort-icon-in var(--duration-base) var(--ease-out); }
+.filter-chip { transition: opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out); }
+@starting-style { .filter-chip { opacity: 0; transform: scale(0.92); } }
+@media (prefers-reduced-motion: reduce) {
+  .sort-direction-icon { animation: none; }
+  .filter-chip { transition: none; }
+}
+
+/* Comparison workspace */
+.compare-sticky-head {
+  position: sticky;
+  top: var(--site-header-height);
+  z-index: 10;
+  background: var(--card);
+  padding-block: 0.875rem;
+  vertical-align: top;
+  transition: box-shadow var(--duration-base) var(--ease-out);
+}
+.compare-matrix[data-stuck] .compare-sticky-head {
+  box-shadow: 0 8px 16px -12px color-mix(in oklch, var(--foreground) 35%, transparent);
+}
+.compare-matrix[aria-busy="true"] tbody { opacity: 0.6; transition: opacity var(--duration-fast) ease-out; }
+@keyframes compare-column-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.compare-column-fresh { animation: compare-column-in var(--duration-base) var(--ease-out); }
+.compare-column-leaving { opacity: 0.25; transition: opacity var(--duration-fast) ease-out; }
+.compare-bar { transition: transform var(--duration-slow) var(--ease-out); }
+@starting-style { .compare-bar { transform: scaleX(0) !important; } }
+.segmented-indicator { transition: transform var(--duration-base) var(--ease-out), width var(--duration-base) var(--ease-out); }
+
+/* Trade-off charts: lines draw from the cheapest end, then points and labels settle. */
+@keyframes tradeoff-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes tradeoff-point-in { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: scale(1); } }
+@keyframes tradeoff-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.tradeoff-series { transition: opacity var(--duration-fast) ease-out; }
+.tradeoff-series[data-dimmed] { opacity: 0.22; }
+.tradeoff-line {
+  stroke-dasharray: 1;
+  animation: tradeoff-draw 640ms var(--ease-out) var(--series-delay, 0ms) both;
+}
+.tradeoff-point {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tradeoff-point-in var(--duration-base) var(--ease-out) var(--point-delay, 0ms) both;
+}
+.tradeoff-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+.tradeoff-dot.is-active { transform: scale(1.45); }
+.tradeoff-point:focus-visible .tradeoff-dot { stroke: var(--ring); stroke-width: 3px; }
+.tradeoff-labels { animation: tradeoff-fade-in var(--duration-slow) ease-out 420ms both; }
+.tradeoff-tooltip { animation: tradeoff-fade-in var(--duration-fast) ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .compare-sticky-head, .compare-bar, .segmented-indicator, .tradeoff-series, .tradeoff-dot { transition: none; }
+  .compare-column-fresh, .tradeoff-point, .tradeoff-line, .tradeoff-labels, .tradeoff-tooltip { animation: none; }
+}
+
+/* The compare dock and the back-to-top button share the bottom-right corner. */
+@media (min-width: 640px) {
+  body:has([data-compare-dock]) [data-scroll-to-top] { bottom: 6.25rem; }
 }

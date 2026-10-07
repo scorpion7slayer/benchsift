@@ -129,7 +129,7 @@ function stripTrailingReasoningWord(value: string): {
   };
 }
 
-function describeReasoningVariant(
+export function describeReasoningVariant(
   model: ReasoningModelIdentity,
 ): ReasoningVariantDescriptor {
   let familyName = cleanName(model.name);
@@ -138,7 +138,8 @@ function describeReasoningVariant(
   let explicit = false;
 
   const parenthetical = familyName.match(/\s*\(([^()]*)\)\s*$/);
-  if (parenthetical && REASONING_QUALIFIER.test(parenthetical[1])) {
+  // "(Max, Default Fallback)" carries the effort in one of its comma parts.
+  if (parenthetical && parenthetical[1].split(/\s*,\s*/).some((part) => REASONING_QUALIFIER.test(part))) {
     const qualifier = parenthetical[1];
     const preservedParts = qualifier
       .split(/\s*,\s*/)

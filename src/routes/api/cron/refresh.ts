@@ -3,12 +3,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { refreshModelsCache } from "@/lib/api";
 
-interface CronErrorDetails {
-  name: string;
-  message: string;
-  cause?: CronErrorDetails;
-}
-
 function unauthorized(reason: string): Response {
   return new Response(JSON.stringify({ error: reason }), {
     status: 401,
@@ -35,22 +29,6 @@ function timingSafeEqual(a: string, b: string): boolean {
   return mismatch === 0;
 }
 
-function errorDetails(error: unknown, depth = 0): CronErrorDetails {
-  if (error instanceof Error) {
-    const cause = "cause" in error ? error.cause : undefined;
-    return {
-      name: error.name || "Error",
-      message: error.message || "Unknown error",
-      ...(cause && depth < 2 ? { cause: errorDetails(cause, depth + 1) } : {}),
-    };
-  }
-
-  return {
-    name: typeof error,
-    message: String(error),
-  };
-}
-
 async function handle(request: Request): Promise<Response> {
   const expected = process.env.CRON_SECRET;
   if (!expected) return unauthorized("CRON_SECRET not configured");
@@ -63,15 +41,11 @@ async function handle(request: Request): Promise<Response> {
   try {
     const result = await refreshModelsCache();
     return Response.json({ ok: true, ...result, durationMs: Date.now() - started });
-  } catch (error) {
-    const details = errorDetails(error);
-    console.error("[cron-refresh] failed", details);
+  } catch {
     return Response.json(
       {
         ok: false,
-        error: details.message,
-        errorName: details.name,
-        details,
+        error: "Catalogue refresh failed. See the application logs for the last completed stage.",
         durationMs: Date.now() - started,
       },
       { status: 500 },

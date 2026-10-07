@@ -1,123 +1,43 @@
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { Link } from "@/components/link";
-import { ArrowRight, Sparkles } from "@/components/icons";
-import { Badge } from "@/components/ui/badge";
+import { ArrowRight } from "@/components/icons";
 import { CompareMenu } from "@/components/compare-menu";
 import { ModelProviderIcon } from "@/components/model-provider-icon";
 import { getModelProviderKey } from "@/lib/provider-map";
 import { useI18n } from "@/lib/i18n";
 import type { LatestModelSummary } from "@/lib/home-catalog";
+import { PageCat } from "@/components/pixel-art/page-cats";
 
-function formatReleaseDate(value: string | null, lang: "fr" | "en") {
-  if (!value) return null;
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return null;
-  return new Intl.DateTimeFormat(lang === "fr" ? "fr-FR" : "en-US", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  }).format(date);
-}
-
-export function HomeHero({
-  count,
-  latestModels,
-}: {
-  count: number;
-  latestModels: LatestModelSummary[];
-}) {
+export function HomeHero({ count, latestModels }: { count: number; latestModels: LatestModelSummary[] }) {
   const { lang, t } = useI18n();
-  const inlineCompare = useRef<HTMLDivElement>(null);
-  const [bubbleVisible, setBubbleVisible] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-    const node = inlineCompare.current;
-    if (!node || !("IntersectionObserver" in window)) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setBubbleVisible(
-          !entry.isIntersecting && entry.boundingClientRect.top < 56,
-        );
-      },
-      { rootMargin: "-56px 0px 0px 0px", threshold: 0 },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div className="mb-6 space-y-5">
-      <div>
-        <div className="mb-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t.hero.title}
-          </h1>
-          <Badge variant="secondary">{count}</Badge>
-          <div ref={inlineCompare} className="ml-auto inline-flex">
-            <CompareMenu />
-          </div>
+  return <header className="mb-6 space-y-5 sm:mb-8 sm:space-y-6">
+    <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-baseline gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t.hero.title}</h1>
+          <span className="text-sm tabular-nums text-muted-foreground">{count}</span>
         </div>
-        <p className="text-sm text-muted-foreground">{t.hero.description}</p>
+        <CompareMenu />
       </div>
-      {latestModels.length > 0 && (
-        <section aria-label={t.hero.latestModels} className="space-y-2">
-          <h2 className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            <Sparkles className="size-3.5 text-chart-2" aria-hidden="true" />
-            {t.hero.latestModels}
-          </h2>
-          <ol className="grid gap-2 md:grid-cols-3">
-            {latestModels.map((model) => {
-              const date = formatReleaseDate(model.releaseDate, lang);
-              return (
-                <li key={model.slug} className="min-w-0">
-                  <Link
-                    href={`/models/${model.slug}`}
-                    className="latest-model-link group flex h-full min-h-20 items-center gap-3 rounded-xl border bg-card px-3 py-3 transition-[border-color,background-color] hover:border-primary/40 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <ModelProviderIcon
-                      provider={getModelProviderKey(
-                        model.slug,
-                        model.providerSlug,
-                      )}
-                      iconUrl={model.providerIconUrl}
-                      size={32}
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-medium leading-5 [overflow-wrap:anywhere]">
-                        {model.name}
-                      </span>
-                      <span className="mt-1 flex flex-wrap gap-x-2 text-xs text-muted-foreground">
-                        <span>{model.providerName}</span>
-                        {date && (
-                          <time dateTime={model.releaseDate!}>{date}</time>
-                        )}
-                      </span>
-                    </span>
-                    <ArrowRight
-                      className="size-4 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none"
-                      aria-hidden="true"
-                    />
-                  </Link>
-                </li>
-              );
-            })}
-          </ol>
-        </section>
-      )}
-      {mounted &&
-        createPortal(
-          <div
-            className="compare-bubble fixed left-4 top-16 z-30"
-            data-state={bubbleVisible ? "visible" : "hidden"}
-            aria-hidden={!bubbleVisible}
-            inert={!bubbleVisible}
-          >
-            <CompareMenu variant="bubble" />
-          </div>,
-          document.body,
-        )}
+      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{t.hero.description}</p>
     </div>
-  );
+    {latestModels.length > 0 && <section aria-label={t.hero.latestModels}>
+      <div className="relative mb-3">
+        <h2 className="text-xs font-medium text-muted-foreground">{t.hero.latestModels}</h2>
+        {/* Sits on the cards' top edge, in the empty end of the label row. */}
+        <PageCat kind="home" className="absolute -bottom-3 right-3" />
+      </div>
+      <ol className="latest-models-strip -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0">
+        {latestModels.map((model) => {
+          const date = model.releaseDate ? new Date(model.releaseDate) : null;
+          return <li key={model.slug} className="w-[80%] shrink-0 snap-start sm:w-auto sm:min-w-0">
+            <Link href={`/models/${model.slug}`} className="latest-model-link group flex h-full items-center gap-3 rounded-xl border bg-card p-3 transition-[border-color,background-color] hover:border-foreground/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <ModelProviderIcon provider={getModelProviderKey(model.slug, model.providerSlug)} iconUrl={model.providerIconUrl} size={40} />
+              <span className="min-w-0 flex-1"><span className="block text-sm font-medium leading-5 [overflow-wrap:anywhere]">{model.name}</span><span className="mt-1 flex flex-wrap gap-x-2 text-xs text-muted-foreground">{model.providerName}{date && Number.isFinite(date.getTime()) && <time dateTime={model.releaseDate!}>{new Intl.DateTimeFormat(lang === "fr" ? "fr-FR" : "en-US", { day: "numeric", month: "short", timeZone: "UTC" }).format(date)}</time>}</span></span>
+              <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform" />
+            </Link>
+          </li>;
+        })}
+      </ol>
+    </section>}
+  </header>;
 }

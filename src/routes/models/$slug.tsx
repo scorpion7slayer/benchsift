@@ -1,4 +1,4 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { fetchModelDetail, fetchModelCapabilities } from "@/lib/server-fns";
 import { ModelDetailClient } from "@/components/model-detail-client";
 import { SiteHeader } from "@/components/site-header";
@@ -18,6 +18,9 @@ export const Route = createFileRoute("/models/$slug")({
   loader: async ({ params }) => {
     const detail = await fetchModelDetail({ data: params.slug });
     if (!detail) throw notFound();
+    if (detail.model.alias_slugs?.includes(params.slug)) throw redirect({
+      to: "/models/$slug", params: { slug: detail.model.slug }, statusCode: 301,
+    });
     // Capabilities scraping starts in parallel — the promise is streamed to
     // the client and consumed there, so it never blocks the initial render.
     const capabilitiesPromise = fetchModelCapabilities({ data: params.slug });
@@ -27,7 +30,9 @@ export const Route = createFileRoute("/models/$slug")({
     const model = loaderData?.model;
     if (!model) return {};
     const category = getPrimaryCategory(model);
-    const categoryLabel = category === "unknown" ? "AI" : `${category} AI`;
+    const categoryLabel = category === "unknown"
+      ? "AI"
+      : category === "decisions" ? "decision AI" : `${category} AI`;
     const hasBenchmarks = hasAnyBenchmarkData(model);
     const hasPricing = hasPricingData(model);
     const mediaBenchmark = mediaBenchmarkValues(model)[0];
@@ -49,7 +54,15 @@ export const Route = createFileRoute("/models/$slug")({
         robots: shouldIndexModelPage(model)
           ? undefined
           : "noindex, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
-        jsonLd: {
+        jsonLd: [{
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "BenchSift", item: absoluteUrl("/") },
+            { "@type": "ListItem", position: 2, name: model.model_creator.name, item: absoluteUrl(`/?provider=${encodeURIComponent(model.model_creator.slug)}`) },
+            { "@type": "ListItem", position: 3, name: model.name, item: absoluteUrl(`/models/${model.slug}`) },
+          ],
+        }, {
           "@context": "https://schema.org",
           "@type": "SoftwareApplication",
           name: model.name,
@@ -70,7 +83,7 @@ export const Route = createFileRoute("/models/$slug")({
                   priceCurrency: "USD",
                   unitText: offerUnit,
                 },
-        },
+        }],
       }),
     };
   },
@@ -78,16 +91,17 @@ export const Route = createFileRoute("/models/$slug")({
 });
 
 function ModelPage() {
-  const { model, familyName, variants, capabilitiesPromise } = Route.useLoaderData();
+  const { model, familyName, variants, familyPoints, ranks, similar, capabilitiesPromise } = Route.useLoaderData();
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1 pb-24 sm:pb-0">
       <SiteHeader backHref="/" />
       <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <ModelDetailClient
           model={model}
           familyName={familyName}
           variants={variants}
+          insights={{ familyPoints, ranks, similar }}
           capabilitiesPromise={capabilitiesPromise}
         />
       </main>

@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from "react";
-import { getBrandLogo, localSourceLogo } from "@/lib/brand-logos";
+import { getBrandLogo, getBrandLogoCandidates } from "@/lib/brand-logos";
 
 export function ModelProviderIcon({
   provider,
@@ -11,8 +11,9 @@ export function ModelProviderIcon({
   iconUrl?: string | null;
 }) {
   const asset = getBrandLogo(provider);
-  const src = localSourceLogo(iconUrl) ?? asset.src;
-  const [failed, setFailed] = useState<string | null>(null);
+  const [failed, setFailed] = useState<string[]>([]);
+  const candidate = getBrandLogoCandidates(provider, iconUrl).find((item) => !failed.includes(item.src));
+  const src = candidate?.src;
   const initials = provider
     .split(/[-_\s]+/)
     .filter(Boolean)
@@ -23,7 +24,7 @@ export function ModelProviderIcon({
     <span
       aria-hidden="true"
       className="brand-logo relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-md font-semibold text-muted-foreground"
-      data-monochrome={asset.monochrome || undefined}
+      data-monochrome={candidate?.monochrome || undefined}
       style={
         {
           width: size,
@@ -33,7 +34,7 @@ export function ModelProviderIcon({
         } as CSSProperties
       }
     >
-      {src && failed !== src ? (
+      {src ? (
         <img
           src={src}
           width={size}
@@ -42,7 +43,7 @@ export function ModelProviderIcon({
           loading="lazy"
           decoding="async"
           className="provider-logo size-full object-contain"
-          onError={() => setFailed(src)}
+          onError={() => setFailed((previous) => [...previous, src])}
         />
       ) : (
         initials
