@@ -3,7 +3,7 @@ import type { LLMModel } from "./model-types";
 
 /** Measurements the Advanced table can show; each is also a sort. */
 export const COLUMN_KEYS = [
-  "intelligence", "coding", "math", "agentic", "gpqa", "hle", "livecodebench",
+  "intelligence", "coding", "math", "agentic", "cyber", "gpqa", "hle", "livecodebench",
   "speed", "ttft", "price", "input_price", "output_price", "cost_per_task", "context", "newest",
 ] as const;
 export type ColumnKey = (typeof COLUMN_KEYS)[number];

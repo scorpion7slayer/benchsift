@@ -14,6 +14,11 @@ export function Link2({ size = 24, ...props }: RuneIconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M9 17H7C4.23858 17 2 14.7614 2 12C2 9.23858 4.23858 7 7 7H9M15 7H17C19.7614 7 22 9.23858 22 12C22 14.7614 19.7614 17 17 17H15M8 12H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
+/** Shield, drawn to match the Rune outline style. */
+export function Shield({ size = 24, ...props }: RuneIconProps) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M12 2L4 5.5V11C4 16 7.4 20.3 12 22C16.6 20.3 20 16 20 11V5.5L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
 /** Rune normal/arrow-right. */
 export function ArrowRight({ size = 24, ...props }: RuneIconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M5 12H19M12 19L19 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;

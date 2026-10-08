@@ -1,18 +1,23 @@
 import { useState } from "react";
-import { BarChart3, ChevronDown, TrendingUp } from "@/components/icons";
+import { CyberBenchmarkScore, CyberOutcomeBar, formatCyberScore } from "@/components/cyber/cyber-outcome";
+import { ArrowRight, BarChart3, Blocks, ChevronDown, Shield, TrendingUp } from "@/components/icons";
+import { InfoTip } from "@/components/info-tip";
+import { Link } from "@/components/link";
 import { Button } from "@/components/ui/button";
 import type { LLMModel } from "@/lib/model-types";
-import { formatNumber, formatPercent, formatTokens } from "@/lib/format";
+import { cyberIndexResult, cyberOutcomeShares } from "@/lib/cyber-index";
+import { formatMoney, formatNumber, formatPercent, formatTokens } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import {
   applicableExtraBenchmarkEntries,
+  capabilityIndexValues,
   FRACTION_BENCHMARK_KEYS,
   mediaBenchmarkValues,
   numericEval,
   textMetricValue,
 } from "@/lib/model-metrics";
 import type { ModelInsights } from "@/lib/model-insights";
-import { BenchmarkRow, DetailCard, TwoColumnRows } from "./detail-primitives";
+import { BenchmarkRow, DetailCard, RankNote, StatRow, TwoColumnRows } from "./detail-primitives";
 
 type Translations = ReturnType<typeof useI18n>["t"];
 type Ranks = ModelInsights["ranks"];
@@ -54,6 +59,131 @@ export function AAIndicesCard({ model, variantLabel, ranks }: { model: LLMModel;
           />
         ))}
       </TwoColumnRows>
+    </DetailCard>
+  );
+}
+
+/** "artificial_analysis_legal_index" → the "legal" label. */
+function capabilityLabel(key: string, t: Translations): string {
+  return benchmarkLabel(key.replace(/^artificial_analysis_/, "").replace(/_index$/, ""), t);
+}
+
+export function CapabilityIndexesCard({ model, ranks }: { model: LLMModel; ranks: Ranks }) {
+  const { t, lang } = useI18n();
+  const rows = capabilityIndexValues(model);
+  if (!rows.length) return null;
+  return (
+    <DetailCard icon={Blocks} title={t.detail.capabilityIndexes} description={t.detail.capabilityIndexesDescription}>
+      <TwoColumnRows>
+        {rows.map((row) => (
+          <BenchmarkRow
+            key={row.key}
+            label={capabilityLabel(row.key, t)}
+            tooltip={t.glossary.capabilityIndexes}
+            value={formatNumber(row.value, lang)}
+            share={row.value / 100}
+            rank={ranks[row.key]}
+          />
+        ))}
+      </TwoColumnRows>
+    </DetailCard>
+  );
+}
+
+/**
+ * AA Cyber Index of the configuration: the index split into successes,
+ * safety blocks and failures, then each benchmark and the cost per task.
+ * A trusted-access configuration links to its public version and back.
+ */
+export function CyberIndexCard({
+  model,
+  ranks,
+  counterparts,
+}: {
+  model: LLMModel;
+  ranks: Ranks;
+  counterparts: ModelInsights["cyberCounterparts"];
+}) {
+  const { t, lang } = useI18n();
+  const result = cyberIndexResult(model);
+  if (!result || textMetricValue(model, "cyber_index") === null) return null;
+  const shares = cyberOutcomeShares(result);
+  const rank = ranks.cyber_index;
+  const blocked = result.benchmarks.some((benchmark) => benchmark.safety_blocks);
+  const outcomes = [
+    [t.cyber.legend.successes, formatPercent(shares.successes, lang)],
+    [t.cyber.legend.safetyBlocks, formatPercent(shares.safetyBlocks, lang)],
+    [t.cyber.legend.failures, formatPercent(shares.failures, lang)],
+  ] as const;
+  return (
+    <DetailCard
+      icon={Shield}
+      title={t.detail.cyberIndex}
+      description={t.detail.cyberSource(result.version)}
+      footer={(
+        <div className="border-t px-4 py-2">
+          <Button variant="ghost" asChild>
+            <Link href="/benchmarks/cyber">
+              {t.detail.cyberLeaderboard}
+              <ArrowRight aria-hidden="true" className="size-4" />
+            </Link>
+          </Button>
+        </div>
+      )}
+    >
+      <div className="flex flex-col gap-2 border-b border-border/70 pb-3">
+        <div className="flex items-start justify-between gap-3 text-sm">
+          <span className="flex items-center gap-1 text-muted-foreground">
+            {t.benchmarks.cyber}
+            <InfoTip label={`${t.glossary.infoLabel} · ${t.benchmarks.cyber}`} content={t.glossary.cyber} />
+          </span>
+          <span className="flex flex-col items-end">
+            <span className="text-lg font-semibold tabular-nums">{formatCyberScore(result.score, lang)}</span>
+            {rank && <RankNote rank={rank} />}
+          </span>
+        </div>
+        <CyberOutcomeBar result={result} />
+        <dl className="grid grid-cols-3 gap-2 text-xs">
+          {outcomes.map(([label, value]) => (
+            <div key={label} className="min-w-0">
+              <dt className="truncate text-muted-foreground">{label}</dt>
+              <dd className="font-medium tabular-nums">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+      <TwoColumnRows>
+        {result.benchmarks.map((benchmark) => (
+          <BenchmarkRow
+            key={benchmark.id}
+            label={benchmark.label}
+            value={<CyberBenchmarkScore benchmark={benchmark} />}
+            share={benchmark.score ?? 0}
+          />
+        ))}
+      </TwoColumnRows>
+      <StatRow label={t.detail.costPerTask} value={formatMoney(result.cost_per_task_usd, lang)} />
+      {blocked && <p className="pt-1 text-xs text-muted-foreground">{t.cyber.footnote}</p>}
+      {counterparts.length > 0 && (
+        <ul className="mt-3 flex flex-col gap-2 border-t border-border/70 pt-3">
+          {counterparts.map((counterpart) => (
+            <li key={counterpart.slug} className="flex items-center justify-between gap-3 text-sm">
+              <span className="min-w-0">
+                <span className="block text-xs text-muted-foreground">
+                  {counterpart.access === "trusted" ? t.detail.cyberCounterpartTrusted : t.detail.cyberCounterpartPublic}
+                </span>
+                <Link
+                  href={`/models/${counterpart.slug}`}
+                  className="rounded-sm font-medium underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {counterpart.name}
+                </Link>
+              </span>
+              <span className="shrink-0 font-medium tabular-nums">{formatCyberScore(counterpart.score, lang)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </DetailCard>
   );
 }

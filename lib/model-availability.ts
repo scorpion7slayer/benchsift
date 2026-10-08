@@ -56,3 +56,33 @@ export function isModelCurrentlyUnavailable(model: {
 export function isClaudeFable5(slug: string): boolean {
   return slug === "claude-fable-5";
 }
+
+/** AA article introducing trusted-access models in its Cyber Index. */
+export const AA_TRUSTED_ACCESS_ARTICLE =
+  "https://artificialanalysis.ai/articles/trusted-access-models-cyber-index";
+
+/**
+ * Why Artificial Analysis lists a model the public cannot use: a Cyber Index
+ * trusted-access configuration, or any model AA draws with its checkered
+ * "Not publicly available" pattern.
+ */
+export type ModelAccessRestriction = "trusted_access" | "not_public";
+
+export function modelAccessRestriction(model: {
+  availability_status?: ModelAvailabilityStatus | null;
+  cyber_index_result?: { access?: string | null } | null;
+}): ModelAccessRestriction | null {
+  if (model.cyber_index_result?.access === "trusted") return "trusted_access";
+  return isModelCurrentlyUnavailable(model) ? "not_public" : null;
+}
+
+/** "public" hides restricted models; it does not assert that the rest are public. */
+export type AvailabilityFilter = "all" | "public" | "restricted";
+
+export function matchesAvailability(
+  restriction: ModelAccessRestriction | null | undefined,
+  filter: AvailabilityFilter,
+): boolean {
+  if (filter === "all") return true;
+  return filter === "restricted" ? restriction != null : restriction == null;
+}

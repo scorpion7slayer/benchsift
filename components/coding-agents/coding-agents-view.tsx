@@ -206,6 +206,7 @@ export function CodingAgentsView({ agents }: { agents: CodingAgent[] }) {
           scale={scale}
           efficientLabel={t.tradeoff.efficient}
           legend={false}
+          picker
           empty={t.tradeoff.empty}
         />
       </section>

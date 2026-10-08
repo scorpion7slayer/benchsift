@@ -101,7 +101,7 @@ export function BenchmarkRow({
   rank,
 }: {
   label: string;
-  value: string;
+  value: ReactNode;
   share: number;
   tooltip?: string;
   rank?: MetricRank;

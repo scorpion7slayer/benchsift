@@ -1,3 +1,4 @@
+import type { AvailabilityFilter } from "@/lib/model-availability";
 import {
   DEFAULT_SORT_DIRECTION,
   type CategoryFilter,
@@ -21,6 +22,8 @@ export interface CatalogSearch {
   dir?: SortDirection;
   provider?: string;
   weights?: Exclude<WeightAccessFilter, "all">;
+  /** Advanced only: hide or keep only models AA marks as not publicly available. */
+  availability?: Exclude<AvailabilityFilter, "all">;
   type?: Exclude<CategoryFilter, "all">;
   /** Advanced thresholds: minimum Intelligence Index, maximum blended price… */
   min?: number;
@@ -44,9 +47,9 @@ function preset(value: unknown, key: ThresholdKey): number | undefined {
   return (THRESHOLD_PRESETS[key] as readonly number[]).includes(number) ? number : undefined;
 }
 
-const RANKS = ["coding", "math", "speed", "price_asc"] as const;
+const RANKS = ["coding", "math", "speed", "price_asc", "cyber"] as const;
 const SORTS = [
-  "coding", "math", "agentic", "gpqa", "mmlu_pro", "hle", "livecodebench", "math_500", "aime_25",
+  "coding", "math", "agentic", "cyber", "gpqa", "mmlu_pro", "hle", "livecodebench", "math_500", "aime_25",
   "speed", "ttft", "openrouter_popular", "price", "input_price", "output_price", "cost_per_task", "context", "newest", "name",
 ] as const;
 /** Links shared before sorts gained a direction. */
@@ -56,6 +59,7 @@ const LEGACY_SORTS: Record<string, { sort: (typeof SORTS)[number]; dir: SortDire
 };
 const DIRECTIONS = ["asc", "desc"] as const;
 const WEIGHTS = ["open", "closed"] as const;
+const AVAILABILITY = ["public", "restricted"] as const;
 const TYPES = [
   "new", "stealth", "text", "image", "embeddings", "audio", "video", "rerank",
   "speech", "transcription", "decisions",
@@ -81,6 +85,7 @@ export function parseCatalogSearch(raw: Record<string, unknown>): CatalogSearch 
     dir: dir && dir !== DEFAULT_SORT_DIRECTION[sort ?? "intelligence"] ? dir : undefined,
     provider,
     weights: oneOf(raw.weights, WEIGHTS),
+    availability: oneOf(raw.availability, AVAILABILITY),
     type: oneOf(raw.type, TYPES),
     min: preset(raw.min, "min"),
     price: preset(raw.price, "price"),
@@ -99,6 +104,7 @@ export interface CatalogState {
   direction: SortDirection;
   provider: string;
   weights: WeightAccessFilter;
+  availability: AvailabilityFilter;
   category: CategoryFilter;
   minScore: number | null;
   maxPrice: number | null;
@@ -116,6 +122,7 @@ export function catalogStateFromSearch(search: CatalogSearch): CatalogState {
     direction: search.dir ?? DEFAULT_SORT_DIRECTION[search.sort ?? "intelligence"],
     provider: search.provider ?? "all",
     weights: search.weights ?? "all",
+    availability: search.availability ?? "all",
     category: search.type ?? "all",
     minScore: search.min ?? null,
     maxPrice: search.price ?? null,
@@ -136,6 +143,7 @@ export function searchFromCatalogState(state: CatalogState): CatalogSearch {
     dir: advanced ? state.direction : undefined,
     provider: state.provider === "all" ? undefined : state.provider,
     weights: state.weights,
+    availability: advanced ? state.availability : undefined,
     type: advanced ? state.category : undefined,
     min: advanced ? state.minScore ?? undefined : undefined,
     price: advanced ? state.maxPrice ?? undefined : undefined,

@@ -101,6 +101,12 @@ export const Route = createFileRoute("/sitemap.xml")({
             changeFrequency: "daily",
             priority: 0.8,
           },
+          {
+            url: absoluteUrl("/benchmarks/cyber"),
+            lastModified: today,
+            changeFrequency: "daily",
+            priority: 0.8,
+          },
           ...indexableModels.map((model) => ({
             url: absoluteUrl(`/models/${encodeURIComponent(model.slug)}`),
             lastModified: model.release_date ? toIsoDate(model.release_date, today) : undefined,

@@ -11,7 +11,17 @@ export type ModelPrimaryCategory =
   | "decisions"
   | "unknown";
 
-const AA_INDEX_KEYS = new Set([
+/** AA Capability Indexes: performance on specific industries, 0–100, in AA's order. */
+export const AA_CAPABILITY_INDEX_KEYS = [
+  "artificial_analysis_finance_and_accounting_index",
+  "artificial_analysis_strategy_and_ops_index",
+  "artificial_analysis_legal_index",
+  "artificial_analysis_healthcare_and_medical_index",
+  "artificial_analysis_engineering_index",
+  "artificial_analysis_economics_index",
+] as const;
+
+const AA_INDEX_KEYS = new Set<string>([
   "artificial_analysis_intelligence_index",
   "artificial_analysis_coding_index",
   "artificial_analysis_math_index",
@@ -19,6 +29,8 @@ const AA_INDEX_KEYS = new Set([
   "coding_index",
   "math_index",
   "agentic_index",
+  "cyber_index",
+  ...AA_CAPABILITY_INDEX_KEYS,
 ]);
 
 export const TEXT_BENCHMARK_KEYS = new Set([
@@ -35,6 +47,7 @@ export const TEXT_BENCHMARK_KEYS = new Set([
   "lcr",
   "terminalbench_hard",
   "terminalbench_v2_1",
+  "terminalbench_v4_0",
   "tau2",
   "tau_banking",
   "humaneval",
@@ -90,7 +103,7 @@ export const AA_MEDIA_BENCHMARK_DEFS = [
 /** Benchmarks Artificial Analysis publishes as 0–1 fractions, in display order. */
 export const FRACTION_BENCHMARK_KEYS = [
   "mmlu_pro", "gpqa", "hle", "livecodebench", "scicode", "math_500", "aime", "aime_25",
-  "ifbench", "lcr", "terminalbench_hard", "terminalbench_v2_1", "tau2", "tau_banking",
+  "ifbench", "lcr", "terminalbench_hard", "terminalbench_v2_1", "terminalbench_v4_0", "tau2", "tau_banking",
   "humaneval", "omniscience", "multilingual_aa", "mmmu_pro", "critpt", "gdpval_normalized",
   "apex_agents", "itbench_aa", "omniscience_non_hallucination",
 ] as const;
@@ -274,9 +287,18 @@ export function hasPricingData(model: LLMModel): boolean {
   );
 }
 
+export function capabilityIndexValues(model: LLMModel) {
+  return AA_CAPABILITY_INDEX_KEYS.flatMap((key) => {
+    const value = textMetricValue(model, key);
+    return value == null ? [] : [{ key, value }];
+  });
+}
+
 export function hasAnyBenchmarkData(model: LLMModel): boolean {
   return (
     hasAAIndexBenchmarks(model) ||
+    textMetricValue(model, "cyber_index") !== null ||
+    capabilityIndexValues(model).length > 0 ||
     hasStandardTextBenchmarks(model) ||
     hasMediaBenchmarks(model) ||
     applicableExtraBenchmarkEntries(model).length > 0

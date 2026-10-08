@@ -7,6 +7,7 @@ export type SortKey =
   | "coding"
   | "math"
   | "agentic"
+  | "cyber"
   | "gpqa"
   | "mmlu_pro"
   | "hle"
@@ -31,7 +32,8 @@ export type NormalRankingKey =
   | "coding"
   | "math"
   | "speed"
-  | "price_asc";
+  | "price_asc"
+  | "cyber";
 
 export type WeightAccessFilter = "all" | "open" | "closed";
 
@@ -86,6 +88,7 @@ const ADVANCED_EVALUATION_SORT_KEYS = {
   coding: "artificial_analysis_coding_index",
   math: "artificial_analysis_math_index",
   agentic: "agentic_index",
+  cyber: "cyber_index",
   gpqa: "gpqa",
   mmlu_pro: "mmlu_pro",
   hle: "hle",
@@ -124,6 +127,7 @@ export const DEFAULT_SORT_DIRECTION: Record<SortKey, SortDirection> = {
   coding: "desc",
   math: "desc",
   agentic: "desc",
+  cyber: "desc",
   gpqa: "desc",
   mmlu_pro: "desc",
   hle: "desc",
@@ -185,7 +189,8 @@ function homeMetric(
   key:
     | "artificial_analysis_intelligence_index"
     | "artificial_analysis_coding_index"
-    | "artificial_analysis_math_index",
+    | "artificial_analysis_math_index"
+    | "cyber_index",
 ): number | null {
   return model.evaluations[key] ?? null;
 }
@@ -200,6 +205,7 @@ const NORMAL_RANKING_VALUES: Record<
   math: (model) => homeMetric(model, "artificial_analysis_math_index"),
   speed: (model) => model.median_output_tokens_per_second ?? null,
   price_asc: (model) => model.pricing.price_1m_blended_3_to_1 ?? null,
+  cyber: (model) => homeMetric(model, "cyber_index"),
 };
 
 const NORMAL_MODEL_COMPARATORS: Record<
@@ -211,6 +217,7 @@ const NORMAL_MODEL_COMPARATORS: Record<
   math: descendingMetric(NORMAL_RANKING_VALUES.math),
   speed: descendingMetric(NORMAL_RANKING_VALUES.speed),
   price_asc: ascendingMetric(NORMAL_RANKING_VALUES.price_asc),
+  cyber: descendingMetric(NORMAL_RANKING_VALUES.cyber),
 };
 
 export function sortHomeModels(

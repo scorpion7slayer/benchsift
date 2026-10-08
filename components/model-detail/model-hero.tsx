@@ -11,6 +11,7 @@ import type { LLMModel } from "@/lib/model-types";
 import { useCompare } from "@/lib/compare-store";
 import { formatDate, formatMoney, formatNumber, formatSpeed, formatTokens } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
+import { modelAccessRestriction } from "@/lib/model-availability";
 import { textMetricValue } from "@/lib/model-metrics";
 import type { FamilyPoint, MetricRank, ModelInsights, RankedMetric } from "@/lib/model-insights";
 import type { ModelReasoningVariantOption } from "@/lib/model-reasoning";
@@ -21,12 +22,12 @@ import { PageCat } from "@/components/pixel-art/page-cats";
 
 type Caps = Partial<LLMModel>;
 
-function ScrapedBadges({ promise, availabilityStatus }: { promise: Promise<Caps>; availabilityStatus: LLMModel["availability_status"] }) {
+function ScrapedBadges({ promise, restricted }: { promise: Promise<Caps>; restricted: boolean }) {
   const { t } = useI18n();
   const caps = use(promise);
   return (
     <>
-      {availabilityStatus == null && <ModelAvailabilityBadge model={{ availability_status: caps.availability_status }} />}
+      {!restricted && <ModelAvailabilityBadge model={{ availability_status: caps.availability_status }} />}
       {caps.reasoning_model && <Badge variant="secondary"><Brain data-icon="inline-start" />{t.detail.reasoning}</Badge>}
       {caps.is_open_weights === true && <Badge variant="outline"><Unlock data-icon="inline-start" />{t.detail.openWeights}</Badge>}
       {caps.is_open_weights === false && <Badge variant="outline" className="text-muted-foreground"><Lock data-icon="inline-start" />{t.detail.closedWeights}</Badge>}
@@ -146,7 +147,7 @@ export function ModelHero({
               <StealthBadge model={model} />
               {capabilitiesPromise && (
                 <Suspense>
-                  <ScrapedBadges promise={capabilitiesPromise} availabilityStatus={model.availability_status} />
+                  <ScrapedBadges promise={capabilitiesPromise} restricted={modelAccessRestriction(model) !== null} />
                 </Suspense>
               )}
               {model.models_dev_url && <SourceLink href={model.models_dev_url} label="Models.dev" />}

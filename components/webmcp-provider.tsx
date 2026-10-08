@@ -75,13 +75,13 @@ export function WebMcpProvider() {
       {
         name: "open_benchsift_page",
         description:
-          "Navigate to a primary BenchSift page for model discovery, comparison, or coding benchmarks.",
+          "Navigate to a primary BenchSift page for model discovery, comparison, coding benchmarks, or the Cyber Index.",
         inputSchema: {
           type: "object",
           properties: {
             page: {
               type: "string",
-              enum: ["home", "compare", "coding_agents", "deepswe"],
+              enum: ["home", "compare", "coding_agents", "deepswe", "cyber"],
             },
           },
           required: ["page"],
@@ -93,6 +93,7 @@ export function WebMcpProvider() {
             compare: "/compare",
             coding_agents: "/agents/coding",
             deepswe: "/benchmarks/deepswe",
+            cyber: "/benchmarks/cyber",
           };
           const path = paths[typeof page === "string" ? page : ""] ?? "/";
           window.location.assign(path);

@@ -68,7 +68,7 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const { count, latestModels, models } = Route.useLoaderData();
+  const { count, latestModels, models, cyberModels } = Route.useLoaderData();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const updateSearch = useCallback(
@@ -85,7 +85,7 @@ function HomePage() {
           count={count}
           latestModels={latestModels}
         />
-        <ModelGrid models={models} search={search} onSearchChange={updateSearch} />
+        <ModelGrid models={models} cyberModels={cyberModels} search={search} onSearchChange={updateSearch} />
       </main>
 
       <SiteFooter />

@@ -59,7 +59,7 @@ export function useCatalogState(search: CatalogSearch, onSearchChange: (search: 
     onSearchChange(next);
     // `state.query` is written through the debounced `urlQuery` instead.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlQuery, state.viewMode, state.ranking, state.sort, state.direction, state.provider, state.weights, state.category, state.minScore, state.maxPrice, state.minContext, state.minSpeed, state.reasoning, onSearchChange]);
+  }, [urlQuery, state.viewMode, state.ranking, state.sort, state.direction, state.provider, state.weights, state.availability, state.category, state.minScore, state.maxPrice, state.minContext, state.minSpeed, state.reasoning, onSearchChange]);
 
   function update<K extends keyof CatalogState>(key: K, value: CatalogState[K]) {
     setState((current) => ({ ...current, [key]: value }));
@@ -100,6 +100,7 @@ export function useCatalogState(search: CatalogSearch, onSearchChange: (search: 
       query: query ? "" : current.query,
       provider: "all",
       weights: "all",
+      availability: "all",
       category: "all",
       minScore: null,
       maxPrice: null,
@@ -113,7 +114,9 @@ export function useCatalogState(search: CatalogSearch, onSearchChange: (search: 
   }
 
   const thresholdCount = state.viewMode === "advanced"
-    ? [state.minScore, state.maxPrice, state.minContext, state.minSpeed].filter((value) => value !== null).length + (state.reasoning === "all" ? 0 : 1)
+    ? [state.minScore, state.maxPrice, state.minContext, state.minSpeed].filter((value) => value !== null).length
+      + (state.reasoning === "all" ? 0 : 1)
+      + (state.availability === "all" ? 0 : 1)
     : 0;
   const activeFilterCount = [state.provider, state.weights, state.category].filter((value) => value !== "all").length + thresholdCount;
 

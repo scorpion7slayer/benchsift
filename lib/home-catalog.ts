@@ -1,5 +1,6 @@
 import type { Evaluations, LLMModel, ModelCreator, Pricing } from "@/lib/api";
-import { isOpenWeightsModel } from "@/lib/model-metrics";
+import { modelAccessRestriction, type ModelAccessRestriction } from "@/lib/model-availability";
+import { isOpenWeightsModel, textMetricValue } from "@/lib/model-metrics";
 import { modelReleaseTime } from "@/lib/model-release";
 import { collapseReasoningVariants } from "@/lib/model-reasoning";
 
@@ -18,6 +19,7 @@ export interface HomeCatalogModel {
     | "artificial_analysis_coding_index"
     | "artificial_analysis_math_index"
     | "agentic_index"
+    | "cyber_index"
   >>;
   pricing: Partial<Pick<Pricing, "price_1m_blended_3_to_1">>;
   median_output_tokens_per_second?: number;
@@ -26,6 +28,8 @@ export interface HomeCatalogModel {
   is_open_weights?: true;
   reasoning_model?: true;
   is_stealth?: true;
+  /** Present when Artificial Analysis marks the model as not publicly available. */
+  access_restriction?: ModelAccessRestriction;
   search_aliases?: LLMModel["search_aliases"];
   stealth_history?: LLMModel["stealth_history"];
   provider_icon_url?: string;
@@ -44,6 +48,11 @@ export interface LatestModelSummary {
 export interface HomeCatalogData {
   count: number;
   models: HomeCatalogModel[];
+  /**
+   * Cyber Index ranking rows. AA measures one configuration per model, not
+   * always the one a collapsed family shows, so these rows stay uncollapsed.
+   */
+  cyberModels: HomeCatalogModel[];
   latestModels: LatestModelSummary[];
 }
 
@@ -67,23 +76,25 @@ function latestModelSummaries(models: LLMModel[], limit = 3): LatestModelSummary
 export function buildHomeCatalogData(models: LLMModel[]): HomeCatalogData {
   const catalogModels = collapseReasoningVariants(models);
   const creators = new Map<string, Pick<ModelCreator, "name" | "slug">>();
+  const compact = (model: LLMModel) => {
+    const creatorSlug = model.model_creator.slug;
+    let creator = creators.get(creatorSlug);
+    if (!creator) {
+      creator = {
+        name: model.model_creator.name,
+        slug: creatorSlug,
+      };
+      creators.set(creatorSlug, creator);
+    }
+
+    return compactModel(model, creator);
+  };
 
   return {
     count: catalogModels.length,
     latestModels: latestModelSummaries(catalogModels),
-    models: catalogModels.map((model) => {
-      const creatorSlug = model.model_creator.slug;
-      let creator = creators.get(creatorSlug);
-      if (!creator) {
-        creator = {
-          name: model.model_creator.name,
-          slug: creatorSlug,
-        };
-        creators.set(creatorSlug, creator);
-      }
-
-      return compactModel(model, creator);
-    }),
+    models: catalogModels.map(compact),
+    cyberModels: models.filter((model) => textMetricValue(model, "cyber_index") !== null).map(compact),
   };
 }
 
@@ -105,6 +116,7 @@ function compactModel(model: LLMModel, creator: Pick<ModelCreator, "name" | "slu
     "artificial_analysis_coding_index",
     "artificial_analysis_math_index",
     "agentic_index",
+    "cyber_index",
   ] as const) {
     const value = model.evaluations[key];
     if (present(value)) row.evaluations[key] = value;
@@ -116,6 +128,8 @@ function compactModel(model: LLMModel, creator: Pick<ModelCreator, "name" | "slu
   if (isOpenWeightsModel(model)) row.is_open_weights = true;
   if (model.reasoning_model) row.reasoning_model = true;
   if (model.is_stealth) row.is_stealth = true;
+  const restriction = modelAccessRestriction(model);
+  if (restriction) row.access_restriction = restriction;
   if (model.search_aliases?.length) row.search_aliases = model.search_aliases;
   if (model.stealth_history?.length) row.stealth_history = model.stealth_history;
   if (model.provider_icon_url) row.provider_icon_url = model.provider_icon_url;

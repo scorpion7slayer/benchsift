@@ -23,6 +23,7 @@ import { Route as ModelsIndexRouteImport } from './routes/models/index'
 import { Route as ModelsSlugRouteImport } from './routes/models/$slug'
 import { Route as DocsApiRouteImport } from './routes/docs/api'
 import { Route as BenchmarksDeepsweRouteImport } from './routes/benchmarks/deepswe'
+import { Route as BenchmarksCyberRouteImport } from './routes/benchmarks/cyber'
 import { Route as AgentsCodingRouteImport } from './routes/agents/coding'
 import { Route as DotwellKnownOpenapiDotjsonRouteImport } from './routes/[.]well-known/openapi[.]json'
 import { Route as DotwellKnownApiCatalogRouteImport } from './routes/[.]well-known/api-catalog'
@@ -105,6 +106,11 @@ const BenchmarksDeepsweRoute = BenchmarksDeepsweRouteImport.update({
   path: '/benchmarks/deepswe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BenchmarksCyberRoute = BenchmarksCyberRouteImport.update({
+  id: '/benchmarks/cyber',
+  path: '/benchmarks/cyber',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AgentsCodingRoute = AgentsCodingRouteImport.update({
   id: '/agents/coding',
   path: '/agents/coding',
@@ -181,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/.well-known/openapi.json': typeof DotwellKnownOpenapiDotjsonRoute
   '/agents/coding': typeof AgentsCodingRoute
+  '/benchmarks/cyber': typeof BenchmarksCyberRoute
   '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
   '/docs/api': typeof DocsApiRoute
   '/models/$slug': typeof ModelsSlugRoute
@@ -208,6 +215,7 @@ export interface FileRoutesByTo {
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/.well-known/openapi.json': typeof DotwellKnownOpenapiDotjsonRoute
   '/agents/coding': typeof AgentsCodingRoute
+  '/benchmarks/cyber': typeof BenchmarksCyberRoute
   '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
   '/docs/api': typeof DocsApiRoute
   '/models/$slug': typeof ModelsSlugRoute
@@ -236,6 +244,7 @@ export interface FileRoutesById {
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/.well-known/openapi.json': typeof DotwellKnownOpenapiDotjsonRoute
   '/agents/coding': typeof AgentsCodingRoute
+  '/benchmarks/cyber': typeof BenchmarksCyberRoute
   '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
   '/docs/api': typeof DocsApiRoute
   '/models/$slug': typeof ModelsSlugRoute
@@ -265,6 +274,7 @@ export interface FileRouteTypes {
     | '/.well-known/api-catalog'
     | '/.well-known/openapi.json'
     | '/agents/coding'
+    | '/benchmarks/cyber'
     | '/benchmarks/deepswe'
     | '/docs/api'
     | '/models/$slug'
@@ -292,6 +302,7 @@ export interface FileRouteTypes {
     | '/.well-known/api-catalog'
     | '/.well-known/openapi.json'
     | '/agents/coding'
+    | '/benchmarks/cyber'
     | '/benchmarks/deepswe'
     | '/docs/api'
     | '/models/$slug'
@@ -319,6 +330,7 @@ export interface FileRouteTypes {
     | '/.well-known/api-catalog'
     | '/.well-known/openapi.json'
     | '/agents/coding'
+    | '/benchmarks/cyber'
     | '/benchmarks/deepswe'
     | '/docs/api'
     | '/models/$slug'
@@ -347,6 +359,7 @@ export interface RootRouteChildren {
   DotwellKnownApiCatalogRoute: typeof DotwellKnownApiCatalogRoute
   DotwellKnownOpenapiDotjsonRoute: typeof DotwellKnownOpenapiDotjsonRoute
   AgentsCodingRoute: typeof AgentsCodingRoute
+  BenchmarksCyberRoute: typeof BenchmarksCyberRoute
   BenchmarksDeepsweRoute: typeof BenchmarksDeepsweRoute
   DocsApiRoute: typeof DocsApiRoute
   ModelsSlugRoute: typeof ModelsSlugRoute
@@ -461,6 +474,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BenchmarksDeepsweRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/benchmarks/cyber': {
+      id: '/benchmarks/cyber'
+      path: '/benchmarks/cyber'
+      fullPath: '/benchmarks/cyber'
+      preLoaderRoute: typeof BenchmarksCyberRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/agents/coding': {
       id: '/agents/coding'
       path: '/agents/coding'
@@ -555,6 +575,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownApiCatalogRoute: DotwellKnownApiCatalogRoute,
   DotwellKnownOpenapiDotjsonRoute: DotwellKnownOpenapiDotjsonRoute,
   AgentsCodingRoute: AgentsCodingRoute,
+  BenchmarksCyberRoute: BenchmarksCyberRoute,
   BenchmarksDeepsweRoute: BenchmarksDeepsweRoute,
   DocsApiRoute: DocsApiRoute,
   ModelsSlugRoute: ModelsSlugRoute,

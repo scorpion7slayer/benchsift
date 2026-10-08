@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ExternalLink, type RuneIcon } from "@/components/icons";
+import { ChevronDown, ExternalLink, type RuneIcon } from "@/components/icons";
 import { InfoTip } from "@/components/info-tip";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
@@ -79,7 +79,7 @@ export function ScoreBar({
   className,
 }: {
   value: number | null;
-  label: string;
+  label: ReactNode;
   interval?: { low: number; high: number } | null;
   className?: string;
 }) {
@@ -102,5 +102,18 @@ export function ScoreBar({
         </span>
       )}
     </span>
+  );
+}
+
+/** A collapsed note under a leaderboard: methodology, cost basis, comparisons. */
+export function BenchmarkDisclosure({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <details className="group rounded-xl border bg-card">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-4 text-sm font-medium transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+        {title}
+        <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
+      </summary>
+      <div className="disclosure-content border-t px-4 py-3 text-xs leading-5 text-muted-foreground">{children}</div>
+    </details>
   );
 }

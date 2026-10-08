@@ -57,6 +57,7 @@ try {
   const stats = refresh.stats ?? {};
   const labels = {
     apiModels: "Artificial Analysis (language)", mediaModels: "Artificial Analysis (media)",
+    cyberIndexModels: "Artificial Analysis Cyber Index",
     openRouterEnrichedModels: "Enriched with OpenRouter", huggingFaceEnrichedModels: "Enriched with Hugging Face",
     modelsDevEnrichedModels: "Enriched with Models.dev", retainedHistoricalModels: "Historical models retained",
     transientRetries: "Upstream retries",

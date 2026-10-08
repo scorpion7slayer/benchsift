@@ -54,6 +54,7 @@ export function buildPublicHealth(
         mediaModels: stat(stats, "mediaModels"),
         sitemapSlugs: stat(stats, "sitemapSlugs"),
         builtPartialModels: stat(stats, "builtPartialModels"),
+        cyberIndexModels: stat(stats, "cyberIndexModels"),
       },
       openRouter: {
         enrichedModels: stat(stats, "openRouterEnrichedModels"),

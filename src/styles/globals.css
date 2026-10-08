@@ -508,6 +508,16 @@ body:has([data-compare-dock]) .site-footer { padding-bottom: 84px; }
 @starting-style { .compare-bar { transform: scaleX(0) !important; } }
 .segmented-indicator { transition: transform var(--duration-base) var(--ease-out), width var(--duration-base) var(--ease-out); }
 
+/* Cyber Index outcomes, as Artificial Analysis draws them: safety blocks are
+   striped and trusted-access (not public) results checkered. Values are always printed. */
+.cyber-safety-blocks {
+  background-image: repeating-linear-gradient(135deg, color-mix(in oklch, var(--foreground) 55%, transparent) 0 1.5px, transparent 1.5px 4px);
+}
+.cyber-trusted {
+  background-image: repeating-conic-gradient(color-mix(in oklch, var(--card) 60%, transparent) 0% 25%, transparent 0% 50%);
+  background-size: 6px 6px;
+}
+
 /* Trade-off charts: lines draw from the cheapest end, then points and labels settle. */
 @keyframes tradeoff-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 @keyframes tradeoff-point-in { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: scale(1); } }

@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { Activity, ChevronDown, Trophy } from "@/components/icons";
+import { Activity, Trophy } from "@/components/icons";
 import { SearchField } from "@/components/search-field";
 import { Link } from "@/components/link";
-import { BenchmarkHeader, ScoreBar, StatTiles } from "@/components/benchmark-page";
+import { BenchmarkDisclosure as Disclosure, BenchmarkHeader, ScoreBar, StatTiles } from "@/components/benchmark-page";
 import { ModelProviderIcon } from "@/components/model-provider-icon";
 import { SegmentedControl } from "@/components/segmented-control";
 import { SortButton } from "@/components/sort-button";
@@ -216,6 +216,7 @@ export function DeepSweView({ data }: { data: DeepSweData & { catalog: Record<st
           scale={scale}
           efficientLabel={t.tradeoff.efficient}
           legend={false}
+          picker
           empty={t.tradeoff.empty}
         />
       </section>
@@ -375,18 +376,6 @@ function ModelName({ row, info, name }: { row: DeepSweRow; info: DeepSweModelInf
       )}
       {row.reasoning_effort && <Badge variant="secondary" className="font-mono text-[10px] uppercase">{row.reasoning_effort}</Badge>}
     </span>
-  );
-}
-
-function Disclosure({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <details className="group rounded-xl border bg-card">
-      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-4 text-sm font-medium transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
-        {title}
-        <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
-      </summary>
-      <div className="disclosure-content border-t px-4 py-3 text-xs leading-5 text-muted-foreground">{children}</div>
-    </details>
   );
 }
 

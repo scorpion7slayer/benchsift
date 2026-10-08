@@ -8,7 +8,7 @@ import { EASE_IN, EASE_IN_OUT, EASE_OUT, PixelScene, Sprite, pivot, track, trans
  * once, then only loops small gestures; reduced motion shows it at rest.
  */
 
-export type PageCatKind = "home" | "catalog" | "detail" | "compare" | "deepswe" | "agents" | "about" | "reading";
+export type PageCatKind = "home" | "catalog" | "detail" | "compare" | "deepswe" | "agents" | "cyber" | "about" | "reading";
 
 const H = 15;
 const UNIT = 2;
@@ -268,6 +268,56 @@ const AGENTS: Scene = {
   ),
 };
 
+/* Cyber: picks a padlock until it springs open, then lets it snap shut. */
+const CYBER: Scene = {
+  width: 31,
+  css: [
+    drop("pc-cyber"),
+    sitting("pc-cyber"),
+    loop(".pc-cyber-paw", "pc-cyber-paw", 5600, "transform", [
+      [0, translate(0, 0), STEP],
+      [900, translate(-1, 0), STEP],
+      [1100, translate(0, 0), STEP],
+      [1300, translate(-1, 0), STEP],
+      [1500, translate(0, 0), STEP],
+      [1700, translate(-1, 0), STEP],
+      [1900, translate(0, 0)],
+    ]),
+    loop(".pc-cyber-shackle", "pc-cyber-shackle", 5600, "transform", [
+      [0, translate(0, 0)],
+      [2000, translate(0, 0), EASE_OUT],
+      [2150, translate(0, -2)],
+      [4300, translate(0, -2), EASE_IN],
+      [4400, translate(0, 0)],
+    ]),
+    loop(".pc-cyber-open", "pc-cyber-open", 5600, "*", [
+      [0, "transform:scale(0.4);opacity:0", STEP],
+      [2100, "transform:scale(0.4);opacity:1", EASE_OUT],
+      [2600, "transform:scale(1.4);opacity:0"],
+    ]),
+    swish("pc-cyber", 2400),
+    blinkLoop("pc-cyber", 4200),
+  ].join(""),
+  body: (
+    <g className="pc-cyber-in">
+      <g className="pc-cyber-shackle">
+        <Sprite rows={["..####..", ".#....#.", ".#....#.", ".#....#.", ".#....#."]} palette={{ "#": "px-prop" }} x={0} y={3} />
+      </g>
+      <Sprite
+        rows={["dddddddd", "dssssssd", "dssskssd", "dssskssd", "dssssssd", "dssssssd", "dddddddd"]}
+        palette={{ d: "px-prop-dark", s: "px-star", k: "px-eye" }}
+        x={0}
+        y={8}
+      />
+      <SittingCat id="pc-cyber" cx={19} />
+      <g className="pc-cyber-paw">
+        <Sprite rows={["oo", "oo"]} palette={PAW} x={7} y={10} />
+      </g>
+      <Star className="pc-cyber-open" x={10} y={4} />
+    </g>
+  ),
+};
+
 /* About: says hello. */
 const ABOUT: Scene = {
   width: 27,
@@ -334,6 +384,7 @@ const SCENES: Record<PageCatKind, Scene> = {
   compare: COMPARE,
   deepswe: DEEPSWE,
   agents: AGENTS,
+  cyber: CYBER,
   about: ABOUT,
   reading: READING,
 };
