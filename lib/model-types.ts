@@ -30,6 +30,7 @@ export interface Evaluations {
   // Newer AA benchmarks / Benchmarks AA plus récents
   apex_agents?: number | null;          // APEX-Agents-AA (long-horizon agentic)
   omniscience_non_hallucination?: number | null; // AA-Omniscience non-hallucination rate
+  cyber_index?: number | null;          // AA Cyber Index, 0-100 (details in cyber_index_result)
   // Catch-all for any other field returned by the API / pour tout autre champ
   [key: string]: number | null | undefined;
 }
@@ -99,6 +100,8 @@ export interface LLMModel {
   intelligence_index_tokens?: number | null;   // tokens used to run AA Intelligence Index (verbosity)
   intelligence_index_cost_usd?: number | null; // USD cost to run AA Intelligence Index
   intelligence_index_cost_per_task_usd?: number | null; // AA weighted average cost per Intelligence Index task
+  /** AA Cyber Index breakdown: safety blocks, trusted access, benchmarks and cost. */
+  cyber_index_result?: import("./cyber-index").CyberIndexResult | null;
   openrouter_weekly_rank?: number | null;       // OpenRouter weekly Top Models rank
   openrouter_variant?: string | null;           // OpenRouter ranking variant (free/standard)
   openrouter_api_id?: string | null;             // Structured AA V2 link to OpenRouter

@@ -31,6 +31,8 @@ export function formatSortValue(model: LLMModel, sort: SortKey, lang: DisplayLan
       return formatSeconds(value, lang);
     case "cost_per_task":
       return formatMoney(value, lang);
+    case "cyber":
+      return formatPercent(value == null ? null : value / 100, lang);
     case "context":
       return formatTokens(value, lang);
     case "openrouter_popular":

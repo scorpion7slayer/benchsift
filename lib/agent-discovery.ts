@@ -317,6 +317,7 @@ BenchSift helps compare AI models by intelligence, coding, math, speed, latency,
 - Compare models: ${absoluteUrl("/compare")}
 - Coding agents leaderboard: ${absoluteUrl("/agents/coding")}
 - DeepSWE benchmark: ${absoluteUrl("/benchmarks/deepswe")}
+- Cyber Index: ${absoluteUrl("/benchmarks/cyber")}
 
 ## Agent discovery
 

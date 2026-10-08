@@ -4,6 +4,7 @@ import { CatalogSelect } from "@/components/catalog-select";
 import { Blocks, Loader2, SlidersHorizontal } from "@/components/icons";
 import { SearchField } from "@/components/search-field";
 import { MobileCompareBar } from "@/components/mobile-compare-bar";
+import { CheckeredMark } from "@/components/model-availability";
 import { ModelTable } from "@/components/model-table";
 import { RankedListHeader, RankedModelRow } from "@/components/ranked-model-row";
 import { SegmentedControl } from "@/components/segmented-control";
@@ -23,6 +24,7 @@ import {
   sortAdvancedModels,
   sortHomeModels,
 } from "@/lib/model-grid-logic";
+import { matchesAvailability, modelAccessRestriction } from "@/lib/model-availability";
 import { isOpenWeightsModel } from "@/lib/model-metrics";
 import { getCanonicalCreatorSlug, getCreatorDisplayName } from "@/lib/provider-map";
 import { cn } from "@/lib/utils";
@@ -59,10 +61,12 @@ function StatusPanel({ children }: { children: React.ReactNode }) {
  */
 export function ModelGrid({
   models,
+  cyberModels,
   search,
   onSearchChange,
 }: {
   models: HomeCatalogModel[];
+  cyberModels: HomeCatalogModel[];
   search: CatalogSearch;
   onSearchChange: (search: CatalogSearch) => void;
 }) {
@@ -87,7 +91,7 @@ export function ModelGrid({
   useEffect(() => {
     setVisibleCount(BATCH);
     resultsMotion.current = animateContent(resultsRef.current, resultsMotion.current);
-  }, [appliedQuery, state.sort, state.direction, state.viewMode, state.ranking, state.provider, state.weights, state.category, thresholds]);
+  }, [appliedQuery, state.sort, state.direction, state.viewMode, state.ranking, state.provider, state.weights, state.availability, state.category, thresholds]);
   useEffect(() => () => resultsMotion.current?.cancel(), []);
 
   const providerItems = useMemo<ComboboxItem[]>(() => {
@@ -108,11 +112,16 @@ export function ModelGrid({
         matchesProvider(state.provider, model.model_creator.slug) &&
         (state.category === "all" || matchesCategory(model, state.category)) &&
         matchesWeightAccess(isOpenWeightsModel(model), state.weights) &&
+        matchesAvailability(modelAccessRestriction(model), state.availability) &&
         matchesThresholds(model, thresholds) &&
         matchesSearch(model, appliedQuery),
     );
     return sortAdvancedModels(filtered, state.sort, state.direction);
-  }, [advancedData.models, appliedQuery, state.sort, state.direction, state.provider, state.weights, state.category, thresholds]);
+  }, [advancedData.models, appliedQuery, state.sort, state.direction, state.provider, state.weights, state.availability, state.category, thresholds]);
+  const restrictedResults = useMemo(
+    () => (advanced ? advancedResults.filter((model) => modelAccessRestriction(model) !== null).length : 0),
+    [advanced, advancedResults],
+  );
   const missingSortValue = useMemo(
     () => state.sort === "name" ? 0 : advancedResults.filter((model) => advancedSortValue(model, state.sort) === null).length,
     [advancedResults, state.sort],
@@ -121,9 +130,11 @@ export function ModelGrid({
   // Global ranks are computed before filtering, so filters never renumber them.
   const ranked = useMemo<RankedEntry[]>(
     () =>
-      sortHomeModels(models.filter((model) => hasNormalRankingValue(model, state.ranking)), state.ranking)
-        .map((model, index) => ({ model, rank: index + 1 })),
-    [models, state.ranking],
+      sortHomeModels(
+        (state.ranking === "cyber" ? cyberModels : models).filter((model) => hasNormalRankingValue(model, state.ranking)),
+        state.ranking,
+      ).map((model, index) => ({ model, rank: index + 1 })),
+    [models, cyberModels, state.ranking],
   );
 
   const rankingBest = ranked[0] ? normalRankingValue(ranked[0].model, state.ranking) : null;
@@ -281,7 +292,7 @@ export function ModelGrid({
                 state={state}
                 providerLabel={providerItems.find((item) => item.value === state.provider)?.label}
                 onRemove={(key) =>
-                  key === "provider" || key === "weights" || key === "category" || key === "reasoning"
+                  key === "provider" || key === "weights" || key === "availability" || key === "category" || key === "reasoning"
                     ? update(key, "all")
                     : update(key, null)}
               />
@@ -292,6 +303,19 @@ export function ModelGrid({
           </div>
           {advanced && missingSortValue > 0 && missingSortValue < resultCount && (
             <p className="-mt-2 text-xs text-muted-foreground">{t.grid.missingLast(missingSortValue)}</p>
+          )}
+          {advanced && restrictedResults > 0 && state.availability === "all" && (
+            <p className="-mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+              <CheckeredMark className="h-3 w-4" />
+              <span>{t.grid.restrictedInResults(restrictedResults)}</span>
+              <button
+                type="button"
+                onClick={() => update("availability", "public")}
+                className="rounded-sm font-medium text-foreground underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11"
+              >
+                {t.grid.availability.public}
+              </button>
+            </p>
           )}
           {!advanced && <p className="hidden text-xs text-muted-foreground sm:block">{t.trust.catalogNote}</p>}
 

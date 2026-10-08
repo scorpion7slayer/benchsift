@@ -82,7 +82,7 @@ export function ModelCard({ model, sort }: { model: LLMModel; sort?: SortKey }) 
         {isNew && <Badge variant="secondary" className="text-[11px]">{t.card.newBadge}</Badge>}
         {model.reasoning_model && <Badge variant="secondary" className="gap-1 text-[11px]"><Brain className="size-3" />{t.detail.reasoning}</Badge>}
         {isOpenWeightsModel(model) && <Badge variant="outline" className="gap-1 text-[11px]"><Unlock className="size-3" />{t.card.openWeightsBadge}</Badge>}
-        <ModelAvailabilityBadge model={model} />
+        <ModelAvailabilityBadge model={model} compact />
         <StealthBadge model={model} />
       </div>
 

@@ -1,6 +1,9 @@
 import type { LLMModel } from "./api";
 import type { Lang, Translations } from "./i18n";
+import { cyberIndexResult } from "./cyber-index";
+import { modelAccessRestriction } from "./model-availability";
 import {
+  AA_CAPABILITY_INDEX_KEYS,
   AA_MEDIA_BENCHMARK_DEFS,
   TEXT_BENCHMARK_KEYS,
   applicableExtraBenchmarkEntries,
@@ -133,6 +136,7 @@ const benchmarkLabels = (key: string, t: Translations): string => {
   };
   return (
     labels[aliases[key] ?? key] ??
+    labels[key.replace(/^artificial_analysis_(.+)_index$/, "$1")] ??
     key.replace(/^openrouter_da_/, "OpenRouter ").replaceAll("_", " ")
   );
 };
@@ -179,6 +183,7 @@ export function buildComparisonRows(
     "lcr",
     "terminalbench_hard",
     "terminalbench_v2_1",
+    "terminalbench_v4_0",
     "tau2",
     "tau_banking",
     "gdpval_normalized",
@@ -192,18 +197,43 @@ export function buildComparisonRows(
     "critpt",
     "apex_agents",
   ];
-  for (const key of [...indices, ...percentages])
+  for (const key of indices)
+    add(key, benchmarkLabels(key, t), "benchmarks", (m) => textMetricValue(m, key), {
+      direction: "higher",
+      format: "number",
+      essential: true,
+    });
+  // The Cyber Index is a share of solved tasks, shown as a percentage like AA does.
+  add("cyber_index", t.benchmarks.cyber, "benchmarks", (m) => textMetricValue(m, "cyber_index"), {
+    direction: "higher",
+    format: "points",
+    essential: true,
+  });
+  const cyberBenchmarks = new Map(
+    models.flatMap((model) => cyberIndexResult(model)?.benchmarks.map((benchmark) => [benchmark.id, benchmark.label] as const) ?? []),
+  );
+  for (const [id, label] of cyberBenchmarks)
     add(
-      key,
-      benchmarkLabels(key, t),
+      `cyber:${id}`,
+      `${t.benchmarks.cyber} · ${label}`,
       "benchmarks",
-      (m) => textMetricValue(m, key),
-      {
-        direction: "higher",
-        format: indices.includes(key) ? "number" : "percent",
-        essential: indices.includes(key),
-      },
+      (m) => cyberIndexResult(m)?.benchmarks.find((benchmark) => benchmark.id === id)?.score,
+      { direction: "higher", format: "percent" },
     );
+  // Fewer blocks is not a better model, only a different policy: no direction.
+  add("cyber-safety-blocks", t.compare.fields.cyberSafetyBlocks, "benchmarks", (m) => cyberIndexResult(m)?.safety_block_rate, {
+    format: "percent",
+  });
+  for (const key of AA_CAPABILITY_INDEX_KEYS)
+    add(key, benchmarkLabels(key, t), "benchmarks", (m) => textMetricValue(m, key), {
+      direction: "higher",
+      format: "number",
+    });
+  for (const key of percentages)
+    add(key, benchmarkLabels(key, t), "benchmarks", (m) => textMetricValue(m, key), {
+      direction: "higher",
+      format: "percent",
+    });
   for (const key of TEXT_BENCHMARK_KEYS) {
     if (percentages.includes(key)) continue;
     add(
@@ -389,6 +419,18 @@ export function buildComparisonRows(
     { format: "money", direction: "lower", essential: true },
   );
   add(
+    "cyber-cost-per-task",
+    f.cyberCostPerTask,
+    "pricing",
+    (m) => cyberIndexResult(m)?.cost_per_task_usd,
+    { format: "money", direction: "lower" },
+  );
+  // Only AA's restriction marker is shown: no marker does not prove public availability.
+  add("availability", t.grid.availability.label, "info", (m) => {
+    const restriction = modelAccessRestriction(m);
+    return restriction === "trusted_access" ? t.card.trustedAccessBadge : restriction ? t.card.unavailableBadge : null;
+  }, { essential: true });
+  add(
     "openrouter_weekly_rank",
     f.openrouterWeeklyRank,
     "info",
@@ -401,6 +443,10 @@ export function buildComparisonRows(
     artificial_analysis_coding_index: g.coding,
     artificial_analysis_math_index: g.math,
     agentic_index: g.agentic,
+    cyber_index: g.cyber,
+    "cyber-safety-blocks": g.safetyBlocks,
+    availability: g.notPublic,
+    ...Object.fromEntries(AA_CAPABILITY_INDEX_KEYS.map((key) => [key, g.capabilityIndexes])),
     speed: g.outputSpeed,
     ttft: g.ttft,
     "first-answer": g.firstAnswer,

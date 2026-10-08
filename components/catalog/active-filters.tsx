@@ -3,7 +3,7 @@ import type { CatalogState } from "@/lib/catalog-search";
 import { formatMoney, formatSpeed, formatTokens } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 
-type FilterKey = "provider" | "weights" | "category" | "minScore" | "maxPrice" | "minContext" | "minSpeed" | "reasoning";
+type FilterKey = "provider" | "weights" | "availability" | "category" | "minScore" | "maxPrice" | "minContext" | "minSpeed" | "reasoning";
 
 /**
  * The filters applied from the sheet, visible beside the results so each can
@@ -25,6 +25,7 @@ export function ActiveFilters({
   if (state.provider !== "all") chips.push({ key: "provider", label: providerLabel ?? state.provider });
   if (state.weights !== "all") chips.push({ key: "weights", label: t.grid.weightAccess[state.weights] });
   if (state.viewMode === "advanced") {
+    if (state.availability !== "all") chips.push({ key: "availability", label: t.grid.availability[state.availability] });
     if (state.minScore !== null) chips.push({ key: "minScore", label: copy.chipScore(String(state.minScore)) });
     if (state.maxPrice !== null) chips.push({ key: "maxPrice", label: copy.chipPrice(formatMoney(state.maxPrice, lang)) });
     if (state.minContext !== null) chips.push({ key: "minContext", label: copy.chipContext(formatTokens(state.minContext, lang)) });

@@ -1,10 +1,11 @@
 import { StealthBadge } from "./stealth-history";
 import { Brain, Check, Plus, Unlock } from "@/components/icons";
+import { AccessRestrictionBadge } from "@/components/model-availability";
 import { Link } from "@/components/link";
 import { ModelProviderIcon } from "@/components/model-provider-icon";
 import { Button } from "@/components/ui/button";
 import { useCompare } from "@/lib/compare-store";
-import { formatMoney, formatNumber, formatSpeed, formatTokens } from "@/lib/format";
+import { formatMoney, formatNumber, formatPercent, formatSpeed, formatTokens } from "@/lib/format";
 import type { HomeCatalogModel } from "@/lib/home-catalog";
 import { useI18n, type Lang, type Translations } from "@/lib/i18n";
 import { normalRankingValue, type NormalRankingKey } from "@/lib/model-grid-logic";
@@ -31,6 +32,7 @@ function metricLabel(metric: NormalRankingKey, t: Translations): string {
 function formatMetric(metric: NormalRankingKey, value: number | null, lang: Lang): string {
   if (metric === "speed") return formatSpeed(value, lang);
   if (metric === "price_asc") return formatMoney(value, lang);
+  if (metric === "cyber") return formatPercent(value == null ? null : value / 100, lang);
   return formatNumber(value, lang);
 }
 
@@ -63,9 +65,10 @@ function RowBadges({ model }: { model: HomeCatalogModel }) {
     model.reasoning_model && { key: "reasoning", label: t.detail.reasoning, icon: Brain },
     model.is_open_weights && { key: "open", label: t.card.openWeightsBadge, icon: Unlock },
   ].filter(Boolean) as Array<{ key: string; label: string; icon: typeof Brain | null }>;
-  if (!badges.length) return null;
+  if (!badges.length && !model.access_restriction) return null;
   return (
     <span className="mt-1 flex flex-wrap gap-1">
+      <AccessRestrictionBadge restriction={model.access_restriction} compact />
       {badges.map(({ key, label, icon: Icon }) => (
         <span
           key={key}

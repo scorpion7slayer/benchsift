@@ -66,6 +66,14 @@ export interface Translations {
     familyHint: string;
     openVariant: string;
     empty: string;
+    picker: {
+      title: string;
+      count: (shown: string, total: string) => string;
+      hint: string;
+      showAll: string;
+      hideAll: string;
+      none: string;
+    };
   };
   analytics: {
     title: string;
@@ -109,6 +117,7 @@ export interface Translations {
     feedback: string;
     codingAgents: string;
     deepSwe: string;
+    cyber: string;
     models: string;
     about: string;
     otherBenchmarks: string;
@@ -167,6 +176,7 @@ export interface Translations {
       math: string;
       speed: string;
       price: string;
+      cyber: string;
       rank: (position: number) => string;
     };
     sorts: {
@@ -186,6 +196,7 @@ export interface Translations {
       input_price: string;
       output_price: string;
       agentic: string;
+      cyber: string;
       cost_per_task: string;
       context: string;
       newest: string;
@@ -236,6 +247,13 @@ export interface Translations {
       open: string;
       closed: string;
     };
+    availability: {
+      label: string;
+      all: string;
+      public: string;
+      restricted: string;
+    };
+    restrictedInResults: (n: number) => string;
     results: (n: number, total: number) => string;
     noResults: string;
     noOptions: string;
@@ -283,6 +301,11 @@ export interface Translations {
     contextWindow: string;
     openWeights: string;
     openrouterRank: string;
+    cyber: string;
+    safetyBlocks: string;
+    trustedAccess: string;
+    capabilityIndexes: string;
+    notPublic: string;
     infoLabel: string;
   };
   card: {
@@ -299,6 +322,8 @@ export interface Translations {
     huggingface: string;
     openWeightsBadge: string;
     unavailableBadge: string;
+    notPublicBadge: string;
+    trustedAccessBadge: string;
   };
   detail: {
     reasoningConfiguration: string;
@@ -372,6 +397,7 @@ export interface Translations {
     metaInfo: string;
     unavailableTitle: string;
     unavailableDescription: string;
+    trustedAccessSource: string;
     fableUnavailableDescription: string;
     unavailableSource: string;
     modalityLabels: { text: string; image: string; speech: string; video: string; decisions: string };
@@ -381,6 +407,13 @@ export interface Translations {
     similarTitle: string;
     similarHint: string;
     compareWith: (name: string) => string;
+    capabilityIndexes: string;
+    capabilityIndexesDescription: string;
+    cyberIndex: string;
+    cyberSource: (version: string | null) => string;
+    cyberLeaderboard: string;
+    cyberCounterpartTrusted: string;
+    cyberCounterpartPublic: string;
   };
   compare: {
     title: string;
@@ -420,6 +453,8 @@ export interface Translations {
       evalCost: string;
       costPerTask: string;
       openrouterWeeklyRank: string;
+      cyberSafetyBlocks: string;
+      cyberCostPerTask: string;
     };
     best: string;
     model: string;
@@ -477,6 +512,25 @@ export interface Translations {
       confidence: string;
     };
   };
+  cyber: {
+    title: string;
+    description: string;
+    methodDescription: string;
+    empty: string;
+    sourceNote: string;
+    viewOnAA: string;
+    footnote: string;
+    blocked: string;
+    version: (version: string) => string;
+    access: { label: string; all: string; public: string };
+    stats: { configs: string; best: string; bestPublic: string; safetyBlocked: string; safetyBlockedDetail: (total: number) => string };
+    legend: { successes: string; safetyBlocks: string; failures: string; trustedAccess: string };
+    headers: { model: string; index: string; safetyBlocks: string; cost: string };
+    chartTitle: string;
+    chartHint: string;
+    chartMetric: string;
+    outcome: (successes: string, safetyBlocks: string | null) => string;
+  };
   benchmarks: {
     intelligence: string;
     coding: string;
@@ -506,6 +560,14 @@ export interface Translations {
     apex_agents: string;
     itbench_aa: string;
     omniscience_non_hallucination: string;
+    cyber: string;
+    terminalbench_v4_0: string;
+    finance_and_accounting: string;
+    strategy_and_ops: string;
+    legal: string;
+    healthcare_and_medical: string;
+    engineering: string;
+    economics: string;
   };
 }
 
@@ -575,6 +637,14 @@ const T: Record<Lang, Translations> = {
       familyHint: "Chaque point est un niveau de raisonnement de ce modèle : plus de réflexion améliore souvent le score, mais coûte plus cher. Sélectionnez un point pour ouvrir ce niveau.",
       openVariant: "Ouvrir ce niveau",
       empty: "Pas assez de données communes pour tracer ce graphique.",
+      picker: {
+        title: "Modèles affichés",
+        count: (shown, total) => `${shown} sur ${total}`,
+        hint: "Sélectionnez un modèle pour l'afficher ou le masquer ; le survoler le met en avant sur le graphique. Les axes s'ajustent aux modèles affichés.",
+        showAll: "Tout afficher",
+        hideAll: "Tout masquer",
+        none: "Aucun modèle affiché. Choisissez-en dans la liste ci-dessous.",
+      },
     },
     analytics: {
       title: "Autoriser l’analyse de navigation ?",
@@ -660,6 +730,7 @@ const T: Record<Lang, Translations> = {
       feedback: "Feedback",
       codingAgents: "Coding Agents",
       deepSwe: "DeepSWE",
+      cyber: "Cyber Index",
       models: "Modèles",
       allModels: "Tous les modèles",
       about: "À propos",
@@ -736,6 +807,7 @@ const T: Record<Lang, Translations> = {
         math: "Maths",
         speed: "Vitesse",
         price: "Prix",
+        cyber: "Cyber",
         rank: (position) => `Rang ${position}`,
       },
       sorts: {
@@ -743,6 +815,7 @@ const T: Record<Lang, Translations> = {
         coding: "Coding",
         math: "Math",
         agentic: "Agentique",
+        cyber: "Cyber Index",
         gpqa: "GPQA",
         mmlu_pro: "MMLU Pro",
         hle: "HLE",
@@ -805,6 +878,13 @@ const T: Record<Lang, Translations> = {
         open: "Poids ouverts",
         closed: "Poids fermés",
       },
+      availability: {
+        label: "Disponibilité",
+        all: "Tous les modèles",
+        public: "Masquer les non publics",
+        restricted: "Non publics uniquement",
+      },
+      restrictedInResults: (n) => `${n} modèle${n > 1 ? "s" : ""} non disponible${n > 1 ? "s" : ""} publiquement dans ces résultats.`,
       results: (n, total) =>
         n === total ? `${n} modèle${n !== 1 ? "s" : ""}` : `${n} résultat${n !== 1 ? "s" : ""} sur ${total}`,
       noResults: "Aucun modèle ne correspond à votre recherche.",
@@ -853,6 +933,11 @@ const T: Record<Lang, Translations> = {
       contextWindow: "Nombre maximal de tokens que le modèle peut traiter dans une seule requête.",
       openWeights: "Poids publiés et téléchargeables, sous une licence propre à chaque modèle. Fermés : accès uniquement via API ou produit.",
       openrouterRank: "Position du modèle dans le classement de popularité d'OpenRouter.",
+      cyber: "Indice d'Artificial Analysis (0–100) consacré à la cybersécurité : part des tâches réussies sur ses évaluations dédiées. Une tâche refusée pour raison de sécurité ne compte pas comme réussie.",
+      safetyBlocks: "Part des tâches que le modèle ou son fournisseur a refusées pour des raisons de sécurité. Ces tâches ne comptent pas comme réussies.",
+      trustedAccess: "Version réservée à un programme d'accès de confiance, non disponible publiquement, évaluée sans les protections standard du modèle public.",
+      capabilityIndexes: "Indices d'Artificial Analysis (0–100) qui mesurent la performance sur des secteurs précis.",
+      notPublic: "Artificial Analysis a mesuré ce modèle, mais le marque comme non disponible publiquement (motif en damier sur ses graphiques). Son rang reste celui de ses mesures.",
       infoLabel: "Définition",
     },
     card: {
@@ -868,7 +953,9 @@ const T: Record<Lang, Translations> = {
       agentic: "Agentic",
       huggingface: "Hugging Face",
       openWeightsBadge: "Poids ouverts",
-      unavailableBadge: "Indisponible actuellement",
+      unavailableBadge: "Non disponible publiquement",
+      notPublicBadge: "Non public",
+      trustedAccessBadge: "Accès restreint",
     },
     detail: {
       reasoningConfiguration: "Niveau de réflexion",
@@ -940,8 +1027,9 @@ const T: Record<Lang, Translations> = {
       viewAllBenchmarks: "Voir tous les benchmarks",
       showFewerBenchmarks: "Réduire les benchmarks",
       metaInfo: "Méta-informations",
-      unavailableTitle: "Indisponible actuellement",
-      unavailableDescription: "Artificial Analysis marque actuellement ce modèle comme indisponible.",
+      unavailableTitle: "Non disponible publiquement",
+      unavailableDescription: "Artificial Analysis marque ce modèle comme non disponible publiquement (motif en damier sur ses graphiques). Ses mesures restent affichées pour comparaison.",
+      trustedAccessSource: "Lire l'article d'Artificial Analysis",
       fableUnavailableDescription: "Une directive du gouvernement américain oblige Anthropic à suspendre l'accès à Fable 5 et Mythos 5 pour tous les utilisateurs. Anthropic travaille à rétablir l'accès dès que possible, sans annoncer de date.",
       unavailableSource: "Lire l'annonce Anthropic",
       modalityLabels: { text: "texte", image: "image", speech: "audio", video: "vidéo", decisions: "décisions" },
@@ -951,6 +1039,13 @@ const T: Record<Lang, Translations> = {
       similarTitle: "Modèles de niveau proche",
       similarHint: "Les modèles les plus proches sur l'Intelligence Index, une configuration par famille.",
       compareWith: (name) => `Comparer avec ${name}`,
+      capabilityIndexes: "Indices par secteur",
+      capabilityIndexesDescription: "Performance par secteur mesurée par Artificial Analysis",
+      cyberIndex: "Cyber Index",
+      cyberSource: (version) => `Artificial Analysis${version ? ` · ${version}` : ""}`,
+      cyberLeaderboard: "Classement Cyber Index",
+      cyberCounterpartTrusted: "Version en accès restreint",
+      cyberCounterpartPublic: "Version publique",
     },
     compare: {
       title: "Comparateur de modèles",
@@ -990,6 +1085,8 @@ const T: Record<Lang, Translations> = {
         evalCost: "Coût d'éval.",
         costPerTask: "Coût / tâche",
         openrouterWeeklyRank: "Rang OpenRouter hebdo",
+        cyberSafetyBlocks: "Cyber · refus de sécurité",
+        cyberCostPerTask: "Cyber · coût / tâche",
       },
       best: "Meilleur",
       model: "Modèle",
@@ -1083,6 +1180,31 @@ const T: Record<Lang, Translations> = {
         confidence: "IC 95 %",
       },
     },
+    cyber: {
+      title: "Cyber Index",
+      description: "Classement d'Artificial Analysis des modèles sur des tâches de cybersécurité : réussites, refus de sécurité et coût par tâche.",
+      methodDescription: "L'indice agrège les évaluations ci-dessous, mesurées de façon indépendante par Artificial Analysis. Chaque ligne est une configuration mesurée ; son nom précise le niveau de réflexion utilisé.",
+      empty: "Aucun résultat Cyber Index dans le catalogue pour l'instant.",
+      sourceNote: "Données via Artificial Analysis, mises à jour à chaque actualisation du catalogue. Le rang reste celui de l'index après filtrage.",
+      viewOnAA: "Voir sur Artificial Analysis",
+      footnote: "* Le modèle ou son fournisseur a refusé certaines tâches pour des raisons de sécurité.",
+      blocked: "refus de sécurité",
+      version: (version) => `Version ${version}`,
+      access: { label: "Disponibilité", all: "Tous les modèles", public: "Modèles publics" },
+      stats: {
+        configs: "Configurations",
+        best: "Meilleur score",
+        bestPublic: "Meilleur modèle public",
+        safetyBlocked: "Avec refus de sécurité",
+        safetyBlockedDetail: (total) => `sur ${total} configurations`,
+      },
+      legend: { successes: "Réussites", safetyBlocks: "Refus de sécurité", failures: "Échecs", trustedAccess: "Accès restreint (non public)" },
+      headers: { model: "Modèle", index: "Cyber Index", safetyBlocks: "Refus", cost: "Coût / tâche" },
+      chartTitle: "Score et coût par tâche",
+      chartHint: "Chaque point est une configuration mesurée. En haut à droite : meilleur score pour le moindre coût. Survolez ou parcourez les points au clavier pour lire leurs valeurs.",
+      chartMetric: "Score affiché",
+      outcome: (successes, safetyBlocks) => safetyBlocks == null ? `${successes} de réussites` : `${successes} de réussites, ${safetyBlocks} de refus de sécurité`,
+    },
     benchmarks: {
       intelligence: "Intelligence",
       coding: "Coding",
@@ -1112,6 +1234,14 @@ const T: Record<Lang, Translations> = {
       apex_agents: "APEX-Agents-AA",
       itbench_aa: "ITBench-AA",
       omniscience_non_hallucination: "AA-Omniscience Non-Hallucination",
+      cyber: "Cyber Index",
+      terminalbench_v4_0: "Terminal-Bench v4",
+      finance_and_accounting: "Finance et comptabilité",
+      strategy_and_ops: "Stratégie et opérations",
+      legal: "Juridique",
+      healthcare_and_medical: "Santé et médecine",
+      engineering: "Ingénierie",
+      economics: "Économie",
     },
   },
   en: {
@@ -1179,6 +1309,14 @@ const T: Record<Lang, Translations> = {
       familyHint: "Each point is a reasoning level of this model: more reasoning often raises the score but costs more. Select a point to open that level.",
       openVariant: "Open this level",
       empty: "Not enough shared data to draw this chart.",
+      picker: {
+        title: "Models shown",
+        count: (shown, total) => `${shown} of ${total}`,
+        hint: "Select a model to show or hide it; hovering it brings it forward on the chart. The axes fit the models shown.",
+        showAll: "Show all",
+        hideAll: "Hide all",
+        none: "No model shown. Pick some from the list below.",
+      },
     },
     analytics: {
       title: "Allow navigation analytics?",
@@ -1264,6 +1402,7 @@ const T: Record<Lang, Translations> = {
       feedback: "Feedback",
       codingAgents: "Coding Agents",
       deepSwe: "DeepSWE",
+      cyber: "Cyber Index",
       models: "Models",
       allModels: "All models",
       about: "About",
@@ -1340,6 +1479,7 @@ const T: Record<Lang, Translations> = {
         math: "Math",
         speed: "Speed",
         price: "Price",
+        cyber: "Cyber",
         rank: (position) => `Rank ${position}`,
       },
       sorts: {
@@ -1347,6 +1487,7 @@ const T: Record<Lang, Translations> = {
         coding: "Coding",
         math: "Math",
         agentic: "Agentic",
+        cyber: "Cyber Index",
         gpqa: "GPQA",
         mmlu_pro: "MMLU Pro",
         hle: "HLE",
@@ -1409,6 +1550,13 @@ const T: Record<Lang, Translations> = {
         open: "Open weights",
         closed: "Closed weights",
       },
+      availability: {
+        label: "Availability",
+        all: "All models",
+        public: "Hide non-public models",
+        restricted: "Non-public models only",
+      },
+      restrictedInResults: (n) => `${n} ${n === 1 ? "model is" : "models are"} not publicly available in these results.`,
       results: (n, total) =>
         n === total ? `${n} model${n !== 1 ? "s" : ""}` : `${n} result${n !== 1 ? "s" : ""} of ${total}`,
       noResults: "No models match your search.",
@@ -1457,6 +1605,11 @@ const T: Record<Lang, Translations> = {
       contextWindow: "Maximum number of tokens the model can process in a single request.",
       openWeights: "Weights are published and downloadable under a model-specific licence. Closed: available only through an API or product.",
       openrouterRank: "The model's position in OpenRouter's popularity ranking.",
+      cyber: "Artificial Analysis index (0–100) for cybersecurity: the share of tasks solved on its dedicated evaluations. A task declined on safety grounds does not count as solved.",
+      safetyBlocks: "Share of tasks the model or its provider declined on safety grounds. These tasks do not count as solved.",
+      trustedAccess: "A version reserved for a trusted-access programme, not publicly available, evaluated without the standard safeguards of the public model.",
+      capabilityIndexes: "Artificial Analysis indexes (0–100) measuring performance in specific industries.",
+      notPublic: "Artificial Analysis measured this model but marks it as not publicly available (checkered pattern in its charts). Its rank still follows its measurements.",
       infoLabel: "Definition",
     },
     card: {
@@ -1472,7 +1625,9 @@ const T: Record<Lang, Translations> = {
       agentic: "Agentic",
       huggingface: "Hugging Face",
       openWeightsBadge: "Open weights",
-      unavailableBadge: "Not currently available",
+      unavailableBadge: "Not publicly available",
+      notPublicBadge: "Not public",
+      trustedAccessBadge: "Trusted access",
     },
     detail: {
       reasoningConfiguration: "Reasoning level",
@@ -1544,8 +1699,9 @@ const T: Record<Lang, Translations> = {
       viewAllBenchmarks: "Show all benchmarks",
       showFewerBenchmarks: "Show fewer benchmarks",
       metaInfo: "Meta-information",
-      unavailableTitle: "Not currently available",
-      unavailableDescription: "Artificial Analysis currently marks this model as unavailable.",
+      unavailableTitle: "Not publicly available",
+      unavailableDescription: "Artificial Analysis marks this model as not publicly available (checkered pattern in its charts). Its measurements remain listed for comparison.",
+      trustedAccessSource: "Read the Artificial Analysis article",
       fableUnavailableDescription: "A US government directive requires Anthropic to suspend access to Fable 5 and Mythos 5 for all users. Anthropic is working to restore access as soon as possible, with no return date announced.",
       unavailableSource: "Read Anthropic's announcement",
       modalityLabels: { text: "text", image: "image", speech: "speech", video: "video", decisions: "decisions" },
@@ -1555,6 +1711,13 @@ const T: Record<Lang, Translations> = {
       similarTitle: "Models at a similar level",
       similarHint: "The closest models on the Intelligence Index, one configuration per family.",
       compareWith: (name) => `Compare with ${name}`,
+      capabilityIndexes: "Capability indexes",
+      capabilityIndexesDescription: "Performance in specific industries, measured by Artificial Analysis",
+      cyberIndex: "Cyber Index",
+      cyberSource: (version) => `Artificial Analysis${version ? ` · ${version}` : ""}`,
+      cyberLeaderboard: "Cyber Index leaderboard",
+      cyberCounterpartTrusted: "Trusted-access version",
+      cyberCounterpartPublic: "Publicly available version",
     },
     compare: {
       title: "Model Comparator",
@@ -1594,6 +1757,8 @@ const T: Record<Lang, Translations> = {
         evalCost: "Eval cost",
         costPerTask: "Cost / task",
         openrouterWeeklyRank: "OpenRouter weekly rank",
+        cyberSafetyBlocks: "Cyber · safety blocks",
+        cyberCostPerTask: "Cyber · cost / task",
       },
       best: "Best",
       model: "Model",
@@ -1687,6 +1852,31 @@ const T: Record<Lang, Translations> = {
         confidence: "95% CI",
       },
     },
+    cyber: {
+      title: "Cyber Index",
+      description: "Artificial Analysis ranking of models on cybersecurity tasks: successes, safety blocks and cost per task.",
+      methodDescription: "The index combines the evaluations below, measured independently by Artificial Analysis. Each row is one measured configuration; its name gives the reasoning level used.",
+      empty: "No Cyber Index results in the catalogue yet.",
+      sourceNote: "Data from Artificial Analysis, updated with each catalogue refresh. Ranks follow the index after filtering.",
+      viewOnAA: "View on Artificial Analysis",
+      footnote: "* The model or provider declined some tasks on safety grounds.",
+      blocked: "safety blocks",
+      version: (version) => `Version ${version}`,
+      access: { label: "Availability", all: "All models", public: "Public models" },
+      stats: {
+        configs: "Configurations",
+        best: "Best score",
+        bestPublic: "Best public model",
+        safetyBlocked: "With safety blocks",
+        safetyBlockedDetail: (total) => `of ${total} configurations`,
+      },
+      legend: { successes: "Successes", safetyBlocks: "Safety blocks", failures: "Failures", trustedAccess: "Trusted access (not public)" },
+      headers: { model: "Model", index: "Cyber Index", safetyBlocks: "Blocks", cost: "Cost / task" },
+      chartTitle: "Score vs cost per task",
+      chartHint: "Each point is a measured configuration. Top right: the best score for the lowest cost. Hover or move through the points with the keyboard to read their values.",
+      chartMetric: "Score shown",
+      outcome: (successes, safetyBlocks) => safetyBlocks == null ? `${successes} successes` : `${successes} successes, ${safetyBlocks} safety blocks`,
+    },
     benchmarks: {
       intelligence: "Intelligence",
       coding: "Coding",
@@ -1716,6 +1906,14 @@ const T: Record<Lang, Translations> = {
       apex_agents: "APEX-Agents-AA",
       itbench_aa: "ITBench-AA",
       omniscience_non_hallucination: "AA-Omniscience Non-Hallucination",
+      cyber: "Cyber Index",
+      terminalbench_v4_0: "Terminal-Bench v4",
+      finance_and_accounting: "Finance & Accounting",
+      strategy_and_ops: "Strategy & Ops",
+      legal: "Legal",
+      healthcare_and_medical: "Healthcare & Medical",
+      engineering: "Engineering",
+      economics: "Economics",
     },
   },
 };

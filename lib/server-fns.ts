@@ -20,6 +20,7 @@ import {
   type ComparisonFamily,
   type ModelInsights,
 } from "@/lib/model-insights";
+import { cyberLeaderboard, type CyberLeaderboard } from "@/lib/cyber-index";
 import { getDeepSweData, type DeepSweData } from "@/lib/deepswe";
 import { matchDeepSweModels, type DeepSweModelInfo } from "@/lib/deepswe-catalog";
 import type { CompareModelOption } from "@/lib/compare-model";
@@ -147,6 +148,19 @@ export const fetchCompareData = createServerFn({ method: "GET" })
 /** AA coding-agents leaderboard. */
 export const fetchCodingAgents = createServerFn({ method: "GET" }).handler(
   async () => { setResponseCache(); return getCodingAgents(); },
+);
+
+const cyberSnapshots = new WeakMap<LLMModel[], CyberLeaderboard>();
+
+/** Artificial Analysis Cyber Index, as stored in the catalogue by the refresh job. */
+export const fetchCyberIndex = createServerFn({ method: "GET" }).handler(
+  async (): Promise<CyberLeaderboard> => {
+    setResponseCache();
+    const models = await getLLMModels();
+    let data = cyberSnapshots.get(models);
+    if (!data) { data = cyberLeaderboard(models); cyberSnapshots.set(models, data); }
+    return data;
+  },
 );
 
 /** Datacurve DeepSWE leaderboard. */

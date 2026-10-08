@@ -11,6 +11,7 @@ import {
   Menu,
   MessageSquarePlus,
   PanelsTopLeft,
+  Shield,
   Terminal,
 } from "@/components/icons";
 import { MobileSheet } from "@/components/mobile-sheet";
@@ -131,6 +132,12 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
                       {t.nav.deepSwe}
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/benchmarks/cyber">
+                      <Shield />
+                      {t.nav.cyber}
+                    </Link>
+                  </DropdownMenuItem>
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -242,6 +249,7 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
           <p className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{t.nav.otherBenchmarks}</p>
           <Link href="/agents/coding" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Terminal className="size-5" />{t.nav.codingAgents}</Link>
           <Link href="/benchmarks/deepswe" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Activity className="size-5" />{t.nav.deepSwe}</Link>
+          <Link href="/benchmarks/cyber" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Shield className="size-5" />{t.nav.cyber}</Link>
           <div className="my-2 border-t" />
           <Link href="/models" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><LibraryBig className="size-5" />{t.nav.allModels}</Link>
           <Link href="/about" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Info className="size-5" />{t.nav.about}</Link>

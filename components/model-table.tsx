@@ -5,6 +5,7 @@ import { Check, Plus } from "@/components/icons";
 import { SortButton } from "@/components/sort-button";
 import { Link } from "@/components/link";
 import { ModelProviderIcon } from "@/components/model-provider-icon";
+import { ModelAvailabilityBadge } from "@/components/model-availability";
 import { StealthBadge } from "@/components/stealth-history";
 import { Button } from "@/components/ui/button";
 import type { LLMModel } from "@/lib/model-types";
@@ -97,6 +98,7 @@ export function ModelTable({
                         {model.reasoning_model && <span className="shrink-0">· {t.detail.reasoning}</span>}
                         {isOpenWeightsModel(model) && <span className="shrink-0">· {t.card.openWeightsBadge}</span>}
                       </p>
+                      <ModelAvailabilityBadge model={model} compact className="mt-1" />
                       <StealthBadge model={model} />
                     </div>
                   </div>

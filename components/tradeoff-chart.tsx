@@ -1,5 +1,7 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { ModelMarker } from "@/components/compare/compared-model";
+import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export interface ChartPoint {
@@ -96,7 +98,9 @@ function useWidth(fallback: number) {
  * of the DeepSWE and Artificial Analysis charts: the x axis runs so that the
  * most efficient corner is always the top right, and each family is named
  * directly on the chart. Points are reachable with the keyboard as a single
- * stop: arrow keys move between them, Enter selects one.
+ * stop: arrow keys move between them, Enter selects one. With `picker`, the
+ * reader chooses which series to draw, from none to all, and the axes fit
+ * the series shown so a crowded corner can be spread out.
  */
 export function TradeoffChart({
   series,
@@ -113,6 +117,7 @@ export function TradeoffChart({
   selectHint,
   empty,
   legend = true,
+  picker = false,
   className,
 }: {
   series: ChartSeries[];
@@ -133,15 +138,24 @@ export function TradeoffChart({
   empty: string;
   /** Shows the list of highlighted points below the chart ("series" labels only). */
   legend?: boolean;
+  /** Lists every series below the chart so the reader can show or hide each one. */
+  picker?: boolean;
   className?: string;
 }) {
+  const { t } = useI18n();
   const [wrapper, width] = useWidth(720);
   const [active, setActive] = useState<{ series: string; point: string } | null>(null);
   const [focusIndex, setFocusIndex] = useState(0);
   const pointRefs = useRef(new Map<string, SVGGElement>());
   const [hoveredSeries, setHoveredSeries] = useState<string | null>(null);
+  // Hidden rather than shown ids, so series that appear later (a cleared
+  // search, another axis) are drawn until the reader hides them.
+  const [hidden, setHidden] = useState<ReadonlySet<string>>(() => new Set());
+  // Once the reader has picked series, a series shown again appears at once
+  // instead of waiting for its place in the opening animation.
+  const [picked, setPicked] = useState(false);
 
-  const plotted = useMemo(
+  const drawable = useMemo(
     () =>
       series
         .map((entry) => ({
@@ -152,6 +166,10 @@ export function TradeoffChart({
         }))
         .filter((entry) => entry.points.length > 0),
     [series, scale],
+  );
+  const plotted = useMemo(
+    () => (picker ? drawable.filter((entry) => !hidden.has(entry.id)) : drawable),
+    [drawable, hidden, picker],
   );
   const allPoints = plotted.flatMap((entry) => entry.points);
 
@@ -169,6 +187,14 @@ export function TradeoffChart({
   const xFraction = (value: number) => (project(value) - project(xAxis.min)) / (project(xAxis.max) - project(xAxis.min) || 1);
   const xPos = (value: number) => MARGIN.left + plotWidth * (better === "lower" ? 1 - xFraction(value) : xFraction(value));
   const yPos = (value: number) => MARGIN.top + plotHeight * (1 - value / yAxis.max);
+  // On a narrow chart, a tick too close to the last one kept would print over it.
+  const xTicks: number[] = [];
+  let lastTickAt = -Infinity;
+  for (const tick of [...xAxis.ticks].sort((a, b) => xPos(a) - xPos(b))) {
+    if (xPos(tick) - lastTickAt < 52) continue;
+    xTicks.push(tick);
+    lastTickAt = xPos(tick);
+  }
 
   // One keyboard stop for the whole chart; arrows walk the points in order.
   // Visual order: on a reversed axis, the next point to the right has a lower x.
@@ -188,8 +214,13 @@ export function TradeoffChart({
     return () => document.removeEventListener("pointerdown", close);
   }, [active, wrapper]);
 
-  if (allPoints.length === 0) {
+  if (drawable.length === 0) {
     return <p className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">{empty}</p>;
+  }
+
+  function pickSeries(update: (hidden: ReadonlySet<string>) => ReadonlySet<string>) {
+    setPicked(true);
+    setHidden(update);
   }
 
   function moveFocus(event: KeyboardEvent<SVGSVGElement>) {
@@ -216,27 +247,41 @@ export function TradeoffChart({
   const place = (key: string, px: number, py: number, title: string | null, tag: string | null, color: string, force = false) => {
     const boxWidth = Math.max(title ? textWidth(title, 13) : 0, tag ? textWidth(tag, 10, true) : 0) + 4;
     const boxHeight = title && tag ? LABEL_HEIGHT : 16;
-    const candidates: Array<{ box: Box; anchor: "start" | "middle" | "end" }> = [
-      { box: { x: px - boxWidth / 2, y: py - POINT_GAP - boxHeight, width: boxWidth, height: boxHeight }, anchor: "middle" },
-      { box: { x: px + POINT_GAP, y: py - boxHeight / 2, width: boxWidth, height: boxHeight }, anchor: "start" },
-      { box: { x: px - POINT_GAP - boxWidth, y: py - boxHeight / 2, width: boxWidth, height: boxHeight }, anchor: "end" },
-      { box: { x: px - boxWidth / 2, y: py + POINT_GAP, width: boxWidth, height: boxHeight }, anchor: "middle" },
+    const at = (x: number, y: number, anchor: "start" | "middle" | "end") => ({ box: { x, y, width: boxWidth, height: boxHeight }, anchor });
+    const above = py - POINT_GAP - boxHeight;
+    const below = py + POINT_GAP;
+    const candidates = [
+      at(px - boxWidth / 2, above, "middle"),
+      at(px + POINT_GAP, py - boxHeight / 2, "start"),
+      at(px - POINT_GAP - boxWidth, py - boxHeight / 2, "end"),
+      at(px - boxWidth / 2, below, "middle"),
+      // Corners, then one line further out, before giving up on a clear spot.
+      at(px + POINT_GAP / 2, above, "start"),
+      at(px - POINT_GAP / 2 - boxWidth, above, "end"),
+      at(px + POINT_GAP / 2, below, "start"),
+      at(px - POINT_GAP / 2 - boxWidth, below, "end"),
+      at(px - boxWidth / 2, above - boxHeight, "middle"),
+      at(px - boxWidth / 2, below + boxHeight, "middle"),
     ];
     const fits = (box: Box) => box.x >= bounds.left && box.x + box.width <= bounds.right && box.y >= bounds.top && box.y + box.height <= bounds.bottom;
-    const clear = (box: Box) => !placed.some((other) => overlaps(box, other)) && !pointBoxes.some((other) => overlaps(box, other));
+    const clearOfLabels = (box: Box) => !placed.some((other) => overlaps(box, other));
+    const clear = (box: Box) => clearOfLabels(box) && !pointBoxes.some((other) => overlaps(box, other));
+    // A priority label may cover other points, never another label or the frame.
     const choice = candidates.find(({ box }) => fits(box) && clear(box))
-      ?? (force ? candidates.find(({ box }) => fits(box)) ?? candidates[0] : null);
+      ?? (force ? candidates.find(({ box }) => fits(box) && clearOfLabels(box)) : undefined);
     if (!choice) return;
     placed.push(choice.box);
     labels.push({ key, ...choice, title, tag, color });
   };
-  // Series come in priority order (best first): the first six always keep a
-  // name; later ones are skipped when crowded (the tooltip still names them).
+  // Series come in priority order (best first): the first ones keep a name
+  // wherever text still fits (three on a phone, six otherwise); later ones are
+  // skipped when crowded (the tooltip and the picker still name them).
+  const priorityLabels = width < 520 ? 3 : 6;
   for (const [seriesIndex, entry] of plotted.entries()) {
     if (labelMode === "series") {
       for (const highlight of entry.highlights) {
         const point = entry.points.find((item) => item.id === highlight.id);
-        if (point) place(`${entry.id}-${point.id}`, xPos(point.x), yPos(point.y), entry.label, point.tag, highlight.color, seriesIndex < 6);
+        if (point) place(`${entry.id}-${point.id}`, xPos(point.x), yPos(point.y), entry.label, point.tag, highlight.color, seriesIndex < priorityLabels);
       }
     } else {
       // Highlighted points claim their place first.
@@ -247,7 +292,8 @@ export function TradeoffChart({
 
   const activeEntry = active ? plotted.find((entry) => entry.id === active.series) : undefined;
   const activePoint = activeEntry?.points.find((point) => point.id === active?.point);
-  const dimmedExcept = hoveredSeries ?? active?.series ?? null;
+  // A hidden series has nothing to bring forward, so hovering it dims nothing.
+  const dimmedExcept = (hoveredSeries && plotted.some((entry) => entry.id === hoveredSeries) ? hoveredSeries : null) ?? active?.series ?? null;
   const describe = (point: ChartPoint) =>
     `${point.name}${point.tag && !point.name.includes(point.tag) ? ` (${point.tag})` : ""}: ${yLabel} ${formatY(point.y)}, ${xLabel} ${formatX(point.x)}`;
   const highlightsWithPoints = plotted.flatMap((entry) =>
@@ -260,129 +306,135 @@ export function TradeoffChart({
   return (
     <div className={cn("min-w-0", className)}>
       <div ref={wrapper} className="relative">
-        <svg
-          width={width}
-          height={height}
-          viewBox={`0 0 ${width} ${height}`}
-          className="block max-w-full overflow-visible"
-          role="group"
-          aria-label={`${title}. ${yLabel} / ${xLabel}.`}
-          onKeyDown={moveFocus}
-        >
-          {/* Axis titles: the score reads across the top, like a chart heading. */}
-          <text x={MARGIN.left - 36} y={16} className="fill-foreground text-[13px] font-semibold">{yLabel}</text>
-          <text x={width - MARGIN.right} y={16} textAnchor="end" className="fill-muted-foreground text-[12px] italic">{efficientLabel}</text>
-          <text x={MARGIN.left + plotWidth / 2} y={height - 8} textAnchor="middle" className="fill-foreground text-[12px] font-medium">{xLabel}</text>
+        {plotted.length === 0 ? (
+          <p role="status" className="flex items-center justify-center rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground" style={{ height }}>
+            {t.tradeoff.picker.none}
+          </p>
+        ) : (
+          <svg
+            width={width}
+            height={height}
+            viewBox={`0 0 ${width} ${height}`}
+            className="block max-w-full overflow-visible"
+            role="group"
+            aria-label={`${title}. ${yLabel} / ${xLabel}.`}
+            onKeyDown={moveFocus}
+          >
+            {/* Axis titles: the score reads across the top, like a chart heading. */}
+            <text x={MARGIN.left - 36} y={16} className="fill-foreground text-[13px] font-semibold">{yLabel}</text>
+            <text x={width - MARGIN.right} y={16} textAnchor="end" className="fill-muted-foreground text-[12px] italic">{efficientLabel}</text>
+            <text x={MARGIN.left + plotWidth / 2} y={height - 8} textAnchor="middle" className="fill-foreground text-[12px] font-medium">{xLabel}</text>
 
-          <g aria-hidden="true">
-            {yAxis.ticks.map((tick) => (
-              <g key={`y-${tick}`}>
-                <line x1={MARGIN.left} x2={width - MARGIN.right} y1={yPos(tick)} y2={yPos(tick)} stroke="var(--border)" strokeWidth={tick === 0 ? 1.25 : 1} />
-                <text x={MARGIN.left - 8} y={yPos(tick) + 4} textAnchor="end" className="fill-muted-foreground text-[11px] tabular-nums">{formatY(tick)}</text>
-              </g>
-            ))}
-            {xAxis.ticks.map((tick) => (
-              <g key={`x-${tick}`}>
-                <line x1={xPos(tick)} x2={xPos(tick)} y1={MARGIN.top} y2={MARGIN.top + plotHeight} stroke="var(--border)" strokeOpacity={0.6} />
-                <text x={xPos(tick)} y={MARGIN.top + plotHeight + 18} textAnchor="middle" className="fill-muted-foreground text-[11px] tabular-nums">{formatX(tick)}</text>
-              </g>
-            ))}
-          </g>
-
-          {activePoint && (
-            <g aria-hidden="true" className="text-foreground/40">
-              <line x1={xPos(activePoint.x)} x2={xPos(activePoint.x)} y1={yPos(activePoint.y)} y2={MARGIN.top + plotHeight} stroke="currentColor" strokeDasharray="3 4" />
-              <line x1={MARGIN.left} x2={xPos(activePoint.x)} y1={yPos(activePoint.y)} y2={yPos(activePoint.y)} stroke="currentColor" strokeDasharray="3 4" />
+            <g aria-hidden="true">
+              {yAxis.ticks.map((tick) => (
+                <g key={`y-${tick}`}>
+                  <line x1={MARGIN.left} x2={width - MARGIN.right} y1={yPos(tick)} y2={yPos(tick)} stroke="var(--border)" strokeWidth={tick === 0 ? 1.25 : 1} />
+                  <text x={MARGIN.left - 8} y={yPos(tick) + 4} textAnchor="end" className="fill-muted-foreground text-[11px] tabular-nums">{formatY(tick)}</text>
+                </g>
+              ))}
+              {xTicks.map((tick) => (
+                <g key={`x-${tick}`}>
+                  <line x1={xPos(tick)} x2={xPos(tick)} y1={MARGIN.top} y2={MARGIN.top + plotHeight} stroke="var(--border)" strokeOpacity={0.6} />
+                  <text x={xPos(tick)} y={MARGIN.top + plotHeight + 18} textAnchor="middle" className="fill-muted-foreground text-[11px] tabular-nums">{formatX(tick)}</text>
+                </g>
+              ))}
             </g>
-          )}
 
-          {plotted.map((entry, seriesIndex) => {
-            const dimmed = dimmedExcept !== null && dimmedExcept !== entry.id;
-            const path = entry.points.map((point, index) => `${index ? "L" : "M"}${xPos(point.x).toFixed(1)} ${yPos(point.y).toFixed(1)}`).join(" ");
-            return (
-              <g key={entry.id} className="tradeoff-series" data-dimmed={dimmed || undefined} style={{ "--series-delay": `${seriesIndex * 90}ms` } as React.CSSProperties}>
-                {entry.points.length > 1 && (
-                  <path d={path} pathLength={1} fill="none" stroke={entry.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" className="tradeoff-line" />
-                )}
-                {entry.points.map((point, pointIndex) => {
-                  const highlight = entry.highlights.find((item) => item.id === point.id);
-                  const index = order.findIndex((item) => item.series === entry.id && item.point === point.id);
-                  const isActive = active?.series === entry.id && active.point === point.id;
-                  const selectable = Boolean(onSelectPoint) && !highlight;
-                  return (
-                    <g
-                      key={point.id}
-                      ref={(element) => {
-                        const key = keyOf(entry.id, point.id);
-                        if (element) pointRefs.current.set(key, element);
-                        else pointRefs.current.delete(key);
-                      }}
-                      role={selectable ? "button" : "img"}
-                      tabIndex={index === safeFocus ? 0 : -1}
-                      aria-label={`${describe(point)}${selectable && selectHint ? `. ${selectHint}` : ""}`}
-                      aria-current={highlight ? "true" : undefined}
-                      className={cn("tradeoff-point outline-none", selectable && "cursor-pointer")}
-                      style={{ "--point-delay": `${seriesIndex * 90 + 220 + pointIndex * 40}ms` } as React.CSSProperties}
-                      onPointerEnter={() => setActive({ series: entry.id, point: point.id })}
-                      onPointerLeave={() => setActive((current) => (current?.series === entry.id && current.point === point.id ? null : current))}
-                      onFocus={() => {
-                        setFocusIndex(index);
-                        setActive({ series: entry.id, point: point.id });
-                      }}
-                      onBlur={() => setActive(null)}
-                      onClick={() => selectable && onSelectPoint?.(entry.id, point.id)}
-                      onKeyDown={(event) => {
-                        if (selectable && (event.key === "Enter" || event.key === " ")) {
-                          event.preventDefault();
-                          onSelectPoint?.(entry.id, point.id);
-                        }
-                      }}
-                    >
-                      <circle cx={xPos(point.x)} cy={yPos(point.y)} r={14} fill="transparent" />
-                      <circle
-                        cx={xPos(point.x)}
-                        cy={yPos(point.y)}
-                        r={highlight ? 5.5 : 3.75}
-                        fill={highlight?.color ?? entry.color}
-                        stroke="var(--card)"
-                        strokeWidth={highlight ? 2.5 : 1.5}
-                        className={cn("tradeoff-dot", isActive && "is-active")}
-                      />
-                    </g>
-                  );
-                })}
+            {activePoint && (
+              <g aria-hidden="true" className="text-foreground/40">
+                <line x1={xPos(activePoint.x)} x2={xPos(activePoint.x)} y1={yPos(activePoint.y)} y2={MARGIN.top + plotHeight} stroke="currentColor" strokeDasharray="3 4" />
+                <line x1={MARGIN.left} x2={xPos(activePoint.x)} y1={yPos(activePoint.y)} y2={yPos(activePoint.y)} stroke="currentColor" strokeDasharray="3 4" />
               </g>
-            );
-          })}
+            )}
 
-          <g aria-hidden="true" className="tradeoff-labels">
-            {labels.map((label) => {
-              const x = label.anchor === "middle" ? label.box.x + label.box.width / 2 : label.anchor === "start" ? label.box.x : label.box.x + label.box.width;
-              const series = plotted.find((entry) => label.key.startsWith(`${entry.id}-`));
-              const dimmed = dimmedExcept !== null && series && dimmedExcept !== series.id;
+            {plotted.map((entry, seriesIndex) => {
+              const dimmed = dimmedExcept !== null && dimmedExcept !== entry.id;
+              const path = entry.points.map((point, index) => `${index ? "L" : "M"}${xPos(point.x).toFixed(1)} ${yPos(point.y).toFixed(1)}`).join(" ");
               return (
-                <g key={label.key} className="transition-opacity duration-150" opacity={dimmed ? 0.25 : 1}>
-                  {label.title && (
-                    <text x={x} y={label.box.y + 12} textAnchor={label.anchor} fill={label.color} className="text-[13px] font-semibold [paint-order:stroke] [stroke:var(--card)] [stroke-width:3px]">
-                      {label.title}
-                    </text>
+                <g key={entry.id} className="tradeoff-series" data-dimmed={dimmed || undefined} style={{ "--series-delay": `${picked ? 0 : seriesIndex * 90}ms` } as React.CSSProperties}>
+                  {entry.points.length > 1 && (
+                    <path d={path} pathLength={1} fill="none" stroke={entry.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" className="tradeoff-line" />
                   )}
-                  {label.tag && (
-                    <text
-                      x={x}
-                      y={label.box.y + (label.title ? 26 : 11)}
-                      textAnchor={label.anchor}
-                      fill={label.color}
-                      className="font-mono text-[10px] uppercase tracking-wide opacity-75 [paint-order:stroke] [stroke:var(--card)] [stroke-width:3px]"
-                    >
-                      {label.tag}
-                    </text>
-                  )}
+                  {entry.points.map((point, pointIndex) => {
+                    const highlight = entry.highlights.find((item) => item.id === point.id);
+                    const index = order.findIndex((item) => item.series === entry.id && item.point === point.id);
+                    const isActive = active?.series === entry.id && active.point === point.id;
+                    const selectable = Boolean(onSelectPoint) && !highlight;
+                    return (
+                      <g
+                        key={point.id}
+                        ref={(element) => {
+                          const key = keyOf(entry.id, point.id);
+                          if (element) pointRefs.current.set(key, element);
+                          else pointRefs.current.delete(key);
+                        }}
+                        role={selectable ? "button" : "img"}
+                        tabIndex={index === safeFocus ? 0 : -1}
+                        aria-label={`${describe(point)}${selectable && selectHint ? `. ${selectHint}` : ""}`}
+                        aria-current={highlight ? "true" : undefined}
+                        className={cn("tradeoff-point outline-none", selectable && "cursor-pointer")}
+                        style={{ "--point-delay": `${(picked ? 0 : seriesIndex * 90 + 220) + pointIndex * 40}ms` } as React.CSSProperties}
+                        onPointerEnter={() => setActive({ series: entry.id, point: point.id })}
+                        onPointerLeave={() => setActive((current) => (current?.series === entry.id && current.point === point.id ? null : current))}
+                        onFocus={() => {
+                          setFocusIndex(index);
+                          setActive({ series: entry.id, point: point.id });
+                        }}
+                        onBlur={() => setActive(null)}
+                        onClick={() => selectable && onSelectPoint?.(entry.id, point.id)}
+                        onKeyDown={(event) => {
+                          if (selectable && (event.key === "Enter" || event.key === " ")) {
+                            event.preventDefault();
+                            onSelectPoint?.(entry.id, point.id);
+                          }
+                        }}
+                      >
+                        <circle cx={xPos(point.x)} cy={yPos(point.y)} r={14} fill="transparent" />
+                        <circle
+                          cx={xPos(point.x)}
+                          cy={yPos(point.y)}
+                          r={highlight ? 5.5 : 3.75}
+                          fill={highlight?.color ?? entry.color}
+                          stroke="var(--card)"
+                          strokeWidth={highlight ? 2.5 : 1.5}
+                          className={cn("tradeoff-dot", isActive && "is-active")}
+                        />
+                      </g>
+                    );
+                  })}
                 </g>
               );
             })}
-          </g>
-        </svg>
+
+            <g aria-hidden="true" className="tradeoff-labels">
+              {labels.map((label) => {
+                const x = label.anchor === "middle" ? label.box.x + label.box.width / 2 : label.anchor === "start" ? label.box.x : label.box.x + label.box.width;
+                const series = plotted.find((entry) => label.key.startsWith(`${entry.id}-`));
+                const dimmed = dimmedExcept !== null && series && dimmedExcept !== series.id;
+                return (
+                  <g key={label.key} className="transition-opacity duration-150" opacity={dimmed ? 0.25 : 1}>
+                    {label.title && (
+                      <text x={x} y={label.box.y + 12} textAnchor={label.anchor} fill={label.color} className="text-[13px] font-semibold [paint-order:stroke] [stroke:var(--card)] [stroke-width:3px]">
+                        {label.title}
+                      </text>
+                    )}
+                    {label.tag && (
+                      <text
+                        x={x}
+                        y={label.box.y + (label.title ? 26 : 11)}
+                        textAnchor={label.anchor}
+                        fill={label.color}
+                        className="font-mono text-[10px] uppercase tracking-wide opacity-75 [paint-order:stroke] [stroke:var(--card)] [stroke-width:3px]"
+                      >
+                        {label.tag}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+            </g>
+          </svg>
+        )}
 
         {activeEntry && activePoint && (
           <div
@@ -406,6 +458,15 @@ export function TradeoffChart({
         )}
       </div>
 
+      {picker && (
+        <SeriesPicker
+          series={drawable}
+          hidden={hidden}
+          onChange={pickSeries}
+          onPreview={setHoveredSeries}
+        />
+      )}
+
       {labelMode === "series" && legend && (
         <ul className="mt-3 grid gap-x-4 gap-y-1 text-xs sm:grid-cols-2">
           {highlightsWithPoints.map(({ entry, highlight, point }) => (
@@ -423,6 +484,89 @@ export function TradeoffChart({
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+/**
+ * One toggle per series, in the chart's priority order. Hovering or focusing
+ * a series brings it forward on the chart, which names the points of a
+ * crowded corner without having to reach them.
+ */
+function SeriesPicker({
+  series,
+  hidden,
+  onChange,
+  onPreview,
+}: {
+  series: Array<Pick<ChartSeries, "id" | "label" | "color">>;
+  hidden: ReadonlySet<string>;
+  /** Takes an update, so quick successive toggles all apply. */
+  onChange: (update: (hidden: ReadonlySet<string>) => ReadonlySet<string>) => void;
+  onPreview: (id: string | null) => void;
+}) {
+  const { t, lang } = useI18n();
+  const copy = t.tradeoff.picker;
+  const headingId = useId();
+  const shown = series.filter((entry) => !hidden.has(entry.id)).length;
+  const toggle = (id: string) =>
+    onChange((current) => {
+      const next = new Set(current);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+
+  return (
+    <div className="mt-4 border-t pt-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0">
+          <p id={headingId} className="text-xs font-medium">
+            {copy.title}
+            <span className="ml-2 font-normal tabular-nums text-muted-foreground" aria-live="polite">
+              {copy.count(shown.toLocaleString(lang), series.length.toLocaleString(lang))}
+            </span>
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{copy.hint}</p>
+        </div>
+        <div className="flex gap-1">
+          <Button type="button" variant="outline" size="sm" onClick={() => onChange(() => new Set())}>
+            {copy.showAll}
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => onChange(() => new Set(series.map((entry) => entry.id)))}>
+            {copy.hideAll}
+          </Button>
+        </div>
+      </div>
+      <ul aria-labelledby={headingId} className="mt-3 flex max-h-56 flex-wrap gap-1.5 overflow-y-auto sm:max-h-none sm:overflow-visible">
+        {series.map((entry) => {
+          const visible = !hidden.has(entry.id);
+          return (
+            <li key={entry.id} className="min-w-0 max-w-full">
+              <button
+                type="button"
+                aria-pressed={visible}
+                onClick={() => toggle(entry.id)}
+                onPointerEnter={() => onPreview(entry.id)}
+                onPointerLeave={() => onPreview(null)}
+                onFocus={() => onPreview(entry.id)}
+                onBlur={() => onPreview(null)}
+                className={cn(
+                  "flex h-7 max-w-full items-center gap-1.5 rounded-md border px-2 text-xs transition-colors duration-150 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  // Same weight in both states, so toggling never moves the next toggles.
+                  visible ? "bg-background text-foreground" : "border-dashed text-muted-foreground",
+                )}
+              >
+                <span
+                  aria-hidden="true"
+                  className="size-2.5 shrink-0 rounded-full border-[1.5px]"
+                  style={{ borderColor: entry.color, background: visible ? entry.color : "transparent" }}
+                />
+                <span className="truncate">{entry.label}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

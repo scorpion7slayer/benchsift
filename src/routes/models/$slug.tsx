@@ -91,7 +91,7 @@ export const Route = createFileRoute("/models/$slug")({
 });
 
 function ModelPage() {
-  const { model, familyName, variants, familyPoints, ranks, similar, capabilitiesPromise } = Route.useLoaderData();
+  const { model, familyName, variants, familyPoints, ranks, similar, cyberCounterparts, capabilitiesPromise } = Route.useLoaderData();
 
   return (
     <div className="flex flex-col flex-1 pb-24 sm:pb-0">
@@ -101,7 +101,7 @@ function ModelPage() {
           model={model}
           familyName={familyName}
           variants={variants}
-          insights={{ familyPoints, ranks, similar }}
+          insights={{ familyPoints, ranks, similar, cyberCounterparts }}
           capabilitiesPromise={capabilitiesPromise}
         />
       </main>

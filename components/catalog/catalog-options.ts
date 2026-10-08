@@ -10,6 +10,7 @@ import {
   ImageIcon,
   Mic,
   Route,
+  Shield,
   Timer,
   Type,
   Video,
@@ -20,7 +21,7 @@ import type { CategoryFilter, NormalRankingKey, SortKey } from "@/lib/model-grid
 
 export const NORMAL_RANKING_OPTIONS: ReadonlyArray<{
   value: NormalRankingKey;
-  label: "general" | "coding" | "math" | "speed" | "price";
+  label: "general" | "coding" | "math" | "speed" | "price" | "cyber";
   icon: RuneIcon;
 }> = [
   { value: "intelligence", label: "general", icon: Blocks },
@@ -28,6 +29,7 @@ export const NORMAL_RANKING_OPTIONS: ReadonlyArray<{
   { value: "math", label: "math", icon: Brain },
   { value: "speed", label: "speed", icon: Zap },
   { value: "price_asc", label: "price", icon: DollarSign },
+  { value: "cyber", label: "cyber", icon: Shield },
 ];
 
 export type SortGroup = "indices" | "benchmarks" | "performance" | "openrouter" | "pricing" | "general";
@@ -37,6 +39,7 @@ export const SORT_OPTIONS: ReadonlyArray<{ value: SortKey; group: SortGroup }> =
   { value: "coding", group: "indices" },
   { value: "math", group: "indices" },
   { value: "agentic", group: "indices" },
+  { value: "cyber", group: "indices" },
   { value: "gpqa", group: "benchmarks" },
   { value: "mmlu_pro", group: "benchmarks" },
   { value: "hle", group: "benchmarks" },

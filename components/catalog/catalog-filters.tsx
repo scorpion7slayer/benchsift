@@ -8,6 +8,7 @@ import type { LLMModel } from "@/lib/model-types";
 import { THRESHOLD_PRESETS, type CatalogState } from "@/lib/catalog-search";
 import { formatMoney, formatSpeed, formatTokens } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
+import { modelAccessRestriction } from "@/lib/model-availability";
 import { matchesCategory, type CategoryFilter, type WeightAccessFilter } from "@/lib/model-grid-logic";
 import { CATEGORY_OPTIONS } from "./catalog-options";
 
@@ -44,6 +45,10 @@ export function CatalogFilters({
     }
     return counts;
   }, [advancedModels]);
+  const restrictedCount = useMemo(
+    () => advancedModels?.filter((model) => modelAccessRestriction(model) !== null).length ?? 0,
+    [advancedModels],
+  );
   const weightItems: Array<{ value: WeightAccessFilter; label: string }> = [
     { value: "all", label: t.grid.weightAccess.all },
     { value: "open", label: t.grid.weightAccess.open },
@@ -90,6 +95,24 @@ export function CatalogFilters({
             options={weightItems}
           />
         </div>
+        {state.viewMode === "advanced" && (
+          <div className="grid gap-2 text-sm font-medium">
+            <span className="flex items-center gap-1">
+              {t.grid.availability.label}
+              <InfoTip label={`${t.glossary.infoLabel} · ${t.grid.availability.label}`} content={t.glossary.notPublic} />
+            </span>
+            <CatalogSelect
+              value={state.availability}
+              onChange={(value) => update("availability", value)}
+              label={t.grid.availability.label}
+              options={[
+                { value: "all", label: t.grid.availability.all },
+                { value: "public", label: t.grid.availability.public },
+                { value: "restricted", label: `${t.grid.availability.restricted} (${restrictedCount})` },
+              ]}
+            />
+          </div>
+        )}
         {state.viewMode === "advanced" && (
           <fieldset className="grid gap-3 border-t pt-4">
             <legend className="sr-only">{copy.title}</legend>

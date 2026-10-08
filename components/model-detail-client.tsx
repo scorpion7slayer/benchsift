@@ -1,6 +1,8 @@
 import { Suspense, use, useState } from "react";
 import {
   AAIndicesCard,
+  CapabilityIndexesCard,
+  CyberIndexCard,
   ExtraBenchmarks,
   MediaBenchmarksCard,
   NoBenchmarksCard,
@@ -15,7 +17,7 @@ import { SegmentedControl } from "@/components/segmented-control";
 import { StealthHistory } from "@/components/stealth-history";
 import type { LLMModel } from "@/lib/model-types";
 import { useI18n } from "@/lib/i18n";
-import { isModelCurrentlyUnavailable } from "@/lib/model-availability";
+import { modelAccessRestriction } from "@/lib/model-availability";
 import { hasAnyBenchmarkData } from "@/lib/model-metrics";
 import type { ModelInsights } from "@/lib/model-insights";
 import type { ModelReasoningVariantOption } from "@/lib/model-reasoning";
@@ -67,7 +69,7 @@ export function ModelDetailClient({
 
       <ModelAvailabilityNotice model={model} />
       <StealthHistory model={model} />
-      {capabilitiesPromise && !isModelCurrentlyUnavailable(model) && (
+      {capabilitiesPromise && !modelAccessRestriction(model) && (
         <Suspense>
           <StreamedAvailabilityNotice promise={capabilitiesPromise} slug={model.slug} />
         </Suspense>
@@ -89,6 +91,8 @@ export function ModelDetailClient({
         <div id="detail-benchmarks" className={panel("benchmarks")}>
           <AAIndicesCard model={model} variantLabel={variants.length > 1 ? variantLabel : undefined} ranks={insights.ranks} />
           {variants.length > 1 && <ReasoningLevelsCard points={insights.familyPoints} currentSlug={model.slug} />}
+          <CapabilityIndexesCard model={model} ranks={insights.ranks} />
+          <CyberIndexCard model={model} ranks={insights.ranks} counterparts={insights.cyberCounterparts} />
           <StandardBenchmarksCard model={model} ranks={insights.ranks} />
           <MediaBenchmarksCard model={model} />
           <ExtraBenchmarks model={model} />

@@ -1,4 +1,5 @@
 import { parseCodingAgents } from "@/lib/aa-coding-agents";
+import { mergeAACyberIndex, parseAACyberIndex, type AACyberIndexEntry } from "@/lib/aa-cyber";
 import { enrichModelsWithModelsDev } from "@/lib/models-dev-source";
 import { mergeModelsDev } from "@/lib/models-dev";
 import { cached } from "@/lib/revalidate-cache";
@@ -53,6 +54,7 @@ const BASE_URL = "https://artificialanalysis.ai/api/v2";
 const API_FETCH_TIMEOUT_MS = 8_000;
 const SCRAPE_FETCH_TIMEOUT_MS = 6_000;
 const SITEMAP_FETCH_TIMEOUT_MS = 30_000;
+const HOME_FETCH_TIMEOUT_MS = 15_000;
 const MIN_SITEMAP_MODEL_SLUGS = 250;
 const PARTIAL_MODEL_CHUNK_SIZE = 5;
 const CAPABILITY_CHUNK_SIZE = 6;
@@ -393,6 +395,38 @@ const scrapeModelCapabilities = cached(
   { revalidate: CACHE_SCRAPE_SECONDS }
 );
 
+const AA_HOME_PAGE = "https://artificialanalysis.ai/";
+
+/**
+ * Cyber Index leaderboard from the RSC payload of the AA home page, where AA
+ * publishes it. A failure returns [] so the refresh keeps previous results.
+ */
+async function fetchAACyberIndex(): Promise<AACyberIndexEntry[]> {
+  try {
+    const res = await fetchWithTimeout(
+      AA_HOME_PAGE,
+      {
+        headers: {
+          "User-Agent": SCRAPE_USER_AGENT,
+          "RSC": "1",
+          "Accept": "text/x-component, */*",
+        },
+      },
+      HOME_FETCH_TIMEOUT_MS,
+    );
+    if (!res.ok) {
+      logEvent("warn", "source.aa_cyber_failed", { status: res.status });
+      return [];
+    }
+    const entries = parseAACyberIndex(await res.text());
+    if (entries.length === 0) logEvent("warn", "source.aa_cyber_empty");
+    return entries;
+  } catch {
+    logEvent("warn", "source.aa_cyber_interrupted");
+    return [];
+  }
+}
+
 async function fetchAALanguageModels(): Promise<LLMModel[]> {
   const [rows, legacyModels] = await Promise.all([
     apiFetchPreferred<AAV2LanguageModel[]>(
@@ -479,6 +513,7 @@ interface CronSourceStats extends Record<string, number> {
   apiModelsNotInSitemap: number;
   missingSitemapSlugs: number;
   builtPartialModels: number;
+  cyberIndexModels: number;
   transientRetries: number;
 }
 
@@ -499,10 +534,11 @@ interface CronFetchResult {
 async function fetchModelsForCron(): Promise<CronFetchResult> {
   logEvent("info", "refresh.sources_started");
   const retriesBefore = getFetchRetryCount();
-  const [apiModels, validSlugs, mediaModels] = await Promise.all([
+  const [apiModels, validSlugs, mediaModels, cyberEntries] = await Promise.all([
     fetchAALanguageModels(),
     scrapeAllModelSlugs(),
     fetchAAMediaModels(apiFetchPreferred),
+    fetchAACyberIndex(),
   ]);
 
   const validSlugSet = new Set(validSlugs);
@@ -520,14 +556,16 @@ async function fetchModelsForCron(): Promise<CronFetchResult> {
     missingSitemapSlugs: missingSlugs.length,
   };
 
-  logEvent("info", "refresh.sources_received", statsBase);
+  logEvent("info", "refresh.sources_received", { ...statsBase, cyberIndexEntries: cyberEntries.length });
   if (missingSlugs.length === 0) {
-    const models = await enrichCronModelsWithSources(apiAndMediaModels, validSlugSet);
+    const cyber = mergeAACyberIndex(apiAndMediaModels, cyberEntries);
+    const models = await enrichCronModelsWithSources(cyber.models, validSlugSet);
     return {
       models,
       stats: {
         ...statsBase,
         builtPartialModels: 0,
+        cyberIndexModels: cyber.matched,
         transientRetries: getFetchRetryCount() - retriesBefore,
       },
     };
@@ -549,15 +587,14 @@ async function fetchModelsForCron(): Promise<CronFetchResult> {
     );
   }
 
-  const models = await enrichCronModelsWithSources([
-    ...apiAndMediaModels,
-    ...extraModels,
-  ], validSlugSet);
+  const cyber = mergeAACyberIndex([...apiAndMediaModels, ...extraModels], cyberEntries);
+  const models = await enrichCronModelsWithSources(cyber.models, validSlugSet);
   return {
     models,
     stats: {
       ...statsBase,
       builtPartialModels: extraModels.length,
+      cyberIndexModels: cyber.matched,
       transientRetries: getFetchRetryCount() - retriesBefore,
     },
   };

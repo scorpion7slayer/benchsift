@@ -1,5 +1,6 @@
 import type { LLMModel } from "./model-types";
-import { FRACTION_BENCHMARK_KEYS, textMetricValue } from "./model-metrics";
+import { cyberCounterparts, type CyberCounterpart } from "./cyber-index";
+import { AA_CAPABILITY_INDEX_KEYS, FRACTION_BENCHMARK_KEYS, textMetricValue } from "./model-metrics";
 import {
   collapseReasoningVariants,
   type ModelReasoningFamily,
@@ -80,6 +81,10 @@ const RANKED_METRICS: Record<string, { better: Better; value: (model: LLMModel) 
   artificial_analysis_coding_index: { better: "higher", value: (m) => textMetricValue(m, "artificial_analysis_coding_index") },
   artificial_analysis_math_index: { better: "higher", value: (m) => textMetricValue(m, "artificial_analysis_math_index") },
   agentic_index: { better: "higher", value: (m) => textMetricValue(m, "agentic_index") },
+  cyber_index: { better: "higher", value: (m) => textMetricValue(m, "cyber_index") },
+  ...Object.fromEntries(
+    AA_CAPABILITY_INDEX_KEYS.map((key) => [key, { better: "higher" as const, value: (m: LLMModel) => textMetricValue(m, key) }]),
+  ),
   ...Object.fromEntries(
     FRACTION_BENCHMARK_KEYS.map((key) => [key, { better: "higher" as const, value: (m: LLMModel) => textMetricValue(m, key) }]),
   ),
@@ -213,6 +218,8 @@ export interface ModelInsights {
   familyPoints: FamilyPoint[];
   ranks: Partial<Record<RankedMetric, MetricRank>>;
   similar: SimilarModel[];
+  /** The trusted-access and public versions of the same model, when AA measured one. */
+  cyberCounterparts: CyberCounterpart[];
 }
 
 export function modelInsights(models: LLMModel[], family: ModelReasoningFamily, model: LLMModel): ModelInsights {
@@ -220,5 +227,6 @@ export function modelInsights(models: LLMModel[], family: ModelReasoningFamily, 
     familyPoints: familyPoints(family),
     ranks: metricRanks(models, model),
     similar: similarModels(models, model, new Set(family.variants.map(({ model: variant }) => variant.slug))),
+    cyberCounterparts: cyberCounterparts(models, model),
   };
 }

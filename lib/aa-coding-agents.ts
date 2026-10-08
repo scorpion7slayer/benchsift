@@ -1,4 +1,5 @@
 import type { CodingAgent } from "./coding-agents";
+import { parseFlightRecords, resolveFlightReferences } from "./aa-flight";
 import {
   resolveCreatorFromModelSlug,
   getCanonicalCreatorSlug,
@@ -90,55 +91,8 @@ export function extractRowsFromRSC(payload: string): AAAgentRow[] | null {
     return payload.includes('"benchmarkRows":')
       ? null
       : (extractArray(payload, "rows") as AAAgentRow[] | null);
-  const records = new Map<string, unknown>();
-  for (const line of payload.split("\n")) {
-    const match = /^([a-f0-9]+):([\[{].*)$/.exec(line);
-    if (!match) continue;
-    try {
-      records.set(match[1], JSON.parse(match[2]));
-    } catch {
-      /* Non-JSON Flight records. */
-    }
-  }
-  function resolve(
-    value: unknown,
-    seen = new Set<string>(),
-    depth = 0,
-  ): unknown {
-    if (depth > 64) throw new Error("Nested Flight data");
-    if (typeof value === "string" && /^\$[a-f0-9]+(?::|$)/.test(value)) {
-      if (seen.has(value)) throw new Error("Cyclic Flight reference");
-      const [id, ...path] = value.slice(1).split(":");
-      let target = records.get(id);
-      for (const key of path) {
-        if (key === "__proto__" || key === "constructor" || key === "prototype")
-          throw new Error("Invalid reference");
-        if (Array.isArray(target) && target[0] === "$" && key === "props")
-          target = target[3];
-        else if (
-          target &&
-          typeof target === "object" &&
-          Object.hasOwn(target, key)
-        )
-          target = (target as Record<string, unknown>)[key];
-        else throw new Error("Unresolved Flight reference");
-      }
-      if (target === undefined) throw new Error("Missing Flight record");
-      return resolve(target, new Set([...seen, value]), depth + 1);
-    }
-    if (Array.isArray(value))
-      return value.map((item) => resolve(item, seen, depth + 1));
-    if (value && typeof value === "object")
-      return Object.fromEntries(
-        Object.entries(value).map(([key, item]) => [
-          key,
-          resolve(item, seen, depth + 1),
-        ]),
-      );
-    return value;
-  }
   try {
-    return resolve(full) as AAAgentRow[];
+    return resolveFlightReferences(full, parseFlightRecords(payload)) as AAAgentRow[];
   } catch {
     return null;
   }
