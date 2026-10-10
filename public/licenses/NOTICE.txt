@@ -20,3 +20,7 @@ Additional local brand SVGs from Lobe Icons, commit
 2e76c48721e91b9aaa40803a0fa2eb8aca7399c4, packages/static-svg/icons.
 MIT license: /licenses/lobe-icons.txt. Trademarks belong to their owners.
 Rune normal/git-branch and normal/eye use the same pinned Rune commit above.
+
+SpaceX logo (SpaceXSI creator): glyph path from Simple Icons 13.0.0 (CC0-1.0),
+icons/spacex.svg, placed on a black 48x48 tile like the other creator logos.
+The SpaceX mark is a trademark of its owner.
