@@ -45,7 +45,7 @@ export const aaLogoAssets: Record<string, { file: string; color?: string }> = {
     color: "#2243e6",
   },
   xai: {
-    file: "spacex.svg",
+    file: "spacexai.svg",
     color: "#736cd3",
   },
   perplexity: {
