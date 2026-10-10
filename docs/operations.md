@@ -68,7 +68,7 @@ Ambiguous matches are skipped. Historical Models.dev rows are merged when a
 first-party record arrives, rather than being retained as duplicate models.
 Models without benchmark values remain visible through Advanced/catalogue flows.
 
-xAI, x-ai and SpaceXAI share one creator identity displayed as SpaceXAI. Duplicate
+xAI, x-ai, SpaceXAI and SpaceXSI share one creator identity displayed as SpaceXSI. Duplicate
 Models.dev rows merge into the measured model on both refresh and cache reads;
 their old detail URLs redirect to the canonical model.
 
