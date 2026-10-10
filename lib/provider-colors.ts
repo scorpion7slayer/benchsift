@@ -7,6 +7,7 @@ const PROVIDER_HUES: Record<string, string> = {
   google: "google",
   xai: "xai",
   spacexai: "xai",
+  spacexsi: "xai",
   zai: "zai",
   "z-ai": "zai",
   zhipu: "zai",

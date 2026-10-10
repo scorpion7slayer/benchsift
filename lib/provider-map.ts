@@ -17,6 +17,7 @@ const CREATOR_TO_PROVIDER: Record<string, string> = {
   xai: "xai",
   "x-ai": "xai",
   spacexai: "xai",
+  spacexsi: "xai",
   perplexity: "perplexity",
 
   // Cloud / infra
@@ -123,6 +124,8 @@ const CREATOR_CANONICAL_SLUG: Record<string, string> = {
   "x-ai": "xai",
   spacexai: "xai",
   "space-xai": "xai",
+  spacexsi: "xai",
+  "space-xsi": "xai",
   "ai21-labs": "ai21",
   "arcee-ai": "arcee",
   "meta-llama": "meta",
@@ -223,7 +226,7 @@ export function getModelProviderKey(modelSlug: string, creatorSlug: string): str
  * Sur certains modèles AA renvoie le nom de produit au lieu du nom du créateur.
  */
 const CREATOR_DISPLAY_NAME: Record<string, string> = {
-  xai: "SpaceXAI",
+  xai: "SpaceXSI",
   ai21: "AI21 Labs", arcee: "Arcee AI", meta: "Meta", mistral: "Mistral", bytedance: "ByteDance",
   nousresearch: "Nous Research", "swiss-ai-initiative": "Swiss AI Initiative", "thinking-machines": "Thinking Machines",
 
