@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { use, useState } from "react";
 import { CyberBenchmarkScore, CyberOutcomeBar, formatCyberScore } from "@/components/cyber/cyber-outcome";
-import { ArrowRight, BarChart3, Blocks, ChevronDown, Shield, TrendingUp } from "@/components/icons";
+import { ArrowRight, BarChart3, Blocks, ChevronDown, Route, Shield, TrendingUp } from "@/components/icons";
 import { InfoTip } from "@/components/info-tip";
 import { Link } from "@/components/link";
 import { Button } from "@/components/ui/button";
 import type { LLMModel } from "@/lib/model-types";
 import { cyberIndexResult, cyberOutcomeShares } from "@/lib/cyber-index";
-import { formatMoney, formatNumber, formatPercent, formatTokens } from "@/lib/format";
+import { DECISION_SCORE_KEYS } from "@/lib/decision-index-data";
+import type { ModelDecisionIndex } from "@/lib/decision-index-catalog";
+import { formatMoney, formatNumber, formatPercent, formatSeconds, formatTokens } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import {
   applicableExtraBenchmarkEntries,
@@ -186,6 +188,69 @@ export function CyberIndexCard({
       )}
     </DetailCard>
   );
+}
+
+/**
+ * AA Decision Index of the model, streamed after the page: the index and its
+ * rank among every configuration AA measured, the five component scores, then
+ * cost per million tasks and time per task.
+ */
+export function DecisionIndexCard({ promise }: { promise: Promise<ModelDecisionIndex | null> }) {
+  const { t, lang } = useI18n();
+  const result = use(promise);
+  if (!result) return null;
+  const { row } = result;
+  const copy = t.decisionIndex;
+  const host = row.host_name && row.host_name !== row.creator_name ? row.host_name : null;
+  return (
+    <DetailCard
+      icon={Route}
+      title={t.detail.decisionIndex}
+      description={`${row.name} · ${t.detail.decisionSource(host)}`}
+      footer={(
+        <div className="border-t px-4 py-2">
+          <Button variant="ghost" asChild>
+            <Link href="/benchmarks/decision-index">
+              {t.detail.decisionLeaderboard}
+              <ArrowRight aria-hidden="true" className="size-4" />
+            </Link>
+          </Button>
+        </div>
+      )}
+    >
+      <div className="flex items-start justify-between gap-3 border-b border-border/70 pb-3 text-sm">
+        <span className="flex items-center gap-1 text-muted-foreground">
+          {copy.title}
+          <InfoTip label={`${t.glossary.infoLabel} · ${copy.title}`} content={copy.indexHint} />
+        </span>
+        <span className="flex flex-col items-end">
+          <span className="text-lg font-semibold tabular-nums">{formatNumber(row.index, lang)}</span>
+          <RankNote rank={result} />
+        </span>
+      </div>
+      <TwoColumnRows>
+        {DECISION_SCORE_KEYS.map((key) => {
+          const value = row.scores[key];
+          return value === null ? null : (
+            <BenchmarkRow
+              key={key}
+              label={copy.scores[key].label}
+              tooltip={copy.scores[key].hint}
+              value={formatNumber(value, lang)}
+              share={value / 100}
+            />
+          );
+        })}
+      </TwoColumnRows>
+      <StatRow label={copy.axes.cost} value={formatMoney(row.cost_per_task_usd === null ? null : row.cost_per_task_usd * 1_000_000, lang)} />
+      <StatRow label={copy.axes.time} value={formatSeconds(row.time_per_task_seconds, lang)} />
+    </DetailCard>
+  );
+}
+
+/** Shown only once the streamed Decision Index confirms the model has no result there either. */
+export function NoBenchmarksUnlessDecision({ promise }: { promise: Promise<ModelDecisionIndex | null> }) {
+  return use(promise) ? null : <NoBenchmarksCard />;
 }
 
 export function StandardBenchmarksCard({ model, ranks }: { model: LLMModel; ranks: Ranks }) {

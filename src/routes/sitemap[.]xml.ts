@@ -1,10 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getLLMModels } from "@/lib/api";
 import { absoluteUrl } from "@/lib/seo";
-import {
-  getIndexableCatalogModels,
-  MODEL_CATALOG_PAGE_SIZE,
-} from "@/lib/model-catalog";
+import { readModelsCacheSummary } from "@/lib/cron-cache";
+import { getIndexableCatalogModels } from "@/lib/model-catalog";
 
 interface SitemapEntry {
   url: string;
@@ -32,11 +30,10 @@ function escapeXml(value: string): string {
   });
 }
 
-function toIsoDate(value: string | null | undefined, fallback: string): string {
-  if (!value) return fallback;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return fallback;
-  return date.toISOString().slice(0, 10);
+/** Day of the last successful catalogue refresh, the date its pages' data changed. */
+async function catalogueDate(): Promise<string | undefined> {
+  const summary = await readModelsCacheSummary().catch(() => null);
+  return summary?.refreshedAtMs ? new Date(summary.refreshedAtMs).toISOString().slice(0, 10) : undefined;
 }
 
 function renderSitemap(entries: SitemapEntry[]): string {
@@ -53,66 +50,32 @@ export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
       GET: async () => {
-        const models = await getLLMModels();
+        const [models, updated] = await Promise.all([getLLMModels(), catalogueDate()]);
         const indexableModels = getIndexableCatalogModels(models);
-        const catalogPages = Math.max(
-          1,
-          Math.ceil(indexableModels.length / MODEL_CATALOG_PAGE_SIZE),
-        );
-        const today = new Date().toISOString().slice(0, 10);
+        // Catalogue pages carry the refresh date. Pages fed by separate live
+        // sources or static text have no tracked date, so they omit lastmod
+        // rather than claim today.
+        const catalogue = (url: string, priority: number, changeFrequency = "daily"): SitemapEntry => ({
+          url: absoluteUrl(url),
+          lastModified: updated,
+          changeFrequency,
+          priority,
+        });
+        const live = (url: string): SitemapEntry => ({ url: absoluteUrl(url), changeFrequency: "daily", priority: 0.8 });
 
         const entries: SitemapEntry[] = [
-          {
-            url: absoluteUrl("/"),
-            lastModified: today,
-            changeFrequency: "daily",
-            priority: 1,
-          },
-          {
-            url: absoluteUrl("/models"),
-            lastModified: today,
-            changeFrequency: "daily",
-            priority: 0.9,
-          },
+          catalogue("/", 1),
+          catalogue("/models", 0.9),
+          { url: absoluteUrl("/about"), changeFrequency: "monthly", priority: 0.7 },
           ...["/privacy", "/legal", "/accessibility"].map((pathname) => ({
-            url: absoluteUrl(pathname), changeFrequency: "monthly" as const, priority: 0.2,
+            url: absoluteUrl(pathname), changeFrequency: "monthly", priority: 0.2,
           })),
-          {
-            url: absoluteUrl("/about"),
-            lastModified: today,
-            changeFrequency: "monthly",
-            priority: 0.7,
-          },
-          ...Array.from({ length: catalogPages - 1 }, (_, index) => ({
-            url: absoluteUrl(`/models/page/${index + 2}`),
-            lastModified: today,
-            changeFrequency: "daily",
-            priority: 0.8,
-          })),
-          {
-            url: absoluteUrl("/agents/coding"),
-            lastModified: today,
-            changeFrequency: "daily",
-            priority: 0.8,
-          },
-          {
-            url: absoluteUrl("/benchmarks/deepswe"),
-            lastModified: today,
-            changeFrequency: "daily",
-            priority: 0.8,
-          },
-          {
-            url: absoluteUrl("/benchmarks/cyber"),
-            lastModified: today,
-            changeFrequency: "daily",
-            priority: 0.8,
-          },
-          ...indexableModels.map((model) => ({
-            url: absoluteUrl(`/models/${encodeURIComponent(model.slug)}`),
-            lastModified: model.release_date ? toIsoDate(model.release_date, today) : undefined,
-            changeFrequency: "weekly",
-            priority: 0.7,
-          })),
+          live("/agents/coding"),
+          live("/benchmarks/deepswe"),
+          live("/benchmarks/frontiercode"),
+          live("/benchmarks/decision-index"),
+          catalogue("/benchmarks/cyber", 0.8),
+          ...indexableModels.map((model) => catalogue(`/models/${encodeURIComponent(model.slug)}`, 0.7, "weekly")),
         ];
 
         return new Response(renderSitemap(entries), {

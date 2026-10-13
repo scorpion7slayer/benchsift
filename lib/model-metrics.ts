@@ -314,28 +314,18 @@ function hasPerformanceData(model: LLMModel): boolean {
   );
 }
 
-function hasOpenRouterUsageData(model: LLMModel): boolean {
-  return model.openrouter_weekly_rank != null;
-}
-
-function hasHuggingFaceSignal(model: LLMModel): boolean {
-  if (model.huggingface_official !== true || !model.huggingface_url) return false;
-  return Boolean(
-    (model.huggingface_downloads ?? 0) > 0 ||
-    (model.huggingface_likes ?? 0) > 0 ||
-    model.huggingface_license ||
-    model.huggingface_pipeline_tag ||
-    model.huggingface_library_name ||
-    (model.huggingface_inference_providers?.length ?? 0) > 0,
-  );
-}
-
+/**
+ * Model pages worth a search result: an Intelligence Index score, measured
+ * performance and a blended price, so the page carries more than a name and
+ * a few specifications. Other pages stay reachable but are not indexed.
+ */
 export function shouldIndexModelPage(model: LLMModel): boolean {
-  return Boolean(
-    hasAnyBenchmarkData(model) ||
-    hasPerformanceData(model) ||
-    hasOpenRouterUsageData(model) ||
-    hasHuggingFaceSignal(model),
+  const price = model.pricing.price_1m_blended_3_to_1;
+  return (
+    textMetricValue(model, "artificial_analysis_intelligence_index") !== null &&
+    hasPerformanceData(model) &&
+    typeof price === "number" &&
+    Number.isFinite(price)
   );
 }
 

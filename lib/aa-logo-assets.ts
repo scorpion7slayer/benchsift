@@ -192,6 +192,14 @@ export const aaLogoAssets: Record<string, { file: string; color?: string }> = {
     file: "celeris.svg",
     color: "#ff8a75",
   },
+  typesafe: {
+    file: "typesafe.svg",
+    color: "#E650BA",
+  },
+  fastino: {
+    file: "fastino.svg",
+    color: "#000000",
+  },
   "sk-telecom": {
     file: "sktelecom_small.svg",
     color: "#E1002A",

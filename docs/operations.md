@@ -97,10 +97,32 @@ so Terminal-Bench v4 and DeepSWE v1.1 never overwrite historical v2/v1 fields.
 DeepSWE reads its versioned public leaderboard artifacts. The default view keeps
 the best measured effort per provider/model/harness; all efforts and historical
 v1 results remain selectable. Published cost assumptions are preserved. Neither
-missing harness names nor missing run counts are inferred. Both benchmark
-sources have a six-hour process cache, shared in-flight requests, and a 30-second
-retry cooldown after failures. An unavailable source is not cached as a successful
-empty response for six hours. These caches are not stored in Redis.
+missing harness names nor missing run counts are inferred.
+
+FrontierCode reads the `initialModels` array of Artificial Analysis's
+`/evaluations/frontiercode` RSC response, keeping only models with a published
+score in `[0, 1]`; a measured zero stays a score. AA's page computes cost, time
+and tokens per task in the browser from published fields; BenchSift applies the
+same formulas over the 100-task Main set: cache hits at the cache-hit price,
+other input at the cache-write price (else the input price), output at the
+output price, and time as output tokens over output speed. Tests pin these to
+the values AA displays. A model without a cache hit rate or with zero prices has
+no cost, as on AA; a missing input leaves the figure null. Rows join the catalogue by AA slug (or alias); an
+unlisted slug keeps the source name and has no link.
+
+The Decision Index reads the `contestants` array of Artificial Analysis's
+`/evaluations/artificial-analysis-decision-index` RSC response: the published
+index, its five component scores (0–100), cost and time per task, and whether
+the contestant is a decision model or a language model. Ids are
+`<host>_<model>`; the model part joins the catalogue by slug or alias, then by
+the same slug with dots read as dashes (AA writes `jev-1.13` as `jev-1-13`)
+against catalogue slugs and OpenRouter model ids, and an ambiguous loose match
+stays unlinked. Model pages stream the matched result after the first render,
+keeping a model's best host when AA measured several.
+
+All four benchmark sources have a six-hour process cache, shared in-flight
+requests, and a 30-second retry cooldown after failures. An unavailable source
+is not cached as a successful empty response for six hours. These caches are not stored in Redis.
 
 Comparison renders cached measurements immediately and loads supplementary
 capabilities independently in the browser. A failed supplement preserves the

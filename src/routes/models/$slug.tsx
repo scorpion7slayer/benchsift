@@ -1,5 +1,5 @@
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
-import { fetchModelDetail, fetchModelCapabilities } from "@/lib/server-fns";
+import { fetchModelDetail, fetchModelCapabilities, fetchModelDecisionIndex } from "@/lib/server-fns";
 import { ModelDetailClient } from "@/components/model-detail-client";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -13,6 +13,7 @@ import {
   mediaBenchmarkValues,
   shouldIndexModelPage,
 } from "@/lib/model-metrics";
+import { canonicalVariantSlug } from "@/lib/model-reasoning";
 
 export const Route = createFileRoute("/models/$slug")({
   loader: async ({ params }) => {
@@ -24,7 +25,9 @@ export const Route = createFileRoute("/models/$slug")({
     // Capabilities scraping starts in parallel — the promise is streamed to
     // the client and consumed there, so it never blocks the initial render.
     const capabilitiesPromise = fetchModelCapabilities({ data: params.slug });
-    return { ...detail, capabilitiesPromise };
+    // Streamed the same way: the Decision Index comes from a separate AA page.
+    const decisionIndexPromise = fetchModelDecisionIndex({ data: detail.model.slug });
+    return { ...detail, capabilitiesPromise, decisionIndexPromise };
   },
   head: ({ loaderData }) => {
     const model = loaderData?.model;
@@ -51,7 +54,9 @@ export const Route = createFileRoute("/models/$slug")({
         title: `${model.name} - BenchSift`,
         description,
         path: `/models/${model.slug}`,
-        robots: shouldIndexModelPage(model)
+        // One indexed page per family: the variant the catalogue and sitemap list.
+        robots: shouldIndexModelPage(model) &&
+          (loaderData.variants.length <= 1 || canonicalVariantSlug(loaderData.variants.map((variant) => variant.slug)) === model.slug)
           ? undefined
           : "noindex, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
         jsonLd: [{
@@ -91,7 +96,7 @@ export const Route = createFileRoute("/models/$slug")({
 });
 
 function ModelPage() {
-  const { model, familyName, variants, familyPoints, ranks, similar, cyberCounterparts, capabilitiesPromise } = Route.useLoaderData();
+  const { model, familyName, variants, familyPoints, ranks, similar, cyberCounterparts, capabilitiesPromise, decisionIndexPromise } = Route.useLoaderData();
 
   return (
     <div className="flex flex-col flex-1 pb-24 sm:pb-0">
@@ -103,6 +108,7 @@ function ModelPage() {
           variants={variants}
           insights={{ familyPoints, ranks, similar, cyberCounterparts }}
           capabilitiesPromise={capabilitiesPromise}
+          decisionIndexPromise={decisionIndexPromise}
         />
       </main>
       <SiteFooter />

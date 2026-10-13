@@ -8,7 +8,7 @@ import { EASE_IN, EASE_IN_OUT, EASE_OUT, PixelScene, Sprite, pivot, track, trans
  * once, then only loops small gestures; reduced motion shows it at rest.
  */
 
-export type PageCatKind = "home" | "catalog" | "detail" | "compare" | "deepswe" | "agents" | "cyber" | "about" | "reading";
+export type PageCatKind = "home" | "catalog" | "detail" | "compare" | "deepswe" | "frontiercode" | "decision" | "agents" | "cyber" | "about" | "reading";
 
 const H = 15;
 const UNIT = 2;
@@ -224,6 +224,92 @@ const DEEPSWE: Scene = {
   ),
 };
 
+/* FrontierCode: stamps a diff as approved, the way a maintainer merges it. */
+const FRONTIERCODE: Scene = {
+  width: 30,
+  css: [
+    drop("pc-frontiercode"),
+    sitting("pc-frontiercode"),
+    loop(".pc-frontiercode-stamp", "pc-frontiercode-stamp", 5200, "transform", [
+      [0, translate(1, -8)],
+      [1300, translate(1, -8), EASE_OUT],
+      [1650, translate(1, -9), EASE_IN],
+      [1850, translate(0, 0)],
+      [2300, translate(0, 0), EASE_OUT],
+      [2700, translate(1, -8)],
+    ]),
+    loop(".pc-frontiercode-check", "pc-frontiercode-check", 5200, "opacity", [[0, "0", STEP], [1850, "1", STEP], [4700, "0"]], "1"),
+    loop(".pc-frontiercode-ok", "pc-frontiercode-ok", 5200, "*", [
+      [0, "transform:scale(0.4);opacity:0", STEP],
+      [2300, "transform:scale(0.4);opacity:1", EASE_OUT],
+      [2800, "transform:scale(1.4);opacity:0"],
+    ]),
+    swish("pc-frontiercode", 2600),
+    blinkLoop("pc-frontiercode", 4400),
+  ].join(""),
+  body: (
+    <g className="pc-frontiercode-in">
+      {/* A diff: added lines in green, a removed one in red. */}
+      <Sprite
+        rows={["ddddddddd", "dpppppppd", "dpaaaappd", "dprrrpppd", "dpaaaaapd", "dpppppppd", "dpppppppd", "dpppppppd", "dpppppppd", "dpppppppd", "ddddddddd"]}
+        palette={{ d: "px-prop-dark", p: "px-paper", a: "px-led", r: "px-alert" }}
+        x={0}
+        y={4}
+      />
+      <g className="pc-frontiercode-check">
+        <Sprite rows={["....#", "#..#.", ".##.."]} palette={{ "#": "px-led" }} x={2} y={10} />
+      </g>
+      <SittingCat id="pc-frontiercode" cx={18} />
+      <g className="pc-frontiercode-stamp">
+        <Sprite rows={[".hh.", ".hh.", "bbbb"]} palette={{ h: "px-prop-dark", b: "px-led" }} x={2} y={9} />
+        <Sprite rows={["oo", "oo"]} palette={PAW} x={5} y={9} />
+      </g>
+      <Star className="pc-frontiercode-ok" x={8} y={8} />
+    </g>
+  ),
+};
+
+/* Decision Index: weighs two options, then commits to one. */
+const DECISION: Scene = {
+  width: 30,
+  css: [
+    drop("pc-decision"),
+    sitting("pc-decision"),
+    loop(".pc-decision-pick", "pc-decision-pick", 5600, "transform", [
+      [0, translate(0, 0), STEP],
+      [800, translate(6, 0), STEP],
+      [1500, translate(0, 0), STEP],
+      [2200, translate(6, 0), EASE_OUT],
+      [2500, translate(6, 1), EASE_IN],
+      [2700, translate(6, 0), STEP],
+      [5300, translate(0, 0)],
+    ]),
+    loop(".pc-decision-chosen", "pc-decision-chosen", 5600, "opacity", [[0, "0", STEP], [2500, "1", STEP], [5100, "0"]], "1"),
+    loop(".pc-decision-ok", "pc-decision-ok", 5600, "*", [
+      [0, "transform:scale(0.4);opacity:0", STEP],
+      [2500, "transform:scale(0.4);opacity:1", EASE_OUT],
+      [3000, "transform:scale(1.4);opacity:0"],
+    ]),
+    swish("pc-decision", 2800),
+    blinkLoop("pc-decision", 4600),
+  ].join(""),
+  body: (
+    <g className="pc-decision-in">
+      {/* Two options; the chosen one lights up. */}
+      <Sprite rows={["ddddd", "dpppd", "dpppd", "ddddd"]} palette={{ d: "px-prop-dark", p: "px-paper" }} x={0} y={11} />
+      <Sprite rows={["ddddd", "dpppd", "dpppd", "ddddd"]} palette={{ d: "px-prop-dark", p: "px-paper" }} x={6} y={11} />
+      <g className="pc-decision-chosen">
+        <Sprite rows={["fff", "fff"]} palette={{ f: "px-led" }} x={7} y={12} />
+      </g>
+      <g className="pc-decision-pick">
+        <Sprite rows={["###", ".#."]} palette={{ "#": "px-alert" }} x={1} y={8} />
+      </g>
+      <SittingCat id="pc-decision" cx={20} />
+      <Star className="pc-decision-ok" x={11} y={8} />
+    </g>
+  ),
+};
+
 /* Coding agents: types on a laptop while code fills the screen. */
 const AGENTS: Scene = {
   width: 33,
@@ -383,6 +469,8 @@ const SCENES: Record<PageCatKind, Scene> = {
   detail: DETAIL,
   compare: COMPARE,
   deepswe: DEEPSWE,
+  frontiercode: FRONTIERCODE,
+  decision: DECISION,
   agents: AGENTS,
   cyber: CYBER,
   about: ABOUT,

@@ -209,14 +209,22 @@ export function getModelReasoningFamily(
   };
 }
 
+function compareCanonicalSlugs(a: string, b: string): number {
+  return a.length - b.length || a.localeCompare(b);
+}
+
 function getCanonicalReasoningVariant(
   family: ModelReasoningFamily,
 ): ModelReasoningVariant {
-  return [...family.variants].sort(
-    (a, b) =>
-      a.model.slug.length - b.model.slug.length ||
-      a.model.slug.localeCompare(b.model.slug),
-  )[0];
+  return [...family.variants].sort((a, b) => compareCanonicalSlugs(a.model.slug, b.model.slug))[0];
+}
+
+/**
+ * The slug a collapsed catalogue lists for a family: its shortest variant
+ * slug. The other reasoning levels are views of the same model page.
+ */
+export function canonicalVariantSlug(slugs: readonly string[]): string | null {
+  return [...slugs].sort(compareCanonicalSlugs)[0] ?? null;
 }
 
 export function toModelDetailData(

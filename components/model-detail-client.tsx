@@ -3,12 +3,15 @@ import {
   AAIndicesCard,
   CapabilityIndexesCard,
   CyberIndexCard,
+  DecisionIndexCard,
   ExtraBenchmarks,
   MediaBenchmarksCard,
   NoBenchmarksCard,
+  NoBenchmarksUnlessDecision,
   StandardBenchmarksCard,
 } from "@/components/model-detail/benchmark-sections";
 import { ModelHero } from "@/components/model-detail/model-hero";
+import { ModelSummary } from "@/components/model-detail/model-summary";
 import { ReasoningLevelsCard, reasoningVariantLabel } from "@/components/model-detail/reasoning-levels";
 import { SimilarModelsCard } from "@/components/model-detail/similar-models";
 import { CapabilitiesCard, MetaEvalCard, PerformanceCard, PricingCard } from "@/components/model-detail/spec-sections";
@@ -19,6 +22,7 @@ import type { LLMModel } from "@/lib/model-types";
 import { useI18n } from "@/lib/i18n";
 import { modelAccessRestriction } from "@/lib/model-availability";
 import { hasAnyBenchmarkData } from "@/lib/model-metrics";
+import type { ModelDecisionIndex } from "@/lib/decision-index-catalog";
 import type { ModelInsights } from "@/lib/model-insights";
 import type { ModelReasoningVariantOption } from "@/lib/model-reasoning";
 import { cn } from "@/lib/utils";
@@ -41,12 +45,14 @@ export function ModelDetailClient({
   variants,
   insights,
   capabilitiesPromise,
+  decisionIndexPromise,
 }: {
   model: LLMModel;
   familyName: string;
   variants: ModelReasoningVariantOption[];
   insights: ModelInsights;
   capabilitiesPromise?: Promise<Caps>;
+  decisionIndexPromise?: Promise<ModelDecisionIndex | null>;
 }) {
   const { t } = useI18n();
   const [section, setSection] = useState<Section>("benchmarks");
@@ -66,6 +72,8 @@ export function ModelDetailClient({
         ranks={insights.ranks}
         capabilitiesPromise={capabilitiesPromise}
       />
+
+      <ModelSummary model={model} insights={insights} />
 
       <ModelAvailabilityNotice model={model} />
       <StealthHistory model={model} />
@@ -93,10 +101,19 @@ export function ModelDetailClient({
           {variants.length > 1 && <ReasoningLevelsCard points={insights.familyPoints} currentSlug={model.slug} />}
           <CapabilityIndexesCard model={model} ranks={insights.ranks} />
           <CyberIndexCard model={model} ranks={insights.ranks} counterparts={insights.cyberCounterparts} />
+          {decisionIndexPromise && (
+            <Suspense>
+              <DecisionIndexCard promise={decisionIndexPromise} />
+            </Suspense>
+          )}
           <StandardBenchmarksCard model={model} ranks={insights.ranks} />
           <MediaBenchmarksCard model={model} />
           <ExtraBenchmarks model={model} />
-          {!hasAnyBenchmarkData(model) && <NoBenchmarksCard />}
+          {!hasAnyBenchmarkData(model) && (decisionIndexPromise ? (
+            <Suspense>
+              <NoBenchmarksUnlessDecision promise={decisionIndexPromise} />
+            </Suspense>
+          ) : <NoBenchmarksCard />)}
         </div>
 
         <aside id="detail-specifications" aria-label={t.mobile.specifications} className={panel("specifications")}>
