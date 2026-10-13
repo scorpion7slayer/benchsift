@@ -317,6 +317,8 @@ BenchSift helps compare AI models by intelligence, coding, math, speed, latency,
 - Compare models: ${absoluteUrl("/compare")}
 - Coding agents leaderboard: ${absoluteUrl("/agents/coding")}
 - DeepSWE benchmark: ${absoluteUrl("/benchmarks/deepswe")}
+- FrontierCode benchmark: ${absoluteUrl("/benchmarks/frontiercode")}
+- Decision Index: ${absoluteUrl("/benchmarks/decision-index")}
 - Cyber Index: ${absoluteUrl("/benchmarks/cyber")}
 
 ## Agent discovery
@@ -388,7 +390,7 @@ Use this when an agent needs to compare pricing, speed, latency, context windows
     name: "Inspect coding benchmarks",
     type: "information",
     description:
-      "Inspect coding-agent and DeepSWE benchmark leaderboards exposed by BenchSift.",
+      "Inspect coding-agent, DeepSWE and FrontierCode benchmark leaderboards exposed by BenchSift.",
     content: `# Inspect coding benchmarks
 
 BenchSift exposes coding-oriented benchmark pages for agent and software-engineering model evaluation.
@@ -397,6 +399,7 @@ Entrypoints:
 
 - Coding agents: ${absoluteUrl("/agents/coding")}
 - DeepSWE: ${absoluteUrl("/benchmarks/deepswe")}
+- FrontierCode: ${absoluteUrl("/benchmarks/frontiercode")}
 
 Use these pages when an agent needs coding-specific rankings rather than general model rankings.
 `,

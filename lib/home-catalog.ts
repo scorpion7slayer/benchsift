@@ -3,6 +3,10 @@ import { modelAccessRestriction, type ModelAccessRestriction } from "@/lib/model
 import { isOpenWeightsModel, textMetricValue } from "@/lib/model-metrics";
 import { modelReleaseTime } from "@/lib/model-release";
 import { collapseReasoningVariants } from "@/lib/model-reasoning";
+import { hasNormalRankingValue, sortHomeModels } from "@/lib/model-grid-logic";
+
+/** Rows of the default ranking sent with the first render; the rest loads after hydration. */
+export const HOME_PREVIEW_SIZE = 20;
 
 /**
  * One row of the home ranking. The whole catalogue is serialised into the
@@ -54,6 +58,11 @@ export interface HomeCatalogData {
    */
   cyberModels: HomeCatalogModel[];
   latestModels: LatestModelSummary[];
+  /**
+   * Set when `models` holds only the top of the default ranking, as sent
+   * with the first render: the length of the full ranking, for its counts.
+   */
+  previewOf?: number;
 }
 
 function latestModelSummaries(models: LLMModel[], limit = 3): LatestModelSummary[] {
@@ -134,4 +143,23 @@ function compactModel(model: LLMModel, creator: Pick<ModelCreator, "name" | "slu
   if (model.stealth_history?.length) row.stealth_history = model.stealth_history;
   if (model.provider_icon_url) row.provider_icon_url = model.provider_icon_url;
   return row;
+}
+
+/**
+ * The first render of the default home view: only the top of the
+ * Intelligence ranking, so the page does not carry the whole catalogue. Ranks
+ * stay global because these are the first rows of the same ranking.
+ */
+export function homeCatalogPreview(data: HomeCatalogData, size = HOME_PREVIEW_SIZE): HomeCatalogData {
+  const ranked = sortHomeModels(
+    data.models.filter((model) => hasNormalRankingValue(model, "intelligence")),
+    "intelligence",
+  );
+  return {
+    count: data.count,
+    latestModels: data.latestModels,
+    models: ranked.slice(0, size),
+    cyberModels: [],
+    previewOf: ranked.length,
+  };
 }

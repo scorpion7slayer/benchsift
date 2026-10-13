@@ -11,7 +11,7 @@ import { SegmentedControl } from "@/components/segmented-control";
 import { Button } from "@/components/ui/button";
 import type { CatalogSearch } from "@/lib/catalog-search";
 import { animateContent } from "@/lib/content-motion";
-import type { HomeCatalogModel } from "@/lib/home-catalog";
+import { HOME_PREVIEW_SIZE, type HomeCatalogModel } from "@/lib/home-catalog";
 import { useI18n } from "@/lib/i18n";
 import {
   advancedSortValue,
@@ -38,6 +38,8 @@ import { useCatalogState } from "./catalog/use-catalog-state";
 
 const ModelCard = lazy(() => import("@/components/model-card").then((module) => ({ default: module.ModelCard })));
 
+/** Rows rendered first (the size of the server preview), then added per "show more". */
+const INITIAL_ROWS = HOME_PREVIEW_SIZE;
 const BATCH = 32;
 
 type RankedEntry = { model: HomeCatalogModel; rank?: number };
@@ -54,6 +56,28 @@ function StatusPanel({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Waiting for the full ranking after a preview, or the failure to load it. */
+function CatalogStatus({ failed, onRetry }: { failed: boolean; onRetry?: () => void }) {
+  const { t } = useI18n();
+  return (
+    <StatusPanel>
+      {failed ? (
+        <>
+          <Blocks aria-hidden="true" className="size-7 text-muted-foreground" />
+          <p className="font-medium">{t.grid.unavailableTitle}</p>
+          <p className="max-w-md text-sm text-muted-foreground">{t.grid.unavailableDescription}</p>
+          <Button type="button" variant="outline" size="sm" onClick={onRetry}>{t.errors.actions.retry}</Button>
+        </>
+      ) : (
+        <>
+          <Loader2 aria-hidden="true" className="size-5 animate-spin text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">{t.grid.loadingDetails}</p>
+        </>
+      )}
+    </StatusPanel>
+  );
+}
+
 /**
  * Home catalogue. Normal mode ranks models on one measure; Advanced mode lists
  * the full catalogue (a table on desktop, cards below). Every control is
@@ -62,11 +86,14 @@ function StatusPanel({ children }: { children: React.ReactNode }) {
 export function ModelGrid({
   models,
   cyberModels,
+  preview,
   search,
   onSearchChange,
 }: {
   models: HomeCatalogModel[];
   cyberModels: HomeCatalogModel[];
+  /** Set while `models` is only the top of the default ranking; `total` is the full ranking's length. */
+  preview?: { total: number; failed: boolean; retry: () => void };
   search: CatalogSearch;
   onSearchChange: (search: CatalogSearch) => void;
 }) {
@@ -83,13 +110,13 @@ export function ModelGrid({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columns, setColumns] = useTableColumns();
   const filtersButton = useRef<HTMLButtonElement>(null);
-  const [visibleCount, setVisibleCount] = useState(BATCH);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_ROWS);
   const resultsRef = useRef<HTMLDivElement>(null);
   const resultsMotion = useRef<Animation | null>(null);
 
   // Any change to the result set restarts paging and briefly marks the update.
   useEffect(() => {
-    setVisibleCount(BATCH);
+    setVisibleCount(INITIAL_ROWS);
     resultsMotion.current = animateContent(resultsRef.current, resultsMotion.current);
   }, [appliedQuery, state.sort, state.direction, state.viewMode, state.ranking, state.provider, state.weights, state.availability, state.category, thresholds]);
   useEffect(() => () => resultsMotion.current?.cancel(), []);
@@ -151,10 +178,14 @@ export function ModelGrid({
     );
   }, [ranked, models, state.ranking, appliedQuery, state.provider, state.weights]);
 
-  const resultCount = advanced ? advancedResults.length : normalResults.length;
+  // A preview holds only the default ranking's first rows: that view counts
+  // the full ranking, and any other normal view waits for the full list.
+  const defaultView = !appliedQuery && state.ranking === "intelligence" && state.provider === "all" && state.weights === "all";
+  const awaitingCatalog = Boolean(preview) && !advanced && (!defaultView || visibleCount > normalResults.length);
+  const resultCount = advanced ? advancedResults.length : preview && defaultView ? preview.total : normalResults.length;
   const totalCount = advanced
     ? (advancedData.models?.length ?? models.length)
-    : appliedQuery ? models.length : ranked.length;
+    : preview ? preview.total : appliedQuery ? models.length : ranked.length;
   const hasMore = visibleCount < resultCount;
   const filtersApplied = Boolean(state.query) || activeFilterCount > 0;
 
@@ -265,7 +296,9 @@ export function ModelGrid({
       />
       <MobileCompareBar />
 
-      {advanced && !advancedData.models ? (
+      {awaitingCatalog && !defaultView ? (
+        <CatalogStatus failed={preview?.failed ?? false} onRetry={preview?.retry} />
+      ) : advanced && !advancedData.models ? (
         <StatusPanel>
           {advancedData.failed ? (
             <>
@@ -354,7 +387,9 @@ export function ModelGrid({
                 </ol>
               </div>
             )}
-            {hasMore && (
+            {awaitingCatalog ? (
+              <CatalogStatus failed={preview?.failed ?? false} onRetry={preview?.retry} />
+            ) : hasMore && (
               <div className="flex justify-center py-4">
                 <Button variant="outline" onClick={() => setVisibleCount((count) => Math.min(count + BATCH, resultCount))}>
                   {t.grid.showMore}

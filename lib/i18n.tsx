@@ -1,10 +1,17 @@
-import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 
 import { flushSync } from "react-dom";
 import { animateContent } from "./content-motion";
 import { runViewTransition } from "./view-transition";
 
 export type Lang = "fr" | "en";
+
+/** English ordinal: 1st, 2nd, 3rd, 11th, 22nd. */
+function ordinal(value: number): string {
+  const tens = value % 100;
+  const suffix = tens >= 11 && tens <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[value % 10] ?? "th";
+  return `${value}${suffix}`;
+}
 
 export interface Translations {
   mobile: { filters: string; showResults: string; close: string; catalog: string; ranking: string; category: string; overview: string; specifications: string; selection: string; };
@@ -117,6 +124,8 @@ export interface Translations {
     feedback: string;
     codingAgents: string;
     deepSwe: string;
+    frontierCode: string;
+    decisionIndex: string;
     cyber: string;
     models: string;
     about: string;
@@ -407,11 +416,22 @@ export interface Translations {
     similarTitle: string;
     similarHint: string;
     compareWith: (name: string) => string;
+    summary: {
+      score: (name: string, score: string, rank: { rank: number; total: number } | null) => string;
+      peers: (list: ReactNode, count: number) => ReactNode;
+      price: (price: string, clauses: ReactNode) => ReactNode;
+      speed: (speed: string, clauses: ReactNode) => ReactNode;
+      priceClause: Record<"lower" | "higher" | "similar", (list: ReactNode) => ReactNode>;
+      speedClause: Record<"lower" | "higher" | "similar", (list: ReactNode) => ReactNode>;
+    };
     capabilityIndexes: string;
     capabilityIndexesDescription: string;
     cyberIndex: string;
     cyberSource: (version: string | null) => string;
     cyberLeaderboard: string;
+    decisionIndex: string;
+    decisionSource: (host: string | null) => string;
+    decisionLeaderboard: string;
     cyberCounterpartTrusted: string;
     cyberCounterpartPublic: string;
   };
@@ -530,6 +550,80 @@ export interface Translations {
     chartHint: string;
     chartMetric: string;
     outcome: (successes: string, safetyBlocks: string | null) => string;
+  };
+  frontierCode: {
+    title: string;
+    description: string;
+    methodDescription: string;
+    scoreHint: string;
+    empty: string;
+    sourceNote: string;
+    viewOnSource: string;
+    search: string;
+    models: string;
+    openOnly: string;
+    allModels: string;
+    sortBy: string;
+    chartTitle: string;
+    chartHint: string;
+    axes: { cost: string; time: string; tokens: string };
+    stats: {
+      models: string;
+      best: string;
+      bestOpen: string;
+      newest: string;
+    };
+    headers: {
+      model: string;
+      score: string;
+      cost: string;
+      time: string;
+      tokens: string;
+      release: string;
+      traits: string;
+    };
+    traits: {
+      reasoning: string;
+      openWeights: string;
+    };
+    method: {
+      tasks: string;
+      attempts: string;
+      harness: string;
+      grading: string;
+      judge: string;
+      costs: string;
+    };
+  };
+  decisionIndex: {
+    title: string;
+    description: string;
+    methodDescription: string;
+    indexHint: string;
+    empty: string;
+    sourceNote: string;
+    viewOnSource: string;
+    search: string;
+    models: string;
+    kindLabel: string;
+    kinds: { all: string; decision: string; llm: string };
+    kindTags: { decision: string; llm: string };
+    chartTitle: string;
+    chartHint: string;
+    axes: { cost: string; time: string };
+    stats: { models: string; best: string; bestDecision: string; fastest: string };
+    headers: { model: string; index: string; cost: string; time: string };
+    scores: Record<"omniscience_accuracy" | "omniscience_non_hallucination" | "hle_multichoice" | "when2call" | "wildguardtest", { short: string; label: string; hint: string }>;
+    method: {
+      tasks: string;
+      decisionModels: string;
+      languageModels: string;
+      omniscience: string;
+      hle: string;
+      when2call: string;
+      wildguard: string;
+      costs: string;
+    };
   };
   benchmarks: {
     intelligence: string;
@@ -730,6 +824,8 @@ const T: Record<Lang, Translations> = {
       feedback: "Feedback",
       codingAgents: "Coding Agents",
       deepSwe: "DeepSWE",
+      frontierCode: "FrontierCode",
+      decisionIndex: "Decision Index",
       cyber: "Cyber Index",
       models: "Modèles",
       allModels: "Tous les modèles",
@@ -1039,11 +1135,31 @@ const T: Record<Lang, Translations> = {
       similarTitle: "Modèles de niveau proche",
       similarHint: "Les modèles les plus proches sur l'Intelligence Index, une configuration par famille.",
       compareWith: (name) => `Comparer avec ${name}`,
+      summary: {
+        score: (name, score, rank) =>
+          `${name} obtient ${score} à l'Intelligence Index d'Artificial Analysis${rank ? `, au ${rank.rank === 1 ? "1er" : `${rank.rank}e`} rang sur ${rank.total} modèles mesurés` : ""}.`,
+        peers: (list, count) => <>{count > 1 ? "Les modèles au score le plus proche sont " : "Le modèle au score le plus proche est "}{list}.</>,
+        price: (price, clauses) => <>À {price} par million de tokens (prix mélangé 3:1 entrée/sortie), il est {clauses}.</>,
+        speed: (speed, clauses) => <>Avec {speed} en sortie, il est {clauses}.</>,
+        priceClause: {
+          lower: (list) => <>moins cher que {list}</>,
+          similar: (list) => <>au même niveau de prix que {list}</>,
+          higher: (list) => <>plus cher que {list}</>,
+        },
+        speedClause: {
+          higher: (list) => <>plus rapide que {list}</>,
+          similar: (list) => <>aussi rapide que {list}</>,
+          lower: (list) => <>plus lent que {list}</>,
+        },
+      },
       capabilityIndexes: "Indices par secteur",
       capabilityIndexesDescription: "Performance par secteur mesurée par Artificial Analysis",
       cyberIndex: "Cyber Index",
       cyberSource: (version) => `Artificial Analysis${version ? ` · ${version}` : ""}`,
       cyberLeaderboard: "Classement Cyber Index",
+      decisionIndex: "Decision Index",
+      decisionSource: (host) => `Artificial Analysis${host ? ` · mesuré via ${host}` : ""}`,
+      decisionLeaderboard: "Classement Decision Index",
       cyberCounterpartTrusted: "Version en accès restreint",
       cyberCounterpartPublic: "Version publique",
     },
@@ -1204,6 +1320,96 @@ const T: Record<Lang, Translations> = {
       chartHint: "Chaque point est une configuration mesurée. En haut à droite : meilleur score pour le moindre coût. Survolez ou parcourez les points au clavier pour lire leurs valeurs.",
       chartMetric: "Score affiché",
       outcome: (successes, safetyBlocks) => safetyBlocks == null ? `${successes} de réussites` : `${successes} de réussites, ${safetyBlocks} de refus de sécurité`,
+    },
+    frontierCode: {
+      title: "FrontierCode",
+      description: "Classement Artificial Analysis des modèles sur des tâches de programmation agentique réalisées dans de vrais dépôts open source : le changement serait-il fusionné par un mainteneur ?",
+      methodDescription: "FrontierCode 1.1 est l'implémentation par Artificial Analysis du benchmark privé de Cognition. Chaque tâche demande à un agent de modifier un dépôt open source réel, puis des vérifications automatiques déterminent si un mainteneur accepterait la modification.",
+      scoreHint: "Moyenne des trois tentatives par tâche. Une tentative vaut zéro si elle échoue à une vérification bloquante ou si le scanner de trajectoire détecte une recherche de la solution.",
+      empty: "Données FrontierCode indisponibles pour l'instant.",
+      sourceNote: "Données via Artificial Analysis, FrontierCode 1.1.",
+      viewOnSource: "Voir sur Artificial Analysis",
+      search: "Rechercher un modèle ou un créateur…",
+      models: "modèles",
+      openOnly: "Poids ouverts",
+      allModels: "Tous les modèles",
+      sortBy: "Trier par",
+      chartTitle: "Score selon le coût, la durée ou les tokens",
+      chartHint: "Valeurs moyennes par tâche, calculées comme sur Artificial Analysis. L'axe horizontal est inversé : en haut à droite, un modèle obtient plus pour moins cher, plus vite ou avec moins de tokens.",
+      axes: { cost: "Coût moyen par tâche", time: "Durée de génération par tâche", tokens: "Tokens de sortie par tâche" },
+      stats: {
+        models: "Modèles",
+        best: "Meilleur score",
+        bestOpen: "Meilleur à poids ouverts",
+        newest: "Plus récent",
+      },
+      headers: {
+        model: "Modèle",
+        score: "Score",
+        cost: "Coût / tâche",
+        time: "Durée / tâche",
+        tokens: "Tokens / tâche",
+        release: "Sortie",
+        traits: "Type",
+      },
+      traits: {
+        reasoning: "Raisonnement",
+        openWeights: "Poids ouverts",
+      },
+      method: {
+        tasks: "Artificial Analysis exécute le jeu principal de 100 tâches, tiré des 150 tâches du benchmark complet ; les tâches pèsent autant les unes que les autres.",
+        attempts: "Chaque tâche est exécutée trois fois ; le score est la moyenne de ces tentatives.",
+        harness: "Les agents tournent dans le harnais Stirrup, limité à 250 tours.",
+        grading: "Six types de vérifications (tests classiques, commandes, tests classiques inversés, tests adaptatifs, périmètre, revue par LLM), bloquantes ou non.",
+        judge: "Le juge LLM est GPT-6 Luna (medium).",
+        costs: "Coût, durée et tokens par tâche sont calculés avec les données et les règles d'Artificial Analysis, sur les 100 tâches : les lectures en cache au prix du cache, le reste de l'entrée au prix d'écriture en cache, la sortie au prix de sortie ; la durée divise les tokens de sortie par la vitesse de sortie, sans délai avant le premier token. Un modèle sans taux de cache ou sans prix n'a pas de coût.",
+      },
+    },
+    decisionIndex: {
+      title: "Decision Index",
+      description: "Classement Artificial Analysis des modèles décisionnels, qui choisissent parmi des options et en donnent les probabilités, face à des LLM qui répondent en JSON : classification, appel d'outils, connaissances, hallucinations et raisonnement.",
+      methodDescription: "L'Artificial Analysis Decision Index combine quatre évaluations. Chaque tâche présente un état, le texte sur lequel décider, et une ou plusieurs questions à choix nommés ou par oui ou non ; le modèle répond à toutes les questions d'une tâche en un seul appel.",
+      indexHint: "Moyenne à parts égales de quatre évaluations, sur 100 : AA-Omniscience-Decision (précision et taux de non-hallucination pour moitié chacun), HLE-MultiChoice, When2Call et WildGuardTest.",
+      empty: "Données Decision Index indisponibles pour l'instant.",
+      sourceNote: "Données via Artificial Analysis, Decision Index.",
+      viewOnSource: "Voir sur Artificial Analysis",
+      search: "Rechercher un modèle, un créateur ou un hébergeur…",
+      models: "configurations",
+      kindLabel: "Type de modèle",
+      kinds: { all: "Tous", decision: "Décisionnels", llm: "LLM" },
+      kindTags: { decision: "Décisionnel", llm: "LLM" },
+      chartTitle: "Index selon le coût ou la durée",
+      chartHint: "Un point par configuration mesurée. L'axe horizontal est inversé : en haut à droite, un modèle obtient un meilleur index pour moins cher ou plus vite.",
+      axes: { cost: "Coût pour 1 M de tâches", time: "Durée moyenne par tâche" },
+      stats: {
+        models: "Configurations",
+        best: "Meilleur index",
+        bestDecision: "Meilleur modèle décisionnel",
+        fastest: "Plus rapide",
+      },
+      headers: {
+        model: "Modèle",
+        index: "Index",
+        cost: "Coût / 1 M tâches",
+        time: "Durée / tâche",
+      },
+      scores: {
+        omniscience_accuracy: { short: "Précision", label: "AA-Omniscience-Decision · précision", hint: "Part des 500 questions de connaissances privées d'AA-Omniscience répondues correctement, parmi quatre réponses et « je ne sais pas »." },
+        omniscience_non_hallucination: { short: "Non-halluc.", label: "AA-Omniscience-Decision · non-hallucination", hint: "100 × (1 − taux d'hallucination) : parmi les questions manquées, la part répondue par « je ne sais pas » plutôt que par une mauvaise réponse." },
+        hle_multichoice: { short: "HLE", label: "HLE-MultiChoice", hint: "Précision sur les 513 questions à choix multiple sans image de Humanity's Last Exam (raisonnement)." },
+        when2call: { short: "When2Call", label: "When2Call", hint: "Précision sur 3 423 tâches d'appel d'outils de NVIDIA : répondre, appeler un outil, demander une précision ou dire ne pas pouvoir répondre." },
+        wildguardtest: { short: "WildGuard", label: "WildGuardTest", hint: "F1 moyen sur une évaluation de classification de sécurité (prompts et réponses nuisibles, refus)." },
+      },
+      method: {
+        tasks: "L'index est la moyenne à parts égales (25 % chacune) d'AA-Omniscience-Decision, HLE-MultiChoice, When2Call et WildGuardTest ; AA-Omniscience-Decision compte pour moitié sa précision et pour moitié son taux de non-hallucination.",
+        decisionModels: "Les modèles décisionnels reçoivent l'état et les questions via leur API de décision et renvoient l'option choisie avec une probabilité par option ; pour un oui ou non, la réponse est oui à partir d'une probabilité de 0,5.",
+        languageModels: "Les LLM reçoivent un prompt système fixe, l'état et les questions en texte, et répondent en JSON contraint par des sorties structurées.",
+        omniscience: "AA-Omniscience-Decision : 500 questions privées tirées d'AA-Omniscience, chacune avec quatre réponses, dont une correcte, et « je ne sais pas ».",
+        hle: "HLE-MultiChoice : les 513 questions à choix multiple sans image de Humanity's Last Exam, sur 2 500 au total.",
+        when2call: "When2Call : 3 423 des 3 652 tâches du jeu de test de NVIDIA ; AA écarte 229 tâches « demander une précision » ambiguës.",
+        wildguard: "WildGuardTest : évaluation de classification de sécurité, scorée en F1 moyen.",
+        costs: "Coût et durée sont les moyennes par tâche publiées par Artificial Analysis ; le coût est affiché pour 1 million de tâches, comme sur AA.",
+      },
     },
     benchmarks: {
       intelligence: "Intelligence",
@@ -1402,6 +1608,8 @@ const T: Record<Lang, Translations> = {
       feedback: "Feedback",
       codingAgents: "Coding Agents",
       deepSwe: "DeepSWE",
+      frontierCode: "FrontierCode",
+      decisionIndex: "Decision Index",
       cyber: "Cyber Index",
       models: "Models",
       allModels: "All models",
@@ -1711,11 +1919,31 @@ const T: Record<Lang, Translations> = {
       similarTitle: "Models at a similar level",
       similarHint: "The closest models on the Intelligence Index, one configuration per family.",
       compareWith: (name) => `Compare with ${name}`,
+      summary: {
+        score: (name, score, rank) =>
+          `${name} scores ${score} on the Artificial Analysis Intelligence Index${rank ? `, ranking ${ordinal(rank.rank)} of ${rank.total} measured models` : ""}.`,
+        peers: (list, count) => <>{count > 1 ? "The closest models on this index are " : "The closest model on this index is "}{list}.</>,
+        price: (price, clauses) => <>At {price} per million tokens (3:1 input/output blended price), it is {clauses}.</>,
+        speed: (speed, clauses) => <>With an output speed of {speed}, it is {clauses}.</>,
+        priceClause: {
+          lower: (list) => <>cheaper than {list}</>,
+          similar: (list) => <>priced close to {list}</>,
+          higher: (list) => <>more expensive than {list}</>,
+        },
+        speedClause: {
+          higher: (list) => <>faster than {list}</>,
+          similar: (list) => <>about as fast as {list}</>,
+          lower: (list) => <>slower than {list}</>,
+        },
+      },
       capabilityIndexes: "Capability indexes",
       capabilityIndexesDescription: "Performance in specific industries, measured by Artificial Analysis",
       cyberIndex: "Cyber Index",
       cyberSource: (version) => `Artificial Analysis${version ? ` · ${version}` : ""}`,
       cyberLeaderboard: "Cyber Index leaderboard",
+      decisionIndex: "Decision Index",
+      decisionSource: (host) => `Artificial Analysis${host ? ` · measured via ${host}` : ""}`,
+      decisionLeaderboard: "Decision Index leaderboard",
       cyberCounterpartTrusted: "Trusted-access version",
       cyberCounterpartPublic: "Publicly available version",
     },
@@ -1876,6 +2104,96 @@ const T: Record<Lang, Translations> = {
       chartHint: "Each point is a measured configuration. Top right: the best score for the lowest cost. Hover or move through the points with the keyboard to read their values.",
       chartMetric: "Score shown",
       outcome: (successes, safetyBlocks) => safetyBlocks == null ? `${successes} successes` : `${successes} successes, ${safetyBlocks} safety blocks`,
+    },
+    frontierCode: {
+      title: "FrontierCode",
+      description: "Artificial Analysis leaderboard for models on agentic coding tasks in real open-source repositories: would a maintainer merge the change?",
+      methodDescription: "FrontierCode 1.1 is Artificial Analysis' implementation of Cognition's private benchmark. Each task asks an agent to change a real open-source repository, then automated checks decide whether a maintainer would accept the change.",
+      scoreHint: "Mean over three attempts per task. An attempt scores zero if it fails a blocking check or if the trajectory scanner flags it for looking up the solution.",
+      empty: "FrontierCode data unavailable for now.",
+      sourceNote: "Data via Artificial Analysis, FrontierCode 1.1.",
+      viewOnSource: "View on Artificial Analysis",
+      search: "Search for a model or creator…",
+      models: "models",
+      openOnly: "Open weights",
+      allModels: "All models",
+      sortBy: "Sort by",
+      chartTitle: "Score by cost, time or tokens",
+      chartHint: "Average values per task, computed as on Artificial Analysis. The horizontal axis is reversed: towards the top right, a model scores more for less money, less time or fewer tokens.",
+      axes: { cost: "Average cost per task", time: "Generation time per task", tokens: "Output tokens per task" },
+      stats: {
+        models: "Models",
+        best: "Best score",
+        bestOpen: "Best open-weights",
+        newest: "Newest",
+      },
+      headers: {
+        model: "Model",
+        score: "Score",
+        cost: "Cost / task",
+        time: "Time / task",
+        tokens: "Tokens / task",
+        release: "Released",
+        traits: "Type",
+      },
+      traits: {
+        reasoning: "Reasoning",
+        openWeights: "Open weights",
+      },
+      method: {
+        tasks: "Artificial Analysis runs the 100-task Main set, drawn from the benchmark's 150 tasks; tasks are weighted equally.",
+        attempts: "Each task runs three times; the score is the mean of those attempts.",
+        harness: "Agents run in the Stirrup harness with a 250-turn cap.",
+        grading: "Six check types (classical tests, command checks, reverse-classical tests, adaptive tests, scope checks, LLM prompt review), each blocking or non-blocking.",
+        judge: "The LLM judge is GPT-6 Luna (medium).",
+        costs: "Cost, time and tokens per task use Artificial Analysis' data and rules over the 100 tasks: cache reads at the cache price, other input at the cache-write price, output at the output price; time divides output tokens by output speed, without time to first token. A model without a cache rate or a price has no cost.",
+      },
+    },
+    decisionIndex: {
+      title: "Decision Index",
+      description: "Artificial Analysis leaderboard of decision models, which pick among options and return their probabilities, against language models answering in JSON: classification, tool calling, knowledge, hallucination and reasoning.",
+      methodDescription: "The Artificial Analysis Decision Index combines four evaluations. Each task poses a state, the text to decide about, and one or more questions with named options or a yes/no answer; the model answers all of a task's questions in a single call.",
+      indexHint: "Equal-weight average of four evaluations, out of 100: AA-Omniscience-Decision (accuracy and non-hallucination rate at half each), HLE-MultiChoice, When2Call and WildGuardTest.",
+      empty: "Decision Index data unavailable for now.",
+      sourceNote: "Data via Artificial Analysis, Decision Index.",
+      viewOnSource: "View on Artificial Analysis",
+      search: "Search a model, creator or host…",
+      models: "configurations",
+      kindLabel: "Model type",
+      kinds: { all: "All", decision: "Decision", llm: "LLM" },
+      kindTags: { decision: "Decision model", llm: "LLM" },
+      chartTitle: "Index by cost or time",
+      chartHint: "One point per measured configuration. The horizontal axis is reversed: towards the top right, a model scores higher for less money or less time.",
+      axes: { cost: "Cost per 1M tasks", time: "Average time per task" },
+      stats: {
+        models: "Configurations",
+        best: "Best index",
+        bestDecision: "Best decision model",
+        fastest: "Fastest",
+      },
+      headers: {
+        model: "Model",
+        index: "Index",
+        cost: "Cost / 1M tasks",
+        time: "Time / task",
+      },
+      scores: {
+        omniscience_accuracy: { short: "Accuracy", label: "AA-Omniscience-Decision · accuracy", hint: "Share of the 500 private AA-Omniscience knowledge questions answered correctly, among four answers and \"I don't know\"." },
+        omniscience_non_hallucination: { short: "Non-halluc.", label: "AA-Omniscience-Decision · non-hallucination", hint: "100 × (1 − hallucination rate): among missed questions, the share answered \"I don't know\" rather than with a wrong answer." },
+        hle_multichoice: { short: "HLE", label: "HLE-MultiChoice", hint: "Accuracy on the 513 text-only multiple-choice questions of Humanity's Last Exam (reasoning)." },
+        when2call: { short: "When2Call", label: "When2Call", hint: "Accuracy on 3,423 NVIDIA tool-calling tasks: answer, call a tool, ask for more information or say it cannot answer." },
+        wildguardtest: { short: "WildGuard", label: "WildGuardTest", hint: "Average F1 on a safety classification evaluation (harmful prompts and responses, refusals)." },
+      },
+      method: {
+        tasks: "The index is the equal-weight average (25% each) of AA-Omniscience-Decision, HLE-MultiChoice, When2Call and WildGuardTest; AA-Omniscience-Decision counts its accuracy and its non-hallucination rate at half each.",
+        decisionModels: "Decision models receive the state and questions through their decision API and return the option they pick with a probability for every option; a yes/no answer is yes from a probability of 0.5.",
+        languageModels: "Language models receive a fixed system prompt and the state and questions as text, and answer in JSON enforced with structured outputs.",
+        omniscience: "AA-Omniscience-Decision: 500 private AA-Omniscience questions, each with four answers, one correct, and \"I don't know\".",
+        hle: "HLE-MultiChoice: the 513 text-only multiple-choice questions of Humanity's Last Exam, out of 2,500 in all.",
+        when2call: "When2Call: 3,423 of the 3,652 tasks in NVIDIA's test set; AA drops 229 ambiguous \"ask for more information\" tasks.",
+        wildguard: "WildGuardTest: a safety classification evaluation, scored by average F1.",
+        costs: "Cost and time are the per-task averages Artificial Analysis publishes; cost is shown per 1 million tasks, as on AA.",
+      },
     },
     benchmarks: {
       intelligence: "Intelligence",

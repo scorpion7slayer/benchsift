@@ -6,11 +6,13 @@ import {
   ChevronLeft,
   Coffee,
   ExternalLink,
+  Gauge,
   Info,
   LibraryBig,
   Menu,
   MessageSquarePlus,
   PanelsTopLeft,
+  Route,
   Shield,
   Terminal,
 } from "@/components/icons";
@@ -133,6 +135,18 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
+                    <Link href="/benchmarks/frontiercode">
+                      <Gauge />
+                      {t.nav.frontierCode}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/benchmarks/decision-index">
+                      <Route />
+                      {t.nav.decisionIndex}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link href="/benchmarks/cyber">
                       <Shield />
                       {t.nav.cyber}
@@ -249,6 +263,8 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
           <p className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{t.nav.otherBenchmarks}</p>
           <Link href="/agents/coding" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Terminal className="size-5" />{t.nav.codingAgents}</Link>
           <Link href="/benchmarks/deepswe" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Activity className="size-5" />{t.nav.deepSwe}</Link>
+          <Link href="/benchmarks/frontiercode" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Gauge className="size-5" />{t.nav.frontierCode}</Link>
+          <Link href="/benchmarks/decision-index" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Route className="size-5" />{t.nav.decisionIndex}</Link>
           <Link href="/benchmarks/cyber" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Shield className="size-5" />{t.nav.cyber}</Link>
           <div className="my-2 border-t" />
           <Link href="/models" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><LibraryBig className="size-5" />{t.nav.allModels}</Link>

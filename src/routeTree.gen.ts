@@ -22,7 +22,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ModelsIndexRouteImport } from './routes/models/index'
 import { Route as ModelsSlugRouteImport } from './routes/models/$slug'
 import { Route as DocsApiRouteImport } from './routes/docs/api'
+import { Route as BenchmarksFrontiercodeRouteImport } from './routes/benchmarks/frontiercode'
 import { Route as BenchmarksDeepsweRouteImport } from './routes/benchmarks/deepswe'
+import { Route as BenchmarksDecisionIndexRouteImport } from './routes/benchmarks/decision-index'
 import { Route as BenchmarksCyberRouteImport } from './routes/benchmarks/cyber'
 import { Route as AgentsCodingRouteImport } from './routes/agents/coding'
 import { Route as DotwellKnownOpenapiDotjsonRouteImport } from './routes/[.]well-known/openapi[.]json'
@@ -101,9 +103,19 @@ const DocsApiRoute = DocsApiRouteImport.update({
   path: '/docs/api',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BenchmarksFrontiercodeRoute = BenchmarksFrontiercodeRouteImport.update({
+  id: '/benchmarks/frontiercode',
+  path: '/benchmarks/frontiercode',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BenchmarksDeepsweRoute = BenchmarksDeepsweRouteImport.update({
   id: '/benchmarks/deepswe',
   path: '/benchmarks/deepswe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BenchmarksDecisionIndexRoute = BenchmarksDecisionIndexRouteImport.update({
+  id: '/benchmarks/decision-index',
+  path: '/benchmarks/decision-index',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BenchmarksCyberRoute = BenchmarksCyberRouteImport.update({
@@ -188,7 +200,9 @@ export interface FileRoutesByFullPath {
   '/.well-known/openapi.json': typeof DotwellKnownOpenapiDotjsonRoute
   '/agents/coding': typeof AgentsCodingRoute
   '/benchmarks/cyber': typeof BenchmarksCyberRoute
+  '/benchmarks/decision-index': typeof BenchmarksDecisionIndexRoute
   '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
+  '/benchmarks/frontiercode': typeof BenchmarksFrontiercodeRoute
   '/docs/api': typeof DocsApiRoute
   '/models/$slug': typeof ModelsSlugRoute
   '/models/': typeof ModelsIndexRoute
@@ -216,7 +230,9 @@ export interface FileRoutesByTo {
   '/.well-known/openapi.json': typeof DotwellKnownOpenapiDotjsonRoute
   '/agents/coding': typeof AgentsCodingRoute
   '/benchmarks/cyber': typeof BenchmarksCyberRoute
+  '/benchmarks/decision-index': typeof BenchmarksDecisionIndexRoute
   '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
+  '/benchmarks/frontiercode': typeof BenchmarksFrontiercodeRoute
   '/docs/api': typeof DocsApiRoute
   '/models/$slug': typeof ModelsSlugRoute
   '/models': typeof ModelsIndexRoute
@@ -245,7 +261,9 @@ export interface FileRoutesById {
   '/.well-known/openapi.json': typeof DotwellKnownOpenapiDotjsonRoute
   '/agents/coding': typeof AgentsCodingRoute
   '/benchmarks/cyber': typeof BenchmarksCyberRoute
+  '/benchmarks/decision-index': typeof BenchmarksDecisionIndexRoute
   '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
+  '/benchmarks/frontiercode': typeof BenchmarksFrontiercodeRoute
   '/docs/api': typeof DocsApiRoute
   '/models/$slug': typeof ModelsSlugRoute
   '/models/': typeof ModelsIndexRoute
@@ -275,7 +293,9 @@ export interface FileRouteTypes {
     | '/.well-known/openapi.json'
     | '/agents/coding'
     | '/benchmarks/cyber'
+    | '/benchmarks/decision-index'
     | '/benchmarks/deepswe'
+    | '/benchmarks/frontiercode'
     | '/docs/api'
     | '/models/$slug'
     | '/models/'
@@ -303,7 +323,9 @@ export interface FileRouteTypes {
     | '/.well-known/openapi.json'
     | '/agents/coding'
     | '/benchmarks/cyber'
+    | '/benchmarks/decision-index'
     | '/benchmarks/deepswe'
+    | '/benchmarks/frontiercode'
     | '/docs/api'
     | '/models/$slug'
     | '/models'
@@ -331,7 +353,9 @@ export interface FileRouteTypes {
     | '/.well-known/openapi.json'
     | '/agents/coding'
     | '/benchmarks/cyber'
+    | '/benchmarks/decision-index'
     | '/benchmarks/deepswe'
+    | '/benchmarks/frontiercode'
     | '/docs/api'
     | '/models/$slug'
     | '/models/'
@@ -360,7 +384,9 @@ export interface RootRouteChildren {
   DotwellKnownOpenapiDotjsonRoute: typeof DotwellKnownOpenapiDotjsonRoute
   AgentsCodingRoute: typeof AgentsCodingRoute
   BenchmarksCyberRoute: typeof BenchmarksCyberRoute
+  BenchmarksDecisionIndexRoute: typeof BenchmarksDecisionIndexRoute
   BenchmarksDeepsweRoute: typeof BenchmarksDeepsweRoute
+  BenchmarksFrontiercodeRoute: typeof BenchmarksFrontiercodeRoute
   DocsApiRoute: typeof DocsApiRoute
   ModelsSlugRoute: typeof ModelsSlugRoute
   ModelsIndexRoute: typeof ModelsIndexRoute
@@ -467,11 +493,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsApiRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/benchmarks/frontiercode': {
+      id: '/benchmarks/frontiercode'
+      path: '/benchmarks/frontiercode'
+      fullPath: '/benchmarks/frontiercode'
+      preLoaderRoute: typeof BenchmarksFrontiercodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/benchmarks/deepswe': {
       id: '/benchmarks/deepswe'
       path: '/benchmarks/deepswe'
       fullPath: '/benchmarks/deepswe'
       preLoaderRoute: typeof BenchmarksDeepsweRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/benchmarks/decision-index': {
+      id: '/benchmarks/decision-index'
+      path: '/benchmarks/decision-index'
+      fullPath: '/benchmarks/decision-index'
+      preLoaderRoute: typeof BenchmarksDecisionIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/benchmarks/cyber': {
@@ -576,7 +616,9 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownOpenapiDotjsonRoute: DotwellKnownOpenapiDotjsonRoute,
   AgentsCodingRoute: AgentsCodingRoute,
   BenchmarksCyberRoute: BenchmarksCyberRoute,
+  BenchmarksDecisionIndexRoute: BenchmarksDecisionIndexRoute,
   BenchmarksDeepsweRoute: BenchmarksDeepsweRoute,
+  BenchmarksFrontiercodeRoute: BenchmarksFrontiercodeRoute,
   DocsApiRoute: DocsApiRoute,
   ModelsSlugRoute: ModelsSlugRoute,
   ModelsIndexRoute: ModelsIndexRoute,

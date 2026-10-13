@@ -23,10 +23,20 @@ import {
 import { cyberLeaderboard, type CyberLeaderboard } from "@/lib/cyber-index";
 import { getDeepSweData, type DeepSweData } from "@/lib/deepswe";
 import { matchDeepSweModels, type DeepSweModelInfo } from "@/lib/deepswe-catalog";
+import { getFrontierCodeData, type FrontierCodeData } from "@/lib/frontiercode";
+import { matchFrontierCodeModels, type FrontierCodeModelInfo } from "@/lib/frontiercode-catalog";
+import { getDecisionIndexData, type DecisionIndexData } from "@/lib/decision-index";
+import {
+  decisionIndexForModel,
+  matchDecisionIndexModels,
+  type DecisionIndexModelInfo,
+  type ModelDecisionIndex,
+} from "@/lib/decision-index-catalog";
 import type { CompareModelOption } from "@/lib/compare-model";
 import type { Lang } from "@/lib/i18n";
 import {
   buildHomeCatalogData,
+  homeCatalogPreview,
   type HomeCatalogData,
 } from "@/lib/home-catalog";
 import { readCookieValue } from "@/lib/http-cookie";
@@ -60,7 +70,7 @@ export const fetchModels = createServerFn({ method: "GET" }).handler(
   },
 );
 
-const homeSnapshots = new WeakMap<LLMModel[], HomeCatalogData>();
+const homeSnapshots = new WeakMap<LLMModel[], { full: HomeCatalogData; preview: HomeCatalogData }>();
 
 /** Project pagination on the server rather than sending the entire catalogue. */
 export const fetchCatalogPage = createServerFn({ method: "GET" })
@@ -70,16 +80,23 @@ export const fetchCatalogPage = createServerFn({ method: "GET" })
     return getModelCatalogPage(await getLLMModels(), data);
   });
 
-/** Lightweight data needed by the default homepage ranking. */
-export const fetchHomeCatalog = createServerFn({ method: "GET" }).handler(
-  async (): Promise<HomeCatalogData> => {
+/**
+ * Data of the home ranking. The default view's first render asks for a
+ * preview (the top of the ranking); the browser then loads the full list.
+ */
+export const fetchHomeCatalog = createServerFn({ method: "GET" })
+  .inputValidator((input: { preview?: boolean } | undefined) => ({ preview: input?.preview === true }))
+  .handler(async ({ data: { preview } }): Promise<HomeCatalogData> => {
     setResponseCache();
     const models = await getLLMModels();
     let data = homeSnapshots.get(models);
-    if (!data) { data = buildHomeCatalogData(models); homeSnapshots.set(models, data); }
-    return data;
-  },
-);
+    if (!data) {
+      const full = buildHomeCatalogData(models);
+      data = { full, preview: homeCatalogPreview(full) };
+      homeSnapshots.set(models, data);
+    }
+    return preview ? data.preview : data.full;
+  });
 
 /** A model and its matching reasoning variants (no scraped capabilities). */
 export const fetchModelDetail = createServerFn({ method: "GET" })
@@ -172,6 +189,44 @@ export const fetchDeepSweData = createServerFn({ method: "GET" }).handler(
     return { ...data, catalog: matchDeepSweModels(models, rows) };
   },
 );
+
+/** Artificial Analysis FrontierCode leaderboard. */
+export const fetchFrontierCodeData = createServerFn({ method: "GET" }).handler(
+  async (): Promise<FrontierCodeData & { catalog: Record<string, FrontierCodeModelInfo> }> => {
+    setResponseCache();
+    const [data, models] = await Promise.all([getFrontierCodeData(), getLLMModels()]);
+    return { ...data, catalog: matchFrontierCodeModels(models, data.rows) };
+  },
+);
+
+const decisionMatches = new WeakMap<DecisionIndexData, WeakMap<LLMModel[], Record<string, DecisionIndexModelInfo>>>();
+
+/** Catalogue matches of a Decision Index snapshot, computed once per snapshot pair. */
+function decisionIndexMatches(data: DecisionIndexData, models: LLMModel[]): Record<string, DecisionIndexModelInfo> {
+  let byModels = decisionMatches.get(data);
+  if (!byModels) { byModels = new WeakMap(); decisionMatches.set(data, byModels); }
+  let matches = byModels.get(models);
+  if (!matches) { matches = matchDecisionIndexModels(models, data.rows); byModels.set(models, matches); }
+  return matches;
+}
+
+/** Artificial Analysis Decision Index leaderboard. */
+export const fetchDecisionIndexData = createServerFn({ method: "GET" }).handler(
+  async (): Promise<DecisionIndexData & { catalog: Record<string, DecisionIndexModelInfo> }> => {
+    setResponseCache();
+    const [data, models] = await Promise.all([getDecisionIndexData(), getLLMModels()]);
+    return { ...data, catalog: decisionIndexMatches(data, models) };
+  },
+);
+
+/** Decision Index result of one catalogue model, streamed to its page. */
+export const fetchModelDecisionIndex = createServerFn({ method: "GET" })
+  .inputValidator((slug: string) => slug)
+  .handler(async ({ data: slug }): Promise<ModelDecisionIndex | null> => {
+    if (!isSafeSlug(slug)) return null;
+    const [data, models] = await Promise.all([getDecisionIndexData(), getLLMModels()]);
+    return decisionIndexForModel(data.rows, decisionIndexMatches(data, models), slug);
+  });
 
 export interface Preferences {
   lang: Lang;
