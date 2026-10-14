@@ -16,7 +16,17 @@ The filename/provider/color mapping is in lib/aa-logo-assets.ts.
 
 Additional Artificial Analysis creator logos (IFM, Krafton, Kokoro, Recraft,
 Luma Labs, Pruna AI): /models, retrieved 2026-09-21.
+Mistral logo (mistral.svg): the SVG Artificial Analysis now publishes in place of
+mistral_small.png, retrieved 2026-10-14.
 Additional local brand SVGs from Lobe Icons, commit
 2e76c48721e91b9aaa40803a0fa2eb8aca7399c4, packages/static-svg/icons.
 MIT license: /licenses/lobe-icons.txt. Trademarks belong to their owners.
+Qwen mark (/logos/qwen/qwen.svg): the symbol of the Qwen Chat logo,
+https://assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.17/static/images/qwen-logo.svg,
+retrieved 2026-10-14; the wordmark is removed and the artwork is otherwise unchanged.
+Qwen is a trademark of Alibaba Cloud and is not covered by the application's MIT licence.
 Rune normal/git-branch and normal/eye use the same pinned Rune commit above.
+
+SpaceX logo (SpaceXSI creator): glyph path from Simple Icons 13.0.0 (CC0-1.0),
+icons/spacex.svg, placed on a black 48x48 tile like the other creator logos.
+The SpaceX mark is a trademark of its owner.

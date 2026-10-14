@@ -14,7 +14,7 @@ export default definePlugin((app) => {
     if (!failed && (path === "/health" || /^\/(?:assets|logos|fonts)\//.test(path) || /favicon/.test(path))) return;
     const route = path.startsWith("/models/") ? "/models/:slug"
       : path.startsWith("/_serverFn/") ? "/_serverFn/:function"
-      : ["/", "/compare", "/models", "/about", "/privacy", "/legal", "/accessibility", "/api/cron/refresh", "/api/cron/status", "/health", "/agents/coding", "/benchmarks/deepswe", "/benchmarks/frontiercode", "/benchmarks/decision-index"].includes(path) ? path : "/other";
+      : ["/", "/compare", "/models", "/about", "/privacy", "/legal", "/accessibility", "/api/cron/refresh", "/api/cron/status", "/health", "/agents/coding", "/benchmarks/deepswe", "/benchmarks/frontiercode", "/benchmarks/aa-3d", "/benchmarks/decision-index"].includes(path) ? path : "/other";
     logEvent(response.status >= 500 ? "error" : failed ? "warn" : "info", "http.response", {
       method: event.req.method, route, status: response.status,
       durationMs: Date.now() - (started.get(event) ?? Date.now()),

@@ -57,23 +57,24 @@
   /* Locally hosted Geist fonts. */
   --font-geist-sans: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-geist-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --background: #F8F6F1;
-  --foreground: oklch(0.18 0.006 85);
+  /* Warm-neutral, kept close to white so cards and rules read as quiet structure. */
+  --background: oklch(0.983 0.003 85);
+  --foreground: oklch(0.2 0.005 85);
   --card: #FFFFFF;
-  --card-foreground: oklch(0.18 0.006 85);
+  --card-foreground: oklch(0.2 0.005 85);
   --popover: #FFFFFF;
-  --popover-foreground: oklch(0.18 0.006 85);
+  --popover-foreground: oklch(0.2 0.005 85);
   --primary: #245CBC;
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.94 0.011 88);
+  --secondary: oklch(0.96 0.004 85);
   --secondary-foreground: oklch(0.22 0.006 85);
-  --muted: oklch(0.94 0.011 88);
-  --muted-foreground: oklch(0.45 0.006 85);
+  --muted: oklch(0.96 0.004 85);
+  --muted-foreground: oklch(0.475 0.007 85);
   --accent: #E8EFFC;
   --accent-foreground: #244D90;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.84 0.012 88);
-  --input: oklch(0.82 0.012 88);
+  --border: oklch(0.905 0.004 85);
+  --input: oklch(0.865 0.005 85);
   --ring: #245CBC;
   --scrollbar-thumb: #aaa7a1;
   --scrollbar-thumb-hover: #77736e;
@@ -102,12 +103,12 @@
   --provider-other: oklch(0.55 0.01 85);
   --radius: 0.625rem;
   --sidebar: #FFFFFF;
-  --sidebar-foreground: oklch(0.18 0.006 85);
+  --sidebar-foreground: oklch(0.2 0.005 85);
   --sidebar-primary: oklch(0.22 0.006 85);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.94 0.011 88);
+  --sidebar-accent: oklch(0.96 0.004 85);
   --sidebar-accent-foreground: oklch(0.22 0.006 85);
-  --sidebar-border: oklch(0.84 0.012 88);
+  --sidebar-border: oklch(0.905 0.004 85);
   --sidebar-ring: oklch(0.62 0.01 88);
   /* Motion: one curve and three durations shared by every interaction. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -409,6 +410,9 @@ body:has(header:hover, header:focus-within, footer:focus-within) .scene-dim { op
 .brand-logo { background: transparent; }
 .brand-logo img { border-radius: inherit; }
 .dark .brand-logo[data-monochrome] img { filter: invert(1); }
+/* AA-3D domain heat map: --heat is the win rate in percent; low-sample cells are hatched. */
+.aa3d-heat { background-color: color-mix(in oklab, var(--chart-1) calc(var(--heat, 0) * 0.45%), var(--muted)); }
+.aa3d-heat-low { background-image: repeating-linear-gradient(135deg, transparent 0 5px, color-mix(in oklab, var(--foreground) 14%, transparent) 5px 6px); }
 @media (hover: hover) and (pointer: fine) { .latest-model-link:hover > svg { transform: translateX(2px); } }
 html:has([data-cookie-banner]) { scroll-padding-bottom: var(--analytics-banner-height, 0px); }
 body:has([data-cookie-banner]) [data-scroll-to-top] { visibility: hidden; }

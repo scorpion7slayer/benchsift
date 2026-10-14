@@ -3,7 +3,8 @@ import { useId, useMemo, useRef, useState } from "react";
 import { Search, X } from "@/components/icons";
 import { Input } from "@/components/ui/input";
 import { ModelProviderIcon } from "@/components/model-provider-icon";
-import { getModelProviderKey } from "@/lib/provider-map";
+import { CreatorMark } from "@/components/creator-mark";
+import { getModelLogoKey } from "@/lib/provider-map";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { CompareModelOption } from "@/lib/compare-model";
@@ -164,7 +165,7 @@ export function CompareModelSearch({
                 )}
               >
                 <ModelProviderIcon
-                  provider={getModelProviderKey(
+                  provider={getModelLogoKey(
                     model.slug,
                     model.model_creator.slug,
                   )}
@@ -176,6 +177,7 @@ export function CompareModelSearch({
                     {model.name}
                   </span>
                   <span className="text-xs text-muted-foreground">
+                    <CreatorMark slug={model.model_creator.slug} />
                     {model.model_creator.name}
                   </span>
                 </span>

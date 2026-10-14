@@ -16,7 +16,7 @@ import type {
   CatalogModelSummary,
   ModelCatalogPageData,
 } from "@/lib/model-catalog";
-import { getModelProviderKey } from "@/lib/provider-map";
+import { getModelLogoKey } from "@/lib/provider-map";
 import { cn } from "@/lib/utils";
 import { PageCat } from "@/components/pixel-art/page-cats";
 
@@ -66,7 +66,7 @@ function CatalogModelRow({ model }: { model: CatalogModelSummary }) {
   const { t } = useI18n();
   const { toggle, isSelected, isFull } = useCompare();
   const selected = isSelected(model.slug);
-  const providerKey = getModelProviderKey(model.slug, model.model_creator.slug);
+  const providerKey = getModelLogoKey(model.slug, model.model_creator.slug);
 
   return (
     <li

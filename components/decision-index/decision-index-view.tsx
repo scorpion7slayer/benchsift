@@ -5,6 +5,7 @@ import { Link } from "@/components/link";
 import { BenchmarkDisclosure, BenchmarkHeader, ScoreBar, StatTiles } from "@/components/benchmark-page";
 import { InfoTip } from "@/components/info-tip";
 import { ModelProviderIcon } from "@/components/model-provider-icon";
+import { CreatorMark } from "@/components/creator-mark";
 import { SegmentedControl } from "@/components/segmented-control";
 import { PageCat } from "@/components/pixel-art/page-cats";
 import { TradeoffChart, type ChartScale, type ChartSeries } from "@/components/tradeoff-chart";
@@ -19,7 +20,7 @@ import {
 } from "@/lib/decision-index-data";
 import { formatMoney, formatMoneyCompact, formatNumber, formatSeconds } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
-import { getModelProviderKey } from "@/lib/provider-map";
+import { getModelLogoKey } from "@/lib/provider-map";
 import { providerColor, shadeIndex } from "@/lib/provider-colors";
 
 const SOURCE_URL = "https://artificialanalysis.ai/evaluations/artificial-analysis-decision-index";
@@ -185,10 +186,10 @@ export function DecisionIndexView({ data }: { data: Data }) {
               <li key={row.id} className="rounded-xl border bg-card p-4">
                 <div className="flex items-start gap-3">
                   <span className="w-7 shrink-0 pt-1 text-xs font-semibold tabular-nums text-muted-foreground">#{ranks.get(row)}</span>
-                  <ModelProviderIcon provider={getModelProviderKey(data.catalog[row.id]?.slug ?? row.model_slug, creatorOf(row))} iconUrl={data.catalog[row.id]?.iconUrl} size={28} />
+                  <ModelProviderIcon provider={getModelLogoKey(data.catalog[row.id]?.slug ?? row.model_slug, creatorOf(row))} iconUrl={data.catalog[row.id]?.iconUrl} size={28} />
                   <div className="min-w-0 flex-1">
                     <ModelName row={row} info={data.catalog[row.id]} />
-                    <Origin row={row} creator={creatorName(row)} />
+                    <Origin row={row} creator={creatorName(row)} creatorSlug={creatorOf(row)} />
                   </div>
                   <ScoreBar value={row.index / 100} label={formatIndex(row.index)} className="w-20" />
                 </div>
@@ -245,10 +246,10 @@ export function DecisionIndexView({ data }: { data: Data }) {
                     </td>
                     <td className="px-2 py-3">
                       <div className="flex min-w-0 items-center gap-3">
-                        <ModelProviderIcon provider={getModelProviderKey(data.catalog[row.id]?.slug ?? row.model_slug, creatorOf(row))} iconUrl={data.catalog[row.id]?.iconUrl} size={28} />
+                        <ModelProviderIcon provider={getModelLogoKey(data.catalog[row.id]?.slug ?? row.model_slug, creatorOf(row))} iconUrl={data.catalog[row.id]?.iconUrl} size={28} />
                         <div className="min-w-0">
                           <ModelName row={row} info={data.catalog[row.id]} />
-                          <Origin row={row} creator={creatorName(row)} />
+                          <Origin row={row} creator={creatorName(row)} creatorSlug={creatorOf(row)} />
                         </div>
                       </div>
                     </td>
@@ -300,10 +301,11 @@ function ModelName({ row, info }: { row: DecisionIndexRow; info: DecisionIndexMo
 }
 
 /** Creator, and the host AA called when it differs (an inference provider or router). */
-function Origin({ row, creator }: { row: DecisionIndexRow; creator: string | null }) {
+function Origin({ row, creator, creatorSlug }: { row: DecisionIndexRow; creator: string | null; creatorSlug: string }) {
   const host = row.host_name && row.host_name !== creator && row.host_name !== row.creator_name ? row.host_name : null;
   return (
     <p className="mt-0.5 truncate text-xs text-muted-foreground">
+      {creator && <CreatorMark slug={creatorSlug} />}
       {creator ?? "—"}
       {host && <> · {host}</>}
     </p>

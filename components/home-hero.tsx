@@ -2,7 +2,7 @@ import { Link } from "@/components/link";
 import { ArrowRight } from "@/components/icons";
 import { CompareMenu } from "@/components/compare-menu";
 import { ModelProviderIcon } from "@/components/model-provider-icon";
-import { getModelProviderKey } from "@/lib/provider-map";
+import { getModelLogoKey } from "@/lib/provider-map";
 import { useI18n } from "@/lib/i18n";
 import type { LatestModelSummary } from "@/lib/home-catalog";
 import { PageCat } from "@/components/pixel-art/page-cats";
@@ -31,7 +31,7 @@ export function HomeHero({ count, latestModels }: { count: number; latestModels:
           const date = model.releaseDate ? new Date(model.releaseDate) : null;
           return <li key={model.slug} className="w-[80%] shrink-0 snap-start sm:w-auto sm:min-w-0">
             <Link href={`/models/${model.slug}`} className="latest-model-link group flex h-full items-center gap-3 rounded-xl border bg-card p-3 transition-[border-color,background-color] hover:border-foreground/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <ModelProviderIcon provider={getModelProviderKey(model.slug, model.providerSlug)} iconUrl={model.providerIconUrl} size={40} />
+              <ModelProviderIcon provider={getModelLogoKey(model.slug, model.providerSlug)} iconUrl={model.providerIconUrl} size={40} />
               <span className="min-w-0 flex-1"><span className="block text-sm font-medium leading-5 [overflow-wrap:anywhere]">{model.name}</span><span className="mt-1 flex flex-wrap gap-x-2 text-xs text-muted-foreground">{model.providerName}{date && Number.isFinite(date.getTime()) && <time dateTime={model.releaseDate!}>{new Intl.DateTimeFormat(lang === "fr" ? "fr-FR" : "en-US", { day: "numeric", month: "short", timeZone: "UTC" }).format(date)}</time>}</span></span>
               <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform" />
             </Link>

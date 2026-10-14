@@ -25,6 +25,7 @@ import { getDeepSweData, type DeepSweData } from "@/lib/deepswe";
 import { matchDeepSweModels, type DeepSweModelInfo } from "@/lib/deepswe-catalog";
 import { getFrontierCodeData, type FrontierCodeData } from "@/lib/frontiercode";
 import { matchFrontierCodeModels, type FrontierCodeModelInfo } from "@/lib/frontiercode-catalog";
+import { getAa3dData, type Aa3dData } from "@/lib/aa3d";
 import { getDecisionIndexData, type DecisionIndexData } from "@/lib/decision-index";
 import {
   decisionIndexForModel,
@@ -195,6 +196,15 @@ export const fetchFrontierCodeData = createServerFn({ method: "GET" }).handler(
   async (): Promise<FrontierCodeData & { catalog: Record<string, FrontierCodeModelInfo> }> => {
     setResponseCache();
     const [data, models] = await Promise.all([getFrontierCodeData(), getLLMModels()]);
+    return { ...data, catalog: matchFrontierCodeModels(models, data.rows) };
+  },
+);
+
+/** Artificial Analysis AA-3D leaderboard; rows join the catalogue by AA slug, as FrontierCode's do. */
+export const fetchAa3dData = createServerFn({ method: "GET" }).handler(
+  async (): Promise<Aa3dData & { catalog: Record<string, FrontierCodeModelInfo> }> => {
+    setResponseCache();
+    const [data, models] = await Promise.all([getAa3dData(), getLLMModels()]);
     return { ...data, catalog: matchFrontierCodeModels(models, data.rows) };
   },
 );

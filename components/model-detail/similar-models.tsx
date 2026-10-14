@@ -2,13 +2,14 @@ import { Link as RouterLink } from "@tanstack/react-router";
 import { Boxes, GitCompareArrows } from "@/components/icons";
 import { Link } from "@/components/link";
 import { ModelProviderIcon } from "@/components/model-provider-icon";
+import { CreatorMark } from "@/components/creator-mark";
 import { Button } from "@/components/ui/button";
 import { formatMoney, formatNumber, formatSpeed } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import type { LLMModel } from "@/lib/model-types";
 import type { SimilarModel } from "@/lib/model-insights";
 import { textMetricValue } from "@/lib/model-metrics";
-import { getModelProviderKey } from "@/lib/provider-map";
+import { getModelLogoKey } from "@/lib/provider-map";
 import { cn } from "@/lib/utils";
 import { DetailCard } from "./detail-primitives";
 
@@ -45,7 +46,7 @@ export function SimilarModelsCard({ model, similar }: { model: LLMModel; similar
       <ul className="divide-y">
         {similar.map((entry) => (
           <li key={entry.slug} className="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-3 sm:grid-cols-[2rem_minmax(0,1fr)_5rem_5rem_5.5rem_6.5rem] sm:px-6">
-            <ModelProviderIcon provider={getModelProviderKey(entry.slug, entry.creatorSlug)} iconUrl={entry.providerIconUrl} size={28} />
+            <ModelProviderIcon provider={getModelLogoKey(entry.slug, entry.creatorSlug)} iconUrl={entry.providerIconUrl} size={28} />
             <div className="min-w-0">
               <Link
                 href={`/models/${entry.slug}`}
@@ -55,6 +56,7 @@ export function SimilarModelsCard({ model, similar }: { model: LLMModel; similar
                 {entry.name}
               </Link>
               <p className="truncate text-xs text-muted-foreground">
+                <CreatorMark slug={entry.creatorSlug} />
                 {entry.creatorName}
                 <span className="sm:hidden"> · {formatMoney(entry.price, lang)} · {formatSpeed(entry.speed, lang)}</span>
               </p>

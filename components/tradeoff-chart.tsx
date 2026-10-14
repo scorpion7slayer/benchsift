@@ -50,13 +50,14 @@ function niceStep(span: number, count: number): number {
   return (unit <= 1.5 ? 1 : unit <= 3 ? 2 : unit <= 7 ? 5 : 10) * power;
 }
 
-function linearTicks(max: number, count: number): { max: number; ticks: number[] } {
-  if (max <= 0) return { max: 1, ticks: [0, 1] };
-  const step = niceStep(max, count);
+function linearTicks(max: number, count: number, min = 0): { min: number; max: number; ticks: number[] } {
+  if (max <= min) return min === 0 ? { min: 0, max: 1, ticks: [0, 1] } : { min: min - 1, max: min + 1, ticks: [min - 1, min, min + 1] };
+  const step = niceStep(max - min, count);
+  const bottom = Math.floor(min / step) * step;
   const top = Math.ceil(max / step) * step;
   const ticks: number[] = [];
-  for (let value = 0; value <= top + step / 2; value += step) ticks.push(Number(value.toPrecision(12)));
-  return { max: top, ticks };
+  for (let value = bottom; value <= top + step / 2; value += step) ticks.push(Number(value.toPrecision(12)));
+  return { min: bottom, max: top, ticks };
 }
 
 /** Round values (1, 2, 5 × 10ⁿ) between the nearest ones around the data. */
@@ -118,6 +119,7 @@ export function TradeoffChart({
   empty,
   legend = true,
   picker = false,
+  yFromData = false,
   className,
 }: {
   series: ChartSeries[];
@@ -140,6 +142,8 @@ export function TradeoffChart({
   legend?: boolean;
   /** Lists every series below the chart so the reader can show or hide each one. */
   picker?: boolean;
+  /** Fits the vertical axis to the data instead of starting at zero, for unbounded scores such as Elo. */
+  yFromData?: boolean;
   className?: string;
 }) {
   const { t } = useI18n();
@@ -177,16 +181,23 @@ export function TradeoffChart({
   const plotWidth = width - MARGIN.left - MARGIN.right;
   const plotHeight = height - MARGIN.top - MARGIN.bottom;
 
-  const maxY = Math.max(1, ...allPoints.map((point) => point.y));
-  const yAxis = linearTicks(maxY * 1.08, height < 360 ? 5 : 6);
+  const yCount = height < 360 ? 5 : 6;
+  const yValues = allPoints.map((point) => point.y);
+  const yAxis = yFromData && yValues.length
+    ? (() => {
+        const [low, high] = [Math.min(...yValues), Math.max(...yValues)];
+        const pad = (high - low) * 0.08 || Math.abs(high) * 0.05 || 1;
+        return linearTicks(high + pad, yCount, low - pad);
+      })()
+    : linearTicks(Math.max(1, ...yValues) * 1.08, yCount);
   const xValues = allPoints.map((point) => point.x);
   const xAxis = scale === "log" && xValues.length
     ? logTicks(Math.min(...xValues), Math.max(...xValues))
-    : { min: 0, ...linearTicks(Math.max(0, ...xValues) * 1.06, width < 520 ? 3 : 5) };
+    : linearTicks(Math.max(0, ...xValues) * 1.06, width < 520 ? 3 : 5);
   const project = (value: number) => (scale === "log" ? Math.log10(value) : value);
   const xFraction = (value: number) => (project(value) - project(xAxis.min)) / (project(xAxis.max) - project(xAxis.min) || 1);
   const xPos = (value: number) => MARGIN.left + plotWidth * (better === "lower" ? 1 - xFraction(value) : xFraction(value));
-  const yPos = (value: number) => MARGIN.top + plotHeight * (1 - value / yAxis.max);
+  const yPos = (value: number) => MARGIN.top + plotHeight * (1 - (value - yAxis.min) / (yAxis.max - yAxis.min));
   // On a narrow chart, a tick too close to the last one kept would print over it.
   const xTicks: number[] = [];
   let lastTickAt = -Infinity;

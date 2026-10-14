@@ -125,6 +125,7 @@ export interface Translations {
     codingAgents: string;
     deepSwe: string;
     frontierCode: string;
+    aa3d: string;
     decisionIndex: string;
     cyber: string;
     models: string;
@@ -595,6 +596,88 @@ export interface Translations {
       costs: string;
     };
   };
+  aa3d: {
+    title: string;
+    description: string;
+    methodDescription: string;
+    eloHint: string;
+    empty: string;
+    sourceNote: string;
+    viewOnSource: string;
+    search: string;
+    models: string;
+    openOnly: string;
+    allModels: string;
+    sortBy: string;
+    chartTitle: string;
+    chartHint: string;
+    axes: { cost: string; tokens: string; turns: string };
+    stats: {
+      models: string;
+      best: string;
+      bestOpen: string;
+      cheapestTop: string;
+    };
+    headers: {
+      model: string;
+      elo: string;
+      interval: string;
+      cost: string;
+      tokens: string;
+      turns: string;
+      release: string;
+      traits: string;
+    };
+    anchor: string;
+    anchorHint: string;
+    interval: (lower: string, upper: string) => string;
+    domains: {
+      title: string;
+      hint: string;
+      mode: string;
+      raw: string;
+      balanced: string;
+      rawHint: string;
+      balancedHint: string;
+      panelVotes: (votes: string) => string;
+      lowSample: string;
+      tooFewScenes: (scenes: string) => string;
+      tooFewOpponents: (opponents: string) => string;
+      noVotes: string;
+      names: Record<string, string>;
+    };
+    agent: {
+      title: string;
+      hint: string;
+      turns: string;
+      turnsHint: string;
+      turnsRange: (p5: string, p25: string, p50: string, p75: string, p95: string) => string;
+      tools: string;
+      toolsHint: string;
+      toolKinds: { browser_test: string; code: string; assets: string; image_views: string; other: string };
+      firstLook: string;
+      firstLookHint: string;
+      assetLibrary: string;
+      assetLibraryHint: string;
+    };
+    tasks: {
+      title: string;
+      hint: string;
+      domain: string;
+      all: string;
+      count: (shown: string, total: string) => string;
+      coverage: (count: string, total: string) => string;
+      openScene: (task: string, model: string) => string;
+      noScenes: string;
+    };
+    method: {
+      tasks: string;
+      sandbox: string;
+      voting: string;
+      elo: string;
+      costs: string;
+    };
+  };
   decisionIndex: {
     title: string;
     description: string;
@@ -825,6 +908,7 @@ const T: Record<Lang, Translations> = {
       codingAgents: "Coding Agents",
       deepSwe: "DeepSWE",
       frontierCode: "FrontierCode",
+      aa3d: "AA-3D",
       decisionIndex: "Decision Index",
       cyber: "Cyber Index",
       models: "Modèles",
@@ -1365,6 +1449,96 @@ const T: Record<Lang, Translations> = {
         costs: "Coût, durée et tokens par tâche sont calculés avec les données et les règles d'Artificial Analysis, sur les 100 tâches : les lectures en cache au prix du cache, le reste de l'entrée au prix d'écriture en cache, la sortie au prix de sortie ; la durée divise les tokens de sortie par la vitesse de sortie, sans délai avant le premier token. Un modèle sans taux de cache ou sans prix n'a pas de coût.",
       },
     },
+    aa3d: {
+      title: "AA-3D",
+      description: "Classement Artificial Analysis des modèles qui construisent des scènes 3D interactives : chaque modèle transforme un brief en page three.js, puis un panel vote à l'aveugle entre deux scènes.",
+      methodDescription: "AA-3D v1.0 mesure la capacité des modèles à construire des expériences 3D interactives. Chaque modèle travaille comme un agent dans un bac à sable hors ligne et livre une page web three.js à partir d'un brief écrit ; un panel recruté compare ensuite deux scènes issues du même brief sans savoir quel modèle les a construites.",
+      eloHint: "Elo calculé à partir des votes à l'aveugle par paires. GPT-6 Luna (Max) sert de référence, fixée à 1 000. Des modèles dont les intervalles à 95 % se chevauchent sont statistiquement à égalité.",
+      empty: "Données AA-3D indisponibles pour l'instant.",
+      sourceNote: "Données via Artificial Analysis, AA-3D v1.0.",
+      viewOnSource: "Voir sur Artificial Analysis",
+      search: "Rechercher un modèle ou un créateur…",
+      models: "modèles",
+      openOnly: "Poids ouverts",
+      allModels: "Tous les modèles",
+      sortBy: "Trier par",
+      chartTitle: "Elo selon le coût, les tokens ou les tours",
+      chartHint: "Valeurs moyennes par scène, calculées comme sur Artificial Analysis. L'axe horizontal est inversé : en haut à droite, un modèle obtient un meilleur Elo pour moins cher, avec moins de tokens ou moins de tours.",
+      axes: { cost: "Coût moyen par scène", tokens: "Tokens de sortie par scène", turns: "Tours médians par scène" },
+      stats: {
+        models: "Modèles",
+        best: "Meilleur Elo",
+        bestOpen: "Meilleur à poids ouverts",
+        cheapestTop: "Moins cher du top 5",
+      },
+      headers: {
+        model: "Modèle",
+        elo: "Elo",
+        interval: "Intervalle à 95 %",
+        cost: "Coût / scène",
+        tokens: "Tokens / scène",
+        turns: "Tours médians",
+        release: "Sortie",
+        traits: "Type",
+      },
+      anchor: "Référence",
+      anchorHint: "Fixé à 1 000 comme point de référence de l'échelle Elo.",
+      interval: (lower, upper) => `de ${lower} à ${upper}`,
+      domains: {
+        title: "Taux de victoire par domaine",
+        hint: "Part des votes du panel remportés par chaque modèle dans chacun des sept domaines de tâches. Une case hachurée repose sur trop peu de scènes ou d'adversaires pour être fiable.",
+        mode: "Taux affiché",
+        raw: "Brut",
+        balanced: "Équilibré",
+        rawHint: "Part des votes remportés dans le domaine.",
+        balancedHint: "Moyenne des taux de victoire contre chaque adversaire rencontré dans le domaine, pour que chaque adversaire compte autant.",
+        panelVotes: (votes) => `D'après plus de ${votes} votes du panel.`,
+        lowSample: "Échantillon trop petit",
+        tooFewScenes: (scenes) => `Trop peu de scènes (${scenes})`,
+        tooFewOpponents: (opponents) => `Trop peu d'adversaires (${opponents})`,
+        noVotes: "Aucun vote",
+        names: {
+          landmarks: "Lieux réels et monuments",
+          machines: "Machines",
+          natural: "Phénomènes naturels",
+          living: "Corps vivants",
+          games: "Jeux, sport et pilotage",
+          space: "Espace",
+          stories: "Histoires et fantastique",
+        },
+      },
+      agent: {
+        title: "Comportement de l'agent",
+        hint: "Comment chaque modèle construit ses scènes : nombre de tours, outils appelés, premier coup d'œil au rendu et recours à la bibliothèque d'assets. Moyennes et parts calculées par Artificial Analysis sur ses exécutions.",
+        turns: "Tours par scène",
+        turnsHint: "Le trait couvre du 5e au 95e centile, la barre du 25e au 75e, le repère marque la médiane. Une exécution s'arrête à 250 tours.",
+        turnsRange: (p5, p25, p50, p75, p95) => `Médiane ${p50} tours ; 25e à 75e centile : ${p25} à ${p75} ; 5e à 95e : ${p5} à ${p95}`,
+        tools: "Appels d'outils par scène",
+        toolsHint: "Nombre moyen d'appels par scène, par type d'outil.",
+        toolKinds: { browser_test: "Tests navigateur", code: "Code", assets: "Assets", image_views: "Vues d'images", other: "Autres" },
+        firstLook: "Rendu vu avant le tour 20",
+        firstLookHint: "Part des scènes où l'agent a regardé son rendu avant le 20e tour.",
+        assetLibrary: "Bibliothèque d'assets",
+        assetLibraryHint: "Part des scènes qui utilisent la bibliothèque d'assets CC0 fournie.",
+      },
+      tasks: {
+        title: "Tâches et scènes",
+        hint: "Les briefs publiés par Artificial Analysis, avec la scène que chaque modèle a construite. Les scènes s'ouvrent sur le CDN d'Artificial Analysis, dans un nouvel onglet ; briefs et titres sont en anglais, comme à la source.",
+        domain: "Domaine",
+        all: "Tous",
+        count: (shown, total) => `${shown} tâches sur ${total}`,
+        coverage: (count, total) => `${count} scènes sur ${total} modèles`,
+        openScene: (task, model) => `Ouvrir la scène « ${task} » de ${model} dans un nouvel onglet`,
+        noScenes: "Aucune scène publiée pour cette tâche.",
+      },
+      method: {
+        tasks: "AA-3D v1.0 compte 55 tâches réparties en sept domaines (lieux réels, machines, phénomènes naturels, corps vivants, jeux, espace, fiction) ; chacune est le brief d'une scène interactive.",
+        sandbox: "Chaque modèle tourne dans Stirrup, le harnais open source d'Artificial Analysis, dans un bac à sable sans réseau avec Blender, la physique Rapier, Python, un navigateur headless et une bibliothèque d'assets CC0 ; une exécution s'arrête après trois heures ou 250 tours.",
+        voting: "Un panel recruté vote à l'aveugle entre deux scènes construites à partir du même brief.",
+        elo: "L'Elo et son intervalle de confiance à 95 % viennent de ces votes ; GPT-6 Luna (Max) est fixé à 1 000.",
+        costs: "Coût et tokens par scène sont calculés avec les données et les règles d'Artificial Analysis, sur les 55 tâches : les lectures en cache au prix du cache, le reste de l'entrée au prix d'écriture en cache, la sortie au prix de sortie. Un modèle sans taux de cache ou sans prix n'a pas de coût.",
+      },
+    },
     decisionIndex: {
       title: "Decision Index",
       description: "Classement Artificial Analysis des modèles décisionnels, qui choisissent parmi des options et en donnent les probabilités, face à des LLM qui répondent en JSON : classification, appel d'outils, connaissances, hallucinations et raisonnement.",
@@ -1609,6 +1783,7 @@ const T: Record<Lang, Translations> = {
       codingAgents: "Coding Agents",
       deepSwe: "DeepSWE",
       frontierCode: "FrontierCode",
+      aa3d: "AA-3D",
       decisionIndex: "Decision Index",
       cyber: "Cyber Index",
       models: "Models",
@@ -2147,6 +2322,96 @@ const T: Record<Lang, Translations> = {
         grading: "Six check types (classical tests, command checks, reverse-classical tests, adaptive tests, scope checks, LLM prompt review), each blocking or non-blocking.",
         judge: "The LLM judge is GPT-6 Luna (medium).",
         costs: "Cost, time and tokens per task use Artificial Analysis' data and rules over the 100 tasks: cache reads at the cache price, other input at the cache-write price, output at the output price; time divides output tokens by output speed, without time to first token. A model without a cache rate or a price has no cost.",
+      },
+    },
+    aa3d: {
+      title: "AA-3D",
+      description: "Artificial Analysis leaderboard of models building interactive 3D scenes: each model turns a brief into a three.js page, then a panel votes blind between two scenes.",
+      methodDescription: "AA-3D v1.0 measures how well models build interactive 3D experiences. Each model works as an agent in an offline sandbox and delivers a three.js web page from a written brief; a recruited panel then compares two scenes built from the same brief without knowing which model built which.",
+      eloHint: "Elo from blind pairwise votes. GPT-6 Luna (Max) is the reference, fixed at 1,000. Models whose 95% intervals overlap are statistically tied.",
+      empty: "AA-3D data unavailable for now.",
+      sourceNote: "Data via Artificial Analysis, AA-3D v1.0.",
+      viewOnSource: "View on Artificial Analysis",
+      search: "Search for a model or creator…",
+      models: "models",
+      openOnly: "Open weights",
+      allModels: "All models",
+      sortBy: "Sort by",
+      chartTitle: "Elo by cost, tokens or turns",
+      chartHint: "Average values per scene, computed as on Artificial Analysis. The horizontal axis is reversed: towards the top right, a model reaches a higher Elo for less money, fewer tokens or fewer turns.",
+      axes: { cost: "Average cost per scene", tokens: "Output tokens per scene", turns: "Median turns per scene" },
+      stats: {
+        models: "Models",
+        best: "Best Elo",
+        bestOpen: "Best open-weights",
+        cheapestTop: "Cheapest of the top 5",
+      },
+      headers: {
+        model: "Model",
+        elo: "Elo",
+        interval: "95% interval",
+        cost: "Cost / scene",
+        tokens: "Tokens / scene",
+        turns: "Median turns",
+        release: "Released",
+        traits: "Type",
+      },
+      anchor: "Reference",
+      anchorHint: "Fixed at 1,000 as the reference point of the Elo scale.",
+      interval: (lower, upper) => `${lower} to ${upper}`,
+      domains: {
+        title: "Win rate by domain",
+        hint: "Share of panel votes each model won in each of the seven task domains. A hatched cell rests on too few scenes or opponents to be reliable.",
+        mode: "Rate shown",
+        raw: "Raw",
+        balanced: "Balanced",
+        rawHint: "Share of votes won in the domain.",
+        balancedHint: "Mean of the win rates against each opponent faced in the domain, so every opponent counts equally.",
+        panelVotes: (votes) => `Based on ${votes}+ panel votes.`,
+        lowSample: "Sample too small",
+        tooFewScenes: (scenes) => `Too few scenes (${scenes})`,
+        tooFewOpponents: (opponents) => `Too few opponents (${opponents})`,
+        noVotes: "No votes",
+        names: {
+          landmarks: "Landmarks and real places",
+          machines: "Machines",
+          natural: "Natural phenomena",
+          living: "Living bodies",
+          games: "Games, sports and piloting",
+          space: "Space",
+          stories: "Stories and fantasy",
+        },
+      },
+      agent: {
+        title: "Agent behavior",
+        hint: "How each model builds its scenes: turns taken, tools called, first look at the render and use of the asset library. Averages and shares computed by Artificial Analysis from its runs.",
+        turns: "Turns per scene",
+        turnsHint: "The line spans the 5th to 95th percentile, the bar the 25th to 75th, and the mark is the median. A run stops at 250 turns.",
+        turnsRange: (p5, p25, p50, p75, p95) => `Median ${p50} turns; 25th to 75th percentile: ${p25} to ${p75}; 5th to 95th: ${p5} to ${p95}`,
+        tools: "Tool calls per scene",
+        toolsHint: "Average calls per scene, by tool kind.",
+        toolKinds: { browser_test: "Browser tests", code: "Code", assets: "Assets", image_views: "Image views", other: "Other" },
+        firstLook: "Render seen by turn 20",
+        firstLookHint: "Share of scenes where the agent looked at its render by turn 20.",
+        assetLibrary: "Asset library",
+        assetLibraryHint: "Share of scenes that use the bundled CC0 asset library.",
+      },
+      tasks: {
+        title: "Tasks and scenes",
+        hint: "The briefs Artificial Analysis published, with the scene each model built. Scenes open on Artificial Analysis's CDN in a new tab.",
+        domain: "Domain",
+        all: "All",
+        count: (shown, total) => `${shown} of ${total} tasks`,
+        coverage: (count, total) => `${count} of ${total} models have a scene`,
+        openScene: (task, model) => `Open the “${task}” scene by ${model} in a new tab`,
+        noScenes: "No scene published for this task.",
+      },
+      method: {
+        tasks: "AA-3D v1.0 has 55 tasks across seven domains (real places, machines, natural phenomena, living bodies, games, space, fiction); each is the brief for one interactive scene.",
+        sandbox: "Each model runs in Stirrup, Artificial Analysis' open-source harness, in a sandbox without network access that has Blender, Rapier physics, Python, a headless browser and a CC0 asset library; a run stops after three hours or 250 turns.",
+        voting: "A recruited panel votes blind between two scenes built from the same brief.",
+        elo: "Elo and its 95% confidence interval come from those votes; GPT-6 Luna (Max) is fixed at 1,000.",
+        costs: "Cost and tokens per scene use Artificial Analysis' data and rules over the 55 tasks: cache reads at the cache price, other input at the cache-write price, output at the output price. A model without a cache rate or a price has no cost.",
       },
     },
     decisionIndex: {

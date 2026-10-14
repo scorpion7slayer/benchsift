@@ -75,13 +75,13 @@ export function WebMcpProvider() {
       {
         name: "open_benchsift_page",
         description:
-          "Navigate to a primary BenchSift page for model discovery, comparison, coding benchmarks, the Decision Index, or the Cyber Index.",
+          "Navigate to a primary BenchSift page for model discovery, comparison, coding benchmarks, AA-3D, the Decision Index, or the Cyber Index.",
         inputSchema: {
           type: "object",
           properties: {
             page: {
               type: "string",
-              enum: ["home", "compare", "coding_agents", "deepswe", "frontiercode", "decision_index", "cyber"],
+              enum: ["home", "compare", "coding_agents", "deepswe", "frontiercode", "aa_3d", "decision_index", "cyber"],
             },
           },
           required: ["page"],
@@ -94,6 +94,7 @@ export function WebMcpProvider() {
             coding_agents: "/agents/coding",
             deepswe: "/benchmarks/deepswe",
             frontiercode: "/benchmarks/frontiercode",
+            aa_3d: "/benchmarks/aa-3d",
             decision_index: "/benchmarks/decision-index",
             cyber: "/benchmarks/cyber",
           };

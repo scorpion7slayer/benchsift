@@ -4,6 +4,7 @@ import { BenchmarkDisclosure, BenchmarkHeader, ScoreBar, StatTiles } from "@/com
 import { CatalogSelect } from "@/components/catalog-select";
 import { Link } from "@/components/link";
 import { ModelProviderIcon } from "@/components/model-provider-icon";
+import { CreatorMark } from "@/components/creator-mark";
 import { SearchField } from "@/components/search-field";
 import { SegmentedControl } from "@/components/segmented-control";
 import { SortButton } from "@/components/sort-button";
@@ -22,7 +23,7 @@ import { formatMoney, formatMoneyCompact, formatNumber, formatPercent } from "@/
 import { useI18n } from "@/lib/i18n";
 import { matchesSearch } from "@/lib/model-grid-logic";
 import { providerColor, shadeIndex } from "@/lib/provider-colors";
-import { getModelProviderKey } from "@/lib/provider-map";
+import { getModelLogoKey } from "@/lib/provider-map";
 import { cn } from "@/lib/utils";
 import { AccessRestrictionBadge } from "@/components/model-availability";
 import { PageCat } from "@/components/pixel-art/page-cats";
@@ -269,10 +270,10 @@ export function CyberIndexView({
               <li key={row.slug} className="rounded-xl border bg-card p-4">
                 <div className="flex items-start gap-3">
                   <span className="w-7 shrink-0 pt-1 text-xs font-semibold tabular-nums text-muted-foreground">#{row.rank}</span>
-                  <ModelProviderIcon provider={getModelProviderKey(row.slug, row.creatorSlug)} iconUrl={row.iconUrl} size={28} />
+                  <ModelProviderIcon provider={getModelLogoKey(row.slug, row.creatorSlug)} iconUrl={row.iconUrl} size={28} />
                   <div className="min-w-0 flex-1">
                     <ModelName row={row} />
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{row.creatorName}</p>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground"><CreatorMark slug={row.creatorSlug} />{row.creatorName}</p>
                   </div>
                   <span className="shrink-0 text-right font-semibold tabular-nums">{formatCyberScore(row.result.score, lang)}</span>
                 </div>
@@ -326,10 +327,10 @@ export function CyberIndexView({
                     </td>
                     <td className="px-2 py-3">
                       <div className="flex min-w-0 items-center gap-3">
-                        <ModelProviderIcon provider={getModelProviderKey(row.slug, row.creatorSlug)} iconUrl={row.iconUrl} size={28} />
+                        <ModelProviderIcon provider={getModelLogoKey(row.slug, row.creatorSlug)} iconUrl={row.iconUrl} size={28} />
                         <div className="min-w-0">
                           <ModelName row={row} />
-                          <p className="truncate text-xs text-muted-foreground">{row.creatorName}</p>
+                          <p className="truncate text-xs text-muted-foreground"><CreatorMark slug={row.creatorSlug} />{row.creatorName}</p>
                         </div>
                       </div>
                     </td>

@@ -26,6 +26,7 @@ import { Route as BenchmarksFrontiercodeRouteImport } from './routes/benchmarks/
 import { Route as BenchmarksDeepsweRouteImport } from './routes/benchmarks/deepswe'
 import { Route as BenchmarksDecisionIndexRouteImport } from './routes/benchmarks/decision-index'
 import { Route as BenchmarksCyberRouteImport } from './routes/benchmarks/cyber'
+import { Route as BenchmarksAa3dRouteImport } from './routes/benchmarks/aa-3d'
 import { Route as AgentsCodingRouteImport } from './routes/agents/coding'
 import { Route as DotwellKnownOpenapiDotjsonRouteImport } from './routes/[.]well-known/openapi[.]json'
 import { Route as DotwellKnownApiCatalogRouteImport } from './routes/[.]well-known/api-catalog'
@@ -123,6 +124,11 @@ const BenchmarksCyberRoute = BenchmarksCyberRouteImport.update({
   path: '/benchmarks/cyber',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BenchmarksAa3dRoute = BenchmarksAa3dRouteImport.update({
+  id: '/benchmarks/aa-3d',
+  path: '/benchmarks/aa-3d',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AgentsCodingRoute = AgentsCodingRouteImport.update({
   id: '/agents/coding',
   path: '/agents/coding',
@@ -199,6 +205,7 @@ export interface FileRoutesByFullPath {
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/.well-known/openapi.json': typeof DotwellKnownOpenapiDotjsonRoute
   '/agents/coding': typeof AgentsCodingRoute
+  '/benchmarks/aa-3d': typeof BenchmarksAa3dRoute
   '/benchmarks/cyber': typeof BenchmarksCyberRoute
   '/benchmarks/decision-index': typeof BenchmarksDecisionIndexRoute
   '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
@@ -229,6 +236,7 @@ export interface FileRoutesByTo {
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/.well-known/openapi.json': typeof DotwellKnownOpenapiDotjsonRoute
   '/agents/coding': typeof AgentsCodingRoute
+  '/benchmarks/aa-3d': typeof BenchmarksAa3dRoute
   '/benchmarks/cyber': typeof BenchmarksCyberRoute
   '/benchmarks/decision-index': typeof BenchmarksDecisionIndexRoute
   '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
@@ -260,6 +268,7 @@ export interface FileRoutesById {
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/.well-known/openapi.json': typeof DotwellKnownOpenapiDotjsonRoute
   '/agents/coding': typeof AgentsCodingRoute
+  '/benchmarks/aa-3d': typeof BenchmarksAa3dRoute
   '/benchmarks/cyber': typeof BenchmarksCyberRoute
   '/benchmarks/decision-index': typeof BenchmarksDecisionIndexRoute
   '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
@@ -292,6 +301,7 @@ export interface FileRouteTypes {
     | '/.well-known/api-catalog'
     | '/.well-known/openapi.json'
     | '/agents/coding'
+    | '/benchmarks/aa-3d'
     | '/benchmarks/cyber'
     | '/benchmarks/decision-index'
     | '/benchmarks/deepswe'
@@ -322,6 +332,7 @@ export interface FileRouteTypes {
     | '/.well-known/api-catalog'
     | '/.well-known/openapi.json'
     | '/agents/coding'
+    | '/benchmarks/aa-3d'
     | '/benchmarks/cyber'
     | '/benchmarks/decision-index'
     | '/benchmarks/deepswe'
@@ -352,6 +363,7 @@ export interface FileRouteTypes {
     | '/.well-known/api-catalog'
     | '/.well-known/openapi.json'
     | '/agents/coding'
+    | '/benchmarks/aa-3d'
     | '/benchmarks/cyber'
     | '/benchmarks/decision-index'
     | '/benchmarks/deepswe'
@@ -383,6 +395,7 @@ export interface RootRouteChildren {
   DotwellKnownApiCatalogRoute: typeof DotwellKnownApiCatalogRoute
   DotwellKnownOpenapiDotjsonRoute: typeof DotwellKnownOpenapiDotjsonRoute
   AgentsCodingRoute: typeof AgentsCodingRoute
+  BenchmarksAa3dRoute: typeof BenchmarksAa3dRoute
   BenchmarksCyberRoute: typeof BenchmarksCyberRoute
   BenchmarksDecisionIndexRoute: typeof BenchmarksDecisionIndexRoute
   BenchmarksDeepsweRoute: typeof BenchmarksDeepsweRoute
@@ -521,6 +534,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BenchmarksCyberRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/benchmarks/aa-3d': {
+      id: '/benchmarks/aa-3d'
+      path: '/benchmarks/aa-3d'
+      fullPath: '/benchmarks/aa-3d'
+      preLoaderRoute: typeof BenchmarksAa3dRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/agents/coding': {
       id: '/agents/coding'
       path: '/agents/coding'
@@ -615,6 +635,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownApiCatalogRoute: DotwellKnownApiCatalogRoute,
   DotwellKnownOpenapiDotjsonRoute: DotwellKnownOpenapiDotjsonRoute,
   AgentsCodingRoute: AgentsCodingRoute,
+  BenchmarksAa3dRoute: BenchmarksAa3dRoute,
   BenchmarksCyberRoute: BenchmarksCyberRoute,
   BenchmarksDecisionIndexRoute: BenchmarksDecisionIndexRoute,
   BenchmarksDeepsweRoute: BenchmarksDeepsweRoute,
