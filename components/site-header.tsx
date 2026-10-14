@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Link } from "@/components/link";
 import {
   Activity,
+  Boxes,
   ChevronDown,
   ChevronLeft,
   Coffee,
@@ -64,7 +65,7 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
   const menuButton = useRef<HTMLButtonElement>(null);
 
   return (
-    <header className="sticky top-0 z-20 border-b bg-card/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/85">
+    <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur dark:shadow-sm supports-[backdrop-filter]:bg-card/85">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex h-14 items-center gap-3">
         {/* Logo ou bouton retour */}
         {backHref ? (
@@ -138,6 +139,12 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
                     <Link href="/benchmarks/frontiercode">
                       <Gauge />
                       {t.nav.frontierCode}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/benchmarks/aa-3d">
+                      <Boxes />
+                      {t.nav.aa3d}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
@@ -264,6 +271,7 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
           <Link href="/agents/coding" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Terminal className="size-5" />{t.nav.codingAgents}</Link>
           <Link href="/benchmarks/deepswe" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Activity className="size-5" />{t.nav.deepSwe}</Link>
           <Link href="/benchmarks/frontiercode" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Gauge className="size-5" />{t.nav.frontierCode}</Link>
+          <Link href="/benchmarks/aa-3d" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Boxes className="size-5" />{t.nav.aa3d}</Link>
           <Link href="/benchmarks/decision-index" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Route className="size-5" />{t.nav.decisionIndex}</Link>
           <Link href="/benchmarks/cyber" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Shield className="size-5" />{t.nav.cyber}</Link>
           <div className="my-2 border-t" />

@@ -11,6 +11,7 @@ import { TradeoffChart, type ChartScale, type ChartSeries } from "@/components/t
 import { splitEffort, type CodingAgent } from "@/lib/coding-agents";
 import { formatDuration, formatMoney, formatMoneyCompact, formatNumber, formatPercent, formatTokens } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
+import { getModelLogoKey } from "@/lib/provider-map";
 import { providerColor, shadeIndex } from "@/lib/provider-colors";
 import { cn } from "@/lib/utils";
 import { PageCat } from "@/components/pixel-art/page-cats";
@@ -306,7 +307,7 @@ function AgentModels({ agent }: { agent: CodingAgent }) {
         const { base, effort } = splitEffort(model.name);
         return (
           <span key={`${index}-${model.name}`} className="flex min-w-0 items-center gap-2 text-sm">
-            <ModelProviderIcon provider={model.creator ?? agent.model_creator_slug} size={18} />
+            <ModelProviderIcon provider={getModelLogoKey(base.toLowerCase().replace(/\s+/g, "-"), model.creator ?? agent.model_creator_slug)} size={18} />
             <span className="truncate">{base}</span>
             {effort && <span className="rounded border bg-muted px-1 font-mono text-[10px] uppercase text-muted-foreground">{effort}</span>}
           </span>

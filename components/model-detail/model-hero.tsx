@@ -5,6 +5,7 @@ import { Brain, ExternalLink, GitCompareArrows, Lock, Unlock, Check } from "@/co
 import { InfoTip } from "@/components/info-tip";
 import { ModelAvailabilityBadge } from "@/components/model-availability";
 import { ModelProviderIcon } from "@/components/model-provider-icon";
+import { CreatorMark } from "@/components/creator-mark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { LLMModel } from "@/lib/model-types";
@@ -15,7 +16,7 @@ import { modelAccessRestriction } from "@/lib/model-availability";
 import { textMetricValue } from "@/lib/model-metrics";
 import type { FamilyPoint, MetricRank, ModelInsights, RankedMetric } from "@/lib/model-insights";
 import type { ModelReasoningVariantOption } from "@/lib/model-reasoning";
-import { getModelProviderKey } from "@/lib/provider-map";
+import { getModelLogoKey } from "@/lib/provider-map";
 import { RankNote } from "./detail-primitives";
 import { ReasoningLevelPicker } from "./reasoning-levels";
 import { PageCat } from "@/components/pixel-art/page-cats";
@@ -131,10 +132,10 @@ export function ModelHero({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
         <div className="flex min-w-0 flex-1 items-start gap-4">
           <span className="flex size-14 shrink-0 items-center justify-center rounded-xl border bg-muted">
-            <ModelProviderIcon provider={getModelProviderKey(model.slug, model.model_creator.slug)} size={44} iconUrl={model.provider_icon_url} />
+            <ModelProviderIcon provider={getModelLogoKey(model.slug, model.model_creator.slug)} size={44} iconUrl={model.provider_icon_url} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm text-muted-foreground">{model.model_creator.name}</p>
+            <p className="truncate text-sm text-muted-foreground"><CreatorMark slug={model.model_creator.slug} size={16} />{model.model_creator.name}</p>
             <h1 className="mt-0.5 text-balance break-words text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">{title}</h1>
             {qualifier && <p className="mt-1 text-sm leading-5 text-muted-foreground">{qualifier}</p>}
             <div className="mt-3 flex flex-wrap items-center gap-2">

@@ -13,7 +13,7 @@ import type { ComparisonFamily } from "@/lib/model-insights";
 import { useCompare } from "@/lib/compare-store";
 import { buildComparisonRows } from "@/lib/comparison-rows";
 import { useI18n } from "@/lib/i18n";
-import { getModelProviderKey } from "@/lib/provider-map";
+import { getModelLogoKey } from "@/lib/provider-map";
 import { ComparedModel } from "./compared-model";
 import { ComparisonMatrix } from "./comparison-matrix";
 import { ComparisonStack } from "./comparison-stack";
@@ -319,7 +319,7 @@ function EmptyComparison({
                 className="flex min-h-14 items-center gap-3 rounded-lg border bg-background px-3 py-2 text-left transition-[background-color,border-color,transform] duration-150 hover:border-foreground/25 hover:bg-muted/40 active:scale-[0.98]"
               >
                 <ModelProviderIcon
-                  provider={getModelProviderKey(model.slug, model.model_creator.slug)}
+                  provider={getModelLogoKey(model.slug, model.model_creator.slug)}
                   iconUrl={model.provider_icon_url}
                   size={24}
                 />

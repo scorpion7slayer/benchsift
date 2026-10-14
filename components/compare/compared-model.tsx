@@ -1,10 +1,11 @@
 import { Link } from "@/components/link";
 import { X } from "@/components/icons";
 import { ModelProviderIcon } from "@/components/model-provider-icon";
+import { CreatorMark } from "@/components/creator-mark";
 import { Button } from "@/components/ui/button";
 import type { LLMModel } from "@/lib/model-types";
 import { useI18n } from "@/lib/i18n";
-import { getModelProviderKey } from "@/lib/provider-map";
+import { getModelLogoKey } from "@/lib/provider-map";
 import { cn } from "@/lib/utils";
 
 /** One colour per comparison column, shared by the markers and the chart lines. */
@@ -49,7 +50,7 @@ export function ComparedModel({
     <div className={cn("flex min-w-0 items-start gap-2.5", className)}>
       <span className="relative shrink-0">
         <ModelProviderIcon
-          provider={getModelProviderKey(model.slug, model.model_creator.slug)}
+          provider={getModelLogoKey(model.slug, model.model_creator.slug)}
           iconUrl={model.provider_icon_url}
           size={32}
         />
@@ -63,7 +64,7 @@ export function ComparedModel({
         >
           {model.name}
         </Link>
-        <p className="truncate text-xs text-muted-foreground">{model.model_creator.name}</p>
+        <p className="truncate text-xs text-muted-foreground"><CreatorMark slug={model.model_creator.slug} />{model.model_creator.name}</p>
       </div>
       <Button
         type="button"

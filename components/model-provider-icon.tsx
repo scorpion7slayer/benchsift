@@ -15,6 +15,7 @@ export function ModelProviderIcon({
   const candidate = getBrandLogoCandidates(provider, iconUrl).find((item) => !failed.includes(item.src));
   const src = candidate?.src;
   const initials = provider
+    .replace(/^family:/, "")
     .split(/[-_\s]+/)
     .filter(Boolean)
     .slice(0, 2)

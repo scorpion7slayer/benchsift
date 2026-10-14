@@ -1,6 +1,6 @@
 import { aaLogoAssets } from "./aa-logo-assets";
 import { providerLogoAssets } from "./provider-logo-assets";
-import { supplementalLogoAssets } from "./supplemental-logo-assets";
+import { modelFamilyLogoAssets, supplementalLogoAssets } from "./supplemental-logo-assets";
 import { getCanonicalCreatorSlug, getProviderKey } from "./provider-map";
 
 const aliases: Record<string, string> = {
@@ -54,6 +54,14 @@ for (const [provider, asset] of Object.entries(aaLogoAssets)) {
 
 export function getBrandLogo(provider: string) {
   const key = provider.toLowerCase().trim();
+  if (key.startsWith("family:")) {
+    const family = modelFamilyLogoAssets[key.slice("family:".length)];
+    return {
+      src: family ? `/logos/${family.file}` : null,
+      color: undefined,
+      monochrome: family?.monochrome ?? false,
+    };
+  }
   const canonical = aliases[key] ?? getCanonicalCreatorSlug(key);
   const aa = aaLogoAssets[canonical] ?? aaLogoAssets[key] ?? aaByProvider.get(canonical);
   if (aa)

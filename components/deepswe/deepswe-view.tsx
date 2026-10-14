@@ -4,6 +4,7 @@ import { SearchField } from "@/components/search-field";
 import { Link } from "@/components/link";
 import { BenchmarkDisclosure as Disclosure, BenchmarkHeader, ScoreBar, StatTiles } from "@/components/benchmark-page";
 import { ModelProviderIcon } from "@/components/model-provider-icon";
+import { CreatorMark } from "@/components/creator-mark";
 import { SegmentedControl } from "@/components/segmented-control";
 import { SortButton } from "@/components/sort-button";
 import { TradeoffChart, type ChartScale, type ChartSeries } from "@/components/tradeoff-chart";
@@ -21,7 +22,7 @@ import {
 import { formatDate, formatDuration, formatMoney, formatMoneyCompact, formatNumber, formatPercent, formatTokens } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { providerColor, shadeIndex } from "@/lib/provider-colors";
-import { getModelProviderKey, resolveCreatorFromModelSlug } from "@/lib/provider-map";
+import { getModelLogoKey, resolveCreatorFromModelSlug } from "@/lib/provider-map";
 import { cn } from "@/lib/utils";
 import { PageCat } from "@/components/pixel-art/page-cats";
 
@@ -246,7 +247,7 @@ export function DeepSweView({ data }: { data: DeepSweData & { catalog: Record<st
               <li key={row.config} className="rounded-xl border bg-card p-4">
                 <div className="flex items-start gap-3">
                   <span className="w-7 shrink-0 pt-1 text-xs font-semibold tabular-nums text-muted-foreground">#{ranks.get(row)}</span>
-                  <ModelProviderIcon provider={getModelProviderKey(info(row)?.slug ?? row.model, creatorOf(row))} iconUrl={info(row)?.iconUrl} size={28} />
+                  <ModelProviderIcon provider={getModelLogoKey(info(row)?.slug ?? row.model, creatorOf(row))} iconUrl={info(row)?.iconUrl} size={28} />
                   <div className="min-w-0 flex-1">
                     <ModelName row={row} info={info(row)} name={nameOf(row)} />
                     <p className="mt-0.5 text-xs text-muted-foreground">{row.harness ?? "—"}</p>
@@ -297,10 +298,10 @@ export function DeepSweView({ data }: { data: DeepSweData & { catalog: Record<st
                     </td>
                     <td className="px-2 py-3">
                       <div className="flex min-w-0 items-center gap-3">
-                        <ModelProviderIcon provider={getModelProviderKey(info(row)?.slug ?? row.model, creatorOf(row))} iconUrl={info(row)?.iconUrl} size={28} />
+                        <ModelProviderIcon provider={getModelLogoKey(info(row)?.slug ?? row.model, creatorOf(row))} iconUrl={info(row)?.iconUrl} size={28} />
                         <div className="min-w-0">
                           <ModelName row={row} info={info(row)} name={nameOf(row)} />
-                          <p className="truncate text-xs text-muted-foreground">{info(row)?.creatorName ?? row.harness ?? row.model}</p>
+                          <p className="truncate text-xs text-muted-foreground">{info(row)?.creatorName && <CreatorMark slug={creatorOf(row)} />}{info(row)?.creatorName ?? row.harness ?? row.model}</p>
                         </div>
                       </div>
                     </td>

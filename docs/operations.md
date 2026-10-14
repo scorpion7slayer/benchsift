@@ -110,6 +110,17 @@ the values AA displays. A model without a cache hit rate or with zero prices has
 no cost, as on AA; a missing input leaves the figure null. Rows join the catalogue by AA slug (or alias); an
 unlisted slug keeps the source name and has no link.
 
+AA-3D reads the same `initialModels` array from Artificial Analysis's
+`/evaluations/aa-3d` RSC response, keeping models with a positive `aa3dElo`, and
+joins the 95% interval from the leaderboard element's `models` prop by AA id;
+an interval published for a different Elo is dropped. The reference model AA
+fixes at 1,000 has a zero-width interval and is shown as the reference. Cost
+and output tokens per scene reuse the FrontierCode formulas
+(`lib/aa-eval-cost.ts`) over the 55 tasks, which reproduces the live AA page;
+the launch article's figures for "Default Fallback" Claude configurations also
+price fallback-served turns and are not reproduced. The median turn count comes
+from `aa3dBreakdown.turns.p50`. Rows join the catalogue as FrontierCode's do.
+
 The Decision Index reads the `contestants` array of Artificial Analysis's
 `/evaluations/artificial-analysis-decision-index` RSC response: the published
 index, its five component scores (0–100), cost and time per task, and whether
@@ -120,7 +131,7 @@ against catalogue slugs and OpenRouter model ids, and an ambiguous loose match
 stays unlinked. Model pages stream the matched result after the first render,
 keeping a model's best host when AA measured several.
 
-All four benchmark sources have a six-hour process cache, shared in-flight
+All five benchmark sources have a six-hour process cache, shared in-flight
 requests, and a 30-second retry cooldown after failures. An unavailable source
 is not cached as a successful empty response for six hours. These caches are not stored in Redis.
 

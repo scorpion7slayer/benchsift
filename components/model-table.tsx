@@ -5,6 +5,7 @@ import { Check, Plus } from "@/components/icons";
 import { SortButton } from "@/components/sort-button";
 import { Link } from "@/components/link";
 import { ModelProviderIcon } from "@/components/model-provider-icon";
+import { CreatorMark } from "@/components/creator-mark";
 import { ModelAvailabilityBadge } from "@/components/model-availability";
 import { StealthBadge } from "@/components/stealth-history";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import { useCompare } from "@/lib/compare-store";
 import { useI18n } from "@/lib/i18n";
 import type { SortDirection, SortKey } from "@/lib/model-grid-logic";
 import { isOpenWeightsModel } from "@/lib/model-metrics";
-import { getModelProviderKey } from "@/lib/provider-map";
+import { getModelLogoKey } from "@/lib/provider-map";
 import { cn } from "@/lib/utils";
 
 interface Column {
@@ -88,12 +89,13 @@ export function ModelTable({
               <tr key={model.id} data-selected={selected || undefined} className="border-b transition-colors duration-150 last:border-b-0 hover:bg-muted/40 data-[selected=true]:bg-primary/[0.04]">
                 <td className="px-4 py-2.5">
                   <div className="flex min-w-0 items-center gap-3">
-                    <ModelProviderIcon provider={getModelProviderKey(model.slug, model.model_creator.slug)} size={28} iconUrl={model.provider_icon_url} />
+                    <ModelProviderIcon provider={getModelLogoKey(model.slug, model.model_creator.slug)} size={28} iconUrl={model.provider_icon_url} />
                     <div className="min-w-0">
                       <Link href={`/models/${model.slug}`} className="block truncate rounded-sm font-medium underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" title={model.name}>
                         {model.name}
                       </Link>
                       <p className="flex min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground">
+                        <CreatorMark slug={model.model_creator.slug} className="mr-0 mt-0" />
                         <span className="truncate">{model.model_creator.slug === "stealth" ? t.stealth.unknownCreator : model.model_creator.name}</span>
                         {model.reasoning_model && <span className="shrink-0">· {t.detail.reasoning}</span>}
                         {isOpenWeightsModel(model) && <span className="shrink-0">· {t.card.openWeightsBadge}</span>}

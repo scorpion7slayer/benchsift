@@ -219,6 +219,47 @@ export function getModelProviderKey(modelSlug: string, creatorSlug: string): str
     : getProviderKey(creator);
 }
 
+interface ModelFamilyRule {
+  family: string;
+  modelSlugPattern: RegExp;
+}
+
+const QWEN_FAMILY: ModelFamilyRule = { family: "qwen", modelSlugPattern: /(?:^|_)(?:qwen|qwq|qvq)/ };
+const NOVA_FAMILY: ModelFamilyRule = { family: "nova", modelSlugPattern: /^nova/ };
+
+/** Model families with their own mark, keyed by the creator that owns the brand. */
+const MODEL_FAMILIES_BY_CREATOR: Readonly<Record<string, readonly ModelFamilyRule[]>> = {
+  alibaba: [QWEN_FAMILY],
+  qwen: [QWEN_FAMILY],
+  google: [
+    { family: "gemini", modelSlugPattern: /(?:^|_)gemini/ },
+    { family: "gemma", modelSlugPattern: /gemma/ },
+    { family: "palm", modelSlugPattern: /^palm/ },
+  ],
+  anthropic: [{ family: "claude", modelSlugPattern: /^claude/ }],
+  xai: [{ family: "grok", modelSlugPattern: /^grok/ }],
+  tencent: [{ family: "hunyuan", modelSlugPattern: /(?:^|_)hunyuan|^hy\d/ }],
+  baidu: [{ family: "ernie", modelSlugPattern: /^ernie/ }],
+  amazon: [NOVA_FAMILY],
+  aws: [NOVA_FAMILY],
+  xiaomi: [{ family: "mimo", modelSlugPattern: /^mimo/ }],
+  minimax: [{ family: "hailuo", modelSlugPattern: /^hailuo/ }],
+  openai: [{ family: "sora", modelSlugPattern: /^sora/ }],
+};
+
+/**
+ * Returns the logo key for a model: its family mark (Qwen, Gemini, Claude...)
+ * when its creator owns that brand, otherwise the creator's logo key.
+ * Unlike getModelProviderKey, this is presentation only, never an identity.
+ */
+export function getModelLogoKey(modelSlug: string, creatorSlug: string): string {
+  const slug = modelSlug.toLowerCase();
+  const rule = MODEL_FAMILIES_BY_CREATOR[getCanonicalCreatorSlug(creatorSlug)]?.find((item) =>
+    item.modelSlugPattern.test(slug),
+  );
+  return rule ? `family:${rule.family}` : getModelProviderKey(modelSlug, creatorSlug);
+}
+
 /**
  * Display name overrides for model creators when AA's API returns a brand
  * name that doesn't match the actual company (e.g. "Kimi" is the product,

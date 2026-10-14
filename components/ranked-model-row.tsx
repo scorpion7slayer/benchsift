@@ -3,13 +3,14 @@ import { Brain, Check, Plus, Unlock } from "@/components/icons";
 import { AccessRestrictionBadge } from "@/components/model-availability";
 import { Link } from "@/components/link";
 import { ModelProviderIcon } from "@/components/model-provider-icon";
+import { CreatorMark } from "@/components/creator-mark";
 import { Button } from "@/components/ui/button";
 import { useCompare } from "@/lib/compare-store";
 import { formatMoney, formatNumber, formatPercent, formatSpeed, formatTokens } from "@/lib/format";
 import type { HomeCatalogModel } from "@/lib/home-catalog";
 import { useI18n, type Lang, type Translations } from "@/lib/i18n";
 import { normalRankingValue, type NormalRankingKey } from "@/lib/model-grid-logic";
-import { getModelProviderKey } from "@/lib/provider-map";
+import { getModelLogoKey } from "@/lib/provider-map";
 import { cn } from "@/lib/utils";
 
 /** Shared by the rows and their header so every column lines up. */
@@ -124,7 +125,7 @@ export function RankedModelRow({
       </span>
 
       <span className="flex size-10 items-center justify-center sm:size-9">
-        <ModelProviderIcon provider={getModelProviderKey(model.slug, model.model_creator.slug)} size={32} iconUrl={model.provider_icon_url} />
+        <ModelProviderIcon provider={getModelLogoKey(model.slug, model.model_creator.slug)} size={32} iconUrl={model.provider_icon_url} />
       </span>
 
       <Link
@@ -133,6 +134,7 @@ export function RankedModelRow({
       >
         <span className="block break-words text-sm font-medium sm:truncate sm:text-[15px]">{model.name}</span>
         <span className="block text-xs text-muted-foreground sm:truncate">
+          <CreatorMark slug={model.model_creator.slug} />
           {creator}
           {/* Phones hide the extra columns, so their values join the creator line. */}
           {secondaryMetrics(metric).map((key) => {

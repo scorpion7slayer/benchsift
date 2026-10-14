@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { useCompare } from "@/lib/compare-store";
 import { ModelProviderIcon } from "@/components/model-provider-icon";
+import { CreatorMark } from "@/components/creator-mark";
 import { ModelAvailabilityBadge } from "@/components/model-availability";
 import { StealthBadge } from "./stealth-history";
-import { getModelProviderKey } from "@/lib/provider-map";
+import { getModelLogoKey } from "@/lib/provider-map";
 import { formatCatalogPrice, formatNumber, formatSeconds, formatSpeed, formatTokens } from "@/lib/format";
 import { isOpenWeightsModel, mediaBenchmarkValues, textMetricValue } from "@/lib/model-metrics";
 import type { LLMModel } from "@/lib/model-types";
@@ -50,7 +51,7 @@ export function ModelCard({ model, sort }: { model: LLMModel; sort?: SortKey }) 
       className="catalog-card group relative flex h-full flex-col rounded-xl border bg-card text-card-foreground data-[selected=true]:border-primary"
     >
       <div className="flex items-start gap-3 px-4 pt-4">
-        <ModelProviderIcon provider={getModelProviderKey(model.slug, model.model_creator.slug)} size={44} iconUrl={model.provider_icon_url} />
+        <ModelProviderIcon provider={getModelLogoKey(model.slug, model.model_creator.slug)} size={44} iconUrl={model.provider_icon_url} />
         <div className="min-w-0 flex-1 py-0.5">
           <h3 className="text-[15px] font-semibold leading-snug [overflow-wrap:anywhere]">
             {/* The stretched link makes the whole card clickable without nesting buttons in it. */}
@@ -61,7 +62,7 @@ export function ModelCard({ model, sort }: { model: LLMModel; sort?: SortKey }) 
               {model.name}
             </Link>
           </h3>
-          <p className="mt-1 text-xs text-muted-foreground">{creator}</p>
+          <p className="mt-1 text-xs text-muted-foreground"><CreatorMark slug={model.model_creator.slug} />{creator}</p>
         </div>
         <Button
           type="button"
