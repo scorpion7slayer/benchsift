@@ -80,6 +80,11 @@ export interface Translations {
       showAll: string;
       hideAll: string;
       none: string;
+      search: string;
+      noMatch: string;
+      choose: string;
+      reset: string;
+      hide: (name: string) => string;
     };
   };
   analytics: {
@@ -817,10 +822,15 @@ const T: Record<Lang, Translations> = {
       picker: {
         title: "Modèles affichés",
         count: (shown, total) => `${shown} sur ${total}`,
-        hint: "Sélectionnez un modèle pour l'afficher ou le masquer ; le survoler le met en avant sur le graphique. Les axes s'ajustent aux modèles affichés.",
+        hint: "Les meilleurs modèles sont affichés par défaut. Survolez un modèle pour le mettre en avant ; les axes s'ajustent aux modèles affichés.",
         showAll: "Tout afficher",
         hideAll: "Tout masquer",
-        none: "Aucun modèle affiché. Choisissez-en dans la liste ci-dessous.",
+        none: "Aucun modèle affiché. Utilisez « Choisir les modèles » ci-dessous.",
+        search: "Rechercher un modèle",
+        noMatch: "Aucun modèle ne correspond.",
+        choose: "Choisir les modèles",
+        reset: "Par défaut",
+        hide: (name) => `Masquer ${name}`,
       },
     },
     analytics: {
@@ -1692,10 +1702,15 @@ const T: Record<Lang, Translations> = {
       picker: {
         title: "Models shown",
         count: (shown, total) => `${shown} of ${total}`,
-        hint: "Select a model to show or hide it; hovering it brings it forward on the chart. The axes fit the models shown.",
+        hint: "The best models are shown by default. Hover a model to bring it forward; the axes fit the models shown.",
         showAll: "Show all",
         hideAll: "Hide all",
-        none: "No model shown. Pick some from the list below.",
+        none: "No model shown. Use “Choose models” below.",
+        search: "Search a model",
+        noMatch: "No model matches.",
+        choose: "Choose models",
+        reset: "Default",
+        hide: (name) => `Hide ${name}`,
       },
     },
     analytics: {
