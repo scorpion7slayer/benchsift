@@ -10,8 +10,9 @@ import {
 /*
  * Artificial Analysis Cyber Index, read from the RSC payload of the AA home
  * page. Its "cyber-index" section holds the index (successes, safety blocks,
- * trusted access) and the score of each benchmark; "cyber-index-cost" holds
- * the cost per task of the index and of each benchmark.
+ * trusted access) and the score of each benchmark. Cost-per-task panels sat in
+ * a separate "cyber-index-cost" section until AA moved the index cost into a
+ * "Cyber Index vs. Cost" tab of "cyber-index"; both layouts are read.
  */
 
 /** One leaderboard configuration with the AA identity it is matched by. */
@@ -66,6 +67,10 @@ function sectionPanels(records: ReadonlyMap<string, unknown>, param: string) {
   });
 }
 
+function isCostPanel(props: Props): boolean {
+  return rows(props.models).some((row) => "costPerTask" in row);
+}
+
 /** Per-model values of one cost panel, keyed by AA id. */
 function costPanelValues(props: Props) {
   return new Map(
@@ -83,7 +88,7 @@ function costPanelValues(props: Props) {
 export function parseAACyberIndex(payload: string): AACyberIndexEntry[] {
   const records = parseFlightRecords(payload);
   const panels = sectionPanels(records, INDEX_SECTION);
-  const index = panels.find(({ props }) => props.evalSlug === INDEX_EVAL_SLUG)?.props;
+  const index = panels.find(({ props }) => props.evalSlug === INDEX_EVAL_SLUG && !isCostPanel(props))?.props;
   if (!index) return [];
   const breakdownPanel = panels.find(({ props }) => rows(props.models).some((row) => isProps(row.evalScores)))?.props;
   const breakdown = new Map(
@@ -97,9 +102,10 @@ export function parseAACyberIndex(payload: string): AACyberIndexEntry[] {
   // The cost tabs name each benchmark ("CWE-Bench-AA vs. Cost per Task") in AA's order.
   const labels = new Map<string, string>();
   const costs = new Map<string, ReturnType<typeof costPanelValues>>();
-  for (const { label, props } of sectionPanels(records, COST_SECTION)) {
+  const costPanels = [...panels.filter(({ props }) => isCostPanel(props)), ...sectionPanels(records, COST_SECTION)];
+  for (const { label, props } of costPanels) {
     const id = text(props.evalSlug);
-    if (!id) continue;
+    if (!id || costs.has(id)) continue;
     costs.set(id, costPanelValues(props));
     if (id !== INDEX_EVAL_SLUG) labels.set(id, label?.replace(/\s+vs\.?\s+cost per task$/i, "").trim() || id);
   }
