@@ -19,7 +19,9 @@ export const Route = createFileRoute("/models/$slug")({
   loader: async ({ params }) => {
     const detail = await fetchModelDetail({ data: params.slug });
     if (!detail) throw notFound();
-    if (detail.model.alias_slugs?.includes(params.slug)) throw redirect({
+    // Aliases and other spellings of the slug move to the model's own address.
+    const otherCase = params.slug !== detail.model.slug && params.slug.toLowerCase() === detail.model.slug.toLowerCase();
+    if (otherCase || detail.model.alias_slugs?.includes(params.slug)) throw redirect({
       to: "/models/$slug", params: { slug: detail.model.slug }, statusCode: 301,
     });
     // Capabilities scraping starts in parallel — the promise is streamed to

@@ -48,7 +48,12 @@ export function mergeIdentityMetadata(primary: LLMModel, extra: LLMModel): LLMMo
 
 export function resolveModelSlug(models: LLMModel[], slug: string): string {
   if (models.some((model) => model.slug === slug)) return slug;
-  return models.find((model) => model.alias_slugs?.includes(slug))?.slug ?? slug;
+  const alias = models.find((model) => model.alias_slugs?.includes(slug))?.slug;
+  if (alias) return alias;
+  // A URL typed in another case reaches the model when only one slug matches.
+  const lower = slug.toLowerCase();
+  const matches = models.filter((model) => model.slug.toLowerCase() === lower);
+  return matches.length === 1 ? matches[0].slug : slug;
 }
 
 function sourceId(value: string): string {

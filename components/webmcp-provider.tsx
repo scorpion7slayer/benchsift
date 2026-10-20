@@ -75,13 +75,13 @@ export function WebMcpProvider() {
       {
         name: "open_benchsift_page",
         description:
-          "Navigate to a primary BenchSift page for model discovery, comparison, coding benchmarks, AA-3D, the Decision Index, or the Cyber Index.",
+          "Navigate to a primary BenchSift page for model discovery, comparison, coding benchmarks, AA-3D, the Decision Index, the Cyber Index, or AA-Robotics.",
         inputSchema: {
           type: "object",
           properties: {
             page: {
               type: "string",
-              enum: ["home", "compare", "coding_agents", "deepswe", "frontiercode", "aa_3d", "decision_index", "cyber"],
+              enum: ["home", "compare", "coding_agents", "deepswe", "frontiercode", "aa_3d", "decision_index", "cyber", "robotics"],
             },
           },
           required: ["page"],
@@ -97,6 +97,7 @@ export function WebMcpProvider() {
             aa_3d: "/benchmarks/aa-3d",
             decision_index: "/benchmarks/decision-index",
             cyber: "/benchmarks/cyber",
+            robotics: "/benchmarks/robotics",
           };
           const path = paths[typeof page === "string" ? page : ""] ?? "/";
           window.location.assign(path);

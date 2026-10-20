@@ -27,6 +27,7 @@ import { getFrontierCodeData, type FrontierCodeData } from "@/lib/frontiercode";
 import { matchFrontierCodeModels, type FrontierCodeModelInfo } from "@/lib/frontiercode-catalog";
 import { getAa3dData, type Aa3dData } from "@/lib/aa3d";
 import { getDecisionIndexData, type DecisionIndexData } from "@/lib/decision-index";
+import { getRoboticsData, type RoboticsData } from "@/lib/aa-robotics";
 import {
   decisionIndexForModel,
   matchDecisionIndexModels,
@@ -205,6 +206,15 @@ export const fetchAa3dData = createServerFn({ method: "GET" }).handler(
   async (): Promise<Aa3dData & { catalog: Record<string, FrontierCodeModelInfo> }> => {
     setResponseCache();
     const [data, models] = await Promise.all([getAa3dData(), getLLMModels()]);
+    return { ...data, catalog: matchFrontierCodeModels(models, data.rows) };
+  },
+);
+
+/** Artificial Analysis AA-Robotics results, matched to the catalogue like FrontierCode. */
+export const fetchRoboticsData = createServerFn({ method: "GET" }).handler(
+  async (): Promise<RoboticsData & { catalog: Record<string, FrontierCodeModelInfo> }> => {
+    setResponseCache();
+    const [data, models] = await Promise.all([getRoboticsData(), getLLMModels()]);
     return { ...data, catalog: matchFrontierCodeModels(models, data.rows) };
   },
 );

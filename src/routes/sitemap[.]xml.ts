@@ -76,6 +76,7 @@ export const Route = createFileRoute("/sitemap.xml")({
           live("/benchmarks/aa-3d"),
           live("/benchmarks/decision-index"),
           catalogue("/benchmarks/cyber", 0.8),
+          live("/benchmarks/robotics"),
           ...indexableModels.map((model) => catalogue(`/models/${encodeURIComponent(model.slug)}`, 0.7, "weekly")),
         ];
 

@@ -1,4 +1,5 @@
 import { createMiddleware, createStart } from "@tanstack/react-start";
+import { canonicalRedirect } from "@/lib/canonical-url";
 
 const LEGACY_HOST = "nxtaicard.nxtaigen.com";
 const CANONICAL_HOST = "benchsift.nxtaigen.com";
@@ -19,6 +20,9 @@ const canonicalHostRedirect = createMiddleware().server(({ request, next }) => {
   return Response.redirect(target, 308);
 });
 
+/** One permanent redirect from any variant of a path to its canonical form. */
+const canonicalPathRedirect = createMiddleware().server(({ request, next }) => canonicalRedirect(request) ?? next());
+
 export const startInstance = createStart(() => ({
-  requestMiddleware: [canonicalHostRedirect],
+  requestMiddleware: [canonicalHostRedirect, canonicalPathRedirect],
 }));
