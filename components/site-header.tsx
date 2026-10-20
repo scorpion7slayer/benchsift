@@ -13,6 +13,7 @@ import {
   Menu,
   MessageSquarePlus,
   PanelsTopLeft,
+  RobotArm,
   Route,
   Shield,
   Terminal,
@@ -159,6 +160,12 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
                       {t.nav.cyber}
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/benchmarks/robotics">
+                      <RobotArm />
+                      {t.nav.robotics}
+                    </Link>
+                  </DropdownMenuItem>
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -274,6 +281,7 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
           <Link href="/benchmarks/aa-3d" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Boxes className="size-5" />{t.nav.aa3d}</Link>
           <Link href="/benchmarks/decision-index" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Route className="size-5" />{t.nav.decisionIndex}</Link>
           <Link href="/benchmarks/cyber" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Shield className="size-5" />{t.nav.cyber}</Link>
+          <Link href="/benchmarks/robotics" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><RobotArm className="size-5" />{t.nav.robotics}</Link>
           <div className="my-2 border-t" />
           <Link href="/models" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><LibraryBig className="size-5" />{t.nav.allModels}</Link>
           <Link href="/about" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Info className="size-5" />{t.nav.about}</Link>

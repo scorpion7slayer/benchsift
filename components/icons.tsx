@@ -19,6 +19,21 @@ export function Shield({ size = 24, ...props }: RuneIconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M12 2L4 5.5V11C4 16 7.4 20.3 12 22C16.6 20.3 20 16 20 11V5.5L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
+/** Robot arm on a base with an open gripper, drawn to match the Rune outline style. */
+export function RobotArm({ size = 24, ...props }: RuneIconProps) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M4 22H14M9 22V19M7 19H11M9 16L6 9L14 5L18 9M18 9L21 8M18 9L20 12M9 16C10.1046 16 11 15.1046 11 14C11 12.8954 10.1046 12 9 12C7.89543 12 7 12.8954 7 14C7 15.1046 7.89543 16 9 16ZM9 16V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+/** Play triangle, drawn to match the Rune outline style. */
+export function Play({ size = 24, ...props }: RuneIconProps) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M7 4.5V19.5L19 12L7 4.5Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /></svg>;
+}
+
+/** Pause bars, drawn to match the Rune outline style. */
+export function Pause({ size = 24, ...props }: RuneIconProps) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M8 5V19M16 5V19" stroke="currentColor" strokeWidth="3" strokeLinecap="round" /></svg>;
+}
+
 /** Rune normal/arrow-right. */
 export function ArrowRight({ size = 24, ...props }: RuneIconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" {...props}><path d="M5 12H19M12 19L19 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;

@@ -21,6 +21,25 @@ Keep the normal Bun runtime mode. `--smol` was evaluated locally but did not giv
 a consistent memory benefit under the tested SSR load. Apply actual memory
 limits and verify peak usage in Dokploy before choosing a smaller container.
 
+## URL rules
+
+No Apache sits in front of the container, so an `.htaccess` file would have no
+effect. The rewrite rules live in `lib/canonical-url.ts` and run as request
+middleware in `src/start.ts`, after the legacy-host redirect. A GET or HEAD
+request for a variant of a path receives one `308` to its canonical form, with
+the query string kept. The rules:
+
+- remove duplicate slashes and the trailing slash;
+- lowercase fixed segments;
+- drop `.html` and `index.html`;
+- send `/models/page/1` to `/models` and strip leading zeros from page numbers;
+- send `/agents` and `/docs` to their only page.
+
+Model slugs keep their case, because AA publishes some with capitals
+(`QwQ-32B-Preview`). The model page redirects any other spelling of a slug to
+the real one with a `301`. Hashed assets, `/_serverFn/`, `/logos/` and
+`/fonts/` are never rewritten.
+
 ## Cache on Dokploy
 
 Keep a persistent volume mounted at `/app/.data` and set
@@ -131,7 +150,32 @@ against catalogue slugs and OpenRouter model ids, and an ambiguous loose match
 stays unlinked. Model pages stream the matched result after the first render,
 keeping a model's best host when AA measured several.
 
-All five benchmark sources have a six-hour process cache, shared in-flight
+AA-Robotics has no RSC or API data: the `/articles/aa-robotics` charts import
+it from module literals in the article's hashed page chunk. BenchSift reads the
+chunk path and version from the article's RSC response, fetches that chunk from
+the AA origin, and parses the models, tasks, per-attempt records, per-task
+scores, run timelines and human baseline. Score is the mean per-task score (an
+unpublished task counts as zero, as on AA); cost and time per task are the
+means over attempts, and the time to first action averages the timelines that
+publish it. Tests pin the parser to the minifier's syntax (`!0`, hex integers,
+`1/60`). If AA restructures the bundle the page shows its empty state rather
+than partial data. Rows join the catalogue like FrontierCode.
+
+The page also embeds the article's videos, streamed from AA's CDN: the task
+loops and the run explorer's `videoBaseUrl` and `available` list come from the
+RSC payload, and the captioned mistake clips from the chunk under
+`clipBaseUrl`. Only `.mp4` files under `https://artificialanalysiscdn.com/` for
+a known task and model are kept. Run videos tile the left, right and overhead
+cameras in a 2×2 grid at 8× real time; the player draws each camera on its own
+canvas, and the selection is kept in the URL (`task`, `model`, `camera`,
+`issue`, `clips`). Its timeline uses each run's arm-activity histogram,
+`activitySegments` (stretches where the arm moves, which also drive "movement
+only") and its first-action, passing-state and end markers, all from the chunk.
+AA publishes task texts, clip captions and end reasons in English only;
+`lib/aa-robotics-fr.ts` translates them, keyed by task id or clip path, and
+anything new keeps its English text until it is added there.
+
+All six benchmark sources have a six-hour process cache, shared in-flight
 requests, and a 30-second retry cooldown after failures. An unavailable source
 is not cached as a successful empty response for six hours. These caches are not stored in Redis.
 

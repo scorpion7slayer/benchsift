@@ -133,6 +133,7 @@ export interface Translations {
     aa3d: string;
     decisionIndex: string;
     cyber: string;
+    robotics: string;
     models: string;
     about: string;
     otherBenchmarks: string;
@@ -683,6 +684,83 @@ export interface Translations {
       costs: string;
     };
   };
+  robotics: {
+    title: string;
+    description: string;
+    preview: (version: string) => string;
+    empty: string;
+    sourceNote: string;
+    viewOnSource: string;
+    scoreHint: string;
+    chartTitle: string;
+    chartHint: string;
+    axes: { cost: string; time: string; firstAction: string };
+    stats: { models: string; best: string; cheapest: string; human: string };
+    humanDetail: (cost: string) => string;
+    headers: {
+      model: string;
+      harness: string;
+      score: string;
+      passes: string;
+      cost: string;
+      time: string;
+      firstAction: string;
+    };
+    passes: (passes: number, attempts: number) => string;
+    tasksTitle: string;
+    tasksHint: string;
+    task: string;
+    noAttempt: string;
+    methodDescription: string;
+    method: {
+      setup: string;
+      scoring: string;
+      harness: string;
+      zeroShot: string;
+      human: string;
+    };
+    videos: {
+      tasksTitle: string;
+      tasksHint: string;
+      goal: string;
+      success: string;
+      watchRuns: (task: string) => string;
+      demoLabel: (task: string) => string;
+      runsTitle: string;
+      runsHint: string;
+      task: string;
+      model: string;
+      camera: string;
+      cameras: { left: string; right: string; overhead: string };
+      play: string;
+      pause: string;
+      position: string;
+      showCamera: (camera: string) => string;
+      speed: string;
+      movementOnly: string;
+      movementOnlyHint: string;
+      activity: string;
+      moving: string;
+      firstAction: string;
+      passing: string;
+      end: (reason: string | null) => string;
+      realTime: string;
+      runLabel: (model: string, task: string, camera: string) => string;
+      noRun: string;
+      runScore: (score: string) => string;
+      clipsTitle: string;
+      clipsHint: string;
+      issue: string;
+      allIssues: string;
+      allModels: string;
+      issues: Record<string, string>;
+      at: (time: string) => string;
+      clipLabel: (model: string, caption: string) => string;
+      count: (shown: number, total: number) => string;
+      showMore: string;
+      noClips: string;
+    };
+  };
   decisionIndex: {
     title: string;
     description: string;
@@ -921,6 +999,7 @@ const T: Record<Lang, Translations> = {
       aa3d: "AA-3D",
       decisionIndex: "Decision Index",
       cyber: "Cyber Index",
+      robotics: "AA-Robotics",
       models: "Modèles",
       allModels: "Tous les modèles",
       about: "À propos",
@@ -1549,6 +1628,87 @@ const T: Record<Lang, Translations> = {
         costs: "Coût et tokens par scène sont calculés avec les données et les règles d'Artificial Analysis, sur les 55 tâches : les lectures en cache au prix du cache, le reste de l'entrée au prix d'écriture en cache, la sortie au prix de sortie. Un modèle sans taux de cache ou sans prix n'a pas de coût.",
       },
     },
+    robotics: {
+      title: "AA-Robotics",
+      description: "Aperçu de recherche d'Artificial Analysis : des modèles de langage, dans un harnais d'agent de code, pilotent directement un bras robotisé à 6 axes pour réaliser des tâches simples sur une table.",
+      preview: (version) => `Aperçu de recherche ${version}`,
+      empty: "Données AA-Robotics indisponibles pour l'instant.",
+      sourceNote: "Données via l'article AA-Robotics d'Artificial Analysis. Score, coût et durée sont les moyennes publiées sur une tentative par tâche.",
+      viewOnSource: "Lire l'article sur Artificial Analysis",
+      scoreHint: "Moyenne des scores par tâche, sur 100 : une tâche réussie vaut 100, une tâche incomplète rapporte des points selon les progrès accomplis.",
+      chartTitle: "Score selon le coût ou la durée",
+      chartHint: "Une tentative par tâche et par modèle. L'axe horizontal est inversé : en haut à droite, un modèle obtient plus pour moins cher ou plus vite.",
+      axes: { cost: "Coût moyen par tâche", time: "Durée moyenne par tâche", firstAction: "Temps avant la première action" },
+      stats: { models: "Modèles testés", best: "Meilleur score", cheapest: "Moins cher par tâche", human: "Humain, par tâche" },
+      humanDetail: (cost) => `${cost} au salaire horaire moyen américain`,
+      headers: {
+        model: "Modèle",
+        harness: "Harnais",
+        score: "Score",
+        passes: "Réussies",
+        cost: "Coût / tâche",
+        time: "Durée / tâche",
+        firstAction: "Avant 1re action",
+      },
+      passes: (passes, attempts) => `${passes} sur ${attempts}`,
+      tasksTitle: "Résultats par tâche",
+      tasksHint: "Score de chaque modèle sur chaque tâche, sur 100.",
+      task: "Tâche",
+      noAttempt: "Aucune tentative publiée",
+      methodDescription: "Chaque modèle reçoit le contrôle d'un bras robotisé à 6 axes (5 articulations et une pince) via une API HTTP simple, voit la scène par quatre caméras et peut écrire et exécuter du code pour planifier ses mouvements.",
+      method: {
+        setup: "Des tâches de table inspirées d'activités quotidiennes : précision de saisie, raisonnement spatial et adaptation à l'imprévu.",
+        scoring: "Un juge humain note l'état final selon les critères de la tâche : 100 si elle est réussie, des points partiels sinon.",
+        harness: "Chaque modèle tourne dans le harnais d'agent de code de son créateur (Codex, Claude Code, Antigravity…), au réglage d'effort élevé ; la colonne Harnais l'indique.",
+        zeroShot: "Une seule tentative par tâche, sans exemple : le modèle s'arrête quand il juge la tâche accomplie ou abandonne.",
+        human: "La référence humaine est la durée de la tâche faite à la main, valorisée au salaire horaire moyen américain cité par Artificial Analysis.",
+      },
+      videos: {
+        tasksTitle: "Les tâches en vidéo",
+        tasksHint: "Court extrait de chaque tâche publié par Artificial Analysis, avec sa consigne et son critère de réussite.",
+        goal: "Objectif",
+        success: "Critère de réussite",
+        watchRuns: (task) => `Voir les essais : ${task}`,
+        demoLabel: (task) => `Extrait vidéo de la tâche ${task}`,
+        runsTitle: "Explorer les essais",
+        runsHint: "Vidéo complète de chaque essai. L'histogramme montre l'activité du bras ; la bande sombre, les moments où il bouge. Cliquez dessus pour vous y rendre.",
+        task: "Tâche",
+        model: "Modèle",
+        camera: "Caméra",
+        cameras: { left: "Gauche", right: "Droite", overhead: "Dessus" },
+        play: "Lire",
+        pause: "Pause",
+        position: "Position dans l'essai",
+        showCamera: (camera) => `Afficher la caméra ${camera}`,
+        speed: "Vitesse",
+        movementOnly: "Mouvements seulement",
+        movementOnlyHint: "Saute les passages où le bras ne bouge pas",
+        activity: "Activité du bras au fil de l'essai",
+        moving: "Bras en mouvement",
+        firstAction: "Première action",
+        passing: "Premier état réussi",
+        end: (reason) => (reason ? `Fin : ${reason}` : "Fin de l'essai"),
+        realTime: "Temps réel de l'essai",
+        runLabel: (model, task, camera) => `Essai de ${model} sur ${task}, caméra ${camera}`,
+        noRun: "Aucune vidéo publiée pour cet essai.",
+        runScore: (score) => `Score : ${score} / 100`,
+        clipsTitle: "Les erreurs en vidéo",
+        clipsHint: "Extraits choisis par Artificial Analysis pour illustrer les erreurs des modèles, légendés en anglais à l'image.",
+        issue: "Type d'erreur",
+        allIssues: "Toutes les erreurs",
+        allModels: "Tous les modèles",
+        issues: {
+          "false-success": "Mauvais jugement de la réussite ou du moment d'arrêter",
+          "physical-reasoning": "Raisonnement physique défaillant",
+          "grasp-placement": "Saisies manquées, mauvais placements et chutes",
+        },
+        at: (time) => `à ${time} dans l'essai`,
+        clipLabel: (model, caption) => `${model} : ${caption}`,
+        count: (shown, total) => `${shown} sur ${total} extraits`,
+        showMore: "Afficher plus",
+        noClips: "Aucun extrait pour ces filtres.",
+      },
+    },
     decisionIndex: {
       title: "Decision Index",
       description: "Classement Artificial Analysis des modèles décisionnels, qui choisissent parmi des options et en donnent les probabilités, face à des LLM qui répondent en JSON : classification, appel d'outils, connaissances, hallucinations et raisonnement.",
@@ -1801,6 +1961,7 @@ const T: Record<Lang, Translations> = {
       aa3d: "AA-3D",
       decisionIndex: "Decision Index",
       cyber: "Cyber Index",
+      robotics: "AA-Robotics",
       models: "Models",
       allModels: "All models",
       about: "About",
@@ -2427,6 +2588,87 @@ const T: Record<Lang, Translations> = {
         voting: "A recruited panel votes blind between two scenes built from the same brief.",
         elo: "Elo and its 95% confidence interval come from those votes; GPT-6 Luna (Max) is fixed at 1,000.",
         costs: "Cost and tokens per scene use Artificial Analysis' data and rules over the 55 tasks: cache reads at the cache price, other input at the cache-write price, output at the output price. A model without a cache rate or a price has no cost.",
+      },
+    },
+    robotics: {
+      title: "AA-Robotics",
+      description: "Artificial Analysis research preview: language models in a coding-agent harness directly control a 6-axis robot arm to complete simple tabletop tasks.",
+      preview: (version) => `Research preview ${version}`,
+      empty: "AA-Robotics data unavailable for now.",
+      sourceNote: "Data via Artificial Analysis' AA-Robotics article. Score, cost and time are the published averages over one attempt per task.",
+      viewOnSource: "Read the article on Artificial Analysis",
+      scoreHint: "Mean of the per-task scores out of 100: a completed task scores 100, and an incomplete one earns points for the progress made.",
+      chartTitle: "Score by cost or time",
+      chartHint: "One attempt per task and model. The horizontal axis is reversed: towards the top right, a model scores more for less money or less time.",
+      axes: { cost: "Average cost per task", time: "Average time per task", firstAction: "Time to first action" },
+      stats: { models: "Models tested", best: "Best score", cheapest: "Cheapest per task", human: "Human, per task" },
+      humanDetail: (cost) => `${cost} at the average US hourly wage`,
+      headers: {
+        model: "Model",
+        harness: "Harness",
+        score: "Score",
+        passes: "Passed",
+        cost: "Cost / task",
+        time: "Time / task",
+        firstAction: "To first action",
+      },
+      passes: (passes, attempts) => `${passes} of ${attempts}`,
+      tasksTitle: "Results per task",
+      tasksHint: "Each model's score on each task, out of 100.",
+      task: "Task",
+      noAttempt: "No published attempt",
+      methodDescription: "Each model controls a 6-axis robot arm (5 joints and a gripper) through a simple HTTP API, sees the scene through four cameras, and can write and run code to plan its movements.",
+      method: {
+        setup: "Tabletop tasks modelled on everyday activities: grasping precision, spatial reasoning and adapting to the unexpected.",
+        scoring: "A human judge grades the end state against the task's criteria: 100 for a pass, partial points otherwise.",
+        harness: "Each model runs in its creator's coding-agent harness (Codex, Claude Code, Antigravity…) at the high effort setting; the Harness column names it.",
+        zeroShot: "One zero-shot attempt per task: the model stops when it judges the task complete or gives up.",
+        human: "The human baseline is the by-hand task time, priced at the average US hourly wage Artificial Analysis cites.",
+      },
+      videos: {
+        tasksTitle: "The tasks on video",
+        tasksHint: "A short clip of each task published by Artificial Analysis, with its instructions and pass criteria.",
+        goal: "Goal",
+        success: "Pass criteria",
+        watchRuns: (task) => `Watch the runs: ${task}`,
+        demoLabel: (task) => `Video clip of the ${task} task`,
+        runsTitle: "Explore the runs",
+        runsHint: "The full video of every run. The histogram shows the arm's activity; the dark band, the moments it moves. Click it to jump there.",
+        task: "Task",
+        model: "Model",
+        camera: "Camera",
+        cameras: { left: "Left", right: "Right", overhead: "Overhead" },
+        play: "Play",
+        pause: "Pause",
+        position: "Position in the run",
+        showCamera: (camera) => `Show the ${camera} camera`,
+        speed: "Speed",
+        movementOnly: "Movement only",
+        movementOnlyHint: "Skips the stretches where the arm is not moving",
+        activity: "Arm activity through the run",
+        moving: "Arm moving",
+        firstAction: "First action",
+        passing: "First passing state",
+        end: (reason) => (reason ? `End: ${reason}` : "End of the run"),
+        realTime: "Real run time",
+        runLabel: (model, task, camera) => `${model} run on ${task}, ${camera} camera`,
+        noRun: "No published video for this run.",
+        runScore: (score) => `Score: ${score} / 100`,
+        clipsTitle: "Mistakes on video",
+        clipsHint: "Clips Artificial Analysis picked to show the models' mistakes, captioned in English on screen.",
+        issue: "Mistake type",
+        allIssues: "All mistakes",
+        allModels: "All models",
+        issues: {
+          "false-success": "Misjudging success or failure, and when to stop",
+          "physical-reasoning": "Poor physical reasoning",
+          "grasp-placement": "Missed grasps, misplacements and drops",
+        },
+        at: (time) => `at ${time} into the run`,
+        clipLabel: (model, caption) => `${model}: ${caption}`,
+        count: (shown, total) => `${shown} of ${total} clips`,
+        showMore: "Show more",
+        noClips: "No clips for these filters.",
       },
     },
     decisionIndex: {

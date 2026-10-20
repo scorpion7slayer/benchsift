@@ -22,6 +22,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ModelsIndexRouteImport } from './routes/models/index'
 import { Route as ModelsSlugRouteImport } from './routes/models/$slug'
 import { Route as DocsApiRouteImport } from './routes/docs/api'
+import { Route as BenchmarksRoboticsRouteImport } from './routes/benchmarks/robotics'
 import { Route as BenchmarksFrontiercodeRouteImport } from './routes/benchmarks/frontiercode'
 import { Route as BenchmarksDeepsweRouteImport } from './routes/benchmarks/deepswe'
 import { Route as BenchmarksDecisionIndexRouteImport } from './routes/benchmarks/decision-index'
@@ -102,6 +103,11 @@ const ModelsSlugRoute = ModelsSlugRouteImport.update({
 const DocsApiRoute = DocsApiRouteImport.update({
   id: '/docs/api',
   path: '/docs/api',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BenchmarksRoboticsRoute = BenchmarksRoboticsRouteImport.update({
+  id: '/benchmarks/robotics',
+  path: '/benchmarks/robotics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BenchmarksFrontiercodeRoute = BenchmarksFrontiercodeRouteImport.update({
@@ -210,6 +216,7 @@ export interface FileRoutesByFullPath {
   '/benchmarks/decision-index': typeof BenchmarksDecisionIndexRoute
   '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
   '/benchmarks/frontiercode': typeof BenchmarksFrontiercodeRoute
+  '/benchmarks/robotics': typeof BenchmarksRoboticsRoute
   '/docs/api': typeof DocsApiRoute
   '/models/$slug': typeof ModelsSlugRoute
   '/models/': typeof ModelsIndexRoute
@@ -241,6 +248,7 @@ export interface FileRoutesByTo {
   '/benchmarks/decision-index': typeof BenchmarksDecisionIndexRoute
   '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
   '/benchmarks/frontiercode': typeof BenchmarksFrontiercodeRoute
+  '/benchmarks/robotics': typeof BenchmarksRoboticsRoute
   '/docs/api': typeof DocsApiRoute
   '/models/$slug': typeof ModelsSlugRoute
   '/models': typeof ModelsIndexRoute
@@ -273,6 +281,7 @@ export interface FileRoutesById {
   '/benchmarks/decision-index': typeof BenchmarksDecisionIndexRoute
   '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
   '/benchmarks/frontiercode': typeof BenchmarksFrontiercodeRoute
+  '/benchmarks/robotics': typeof BenchmarksRoboticsRoute
   '/docs/api': typeof DocsApiRoute
   '/models/$slug': typeof ModelsSlugRoute
   '/models/': typeof ModelsIndexRoute
@@ -306,6 +315,7 @@ export interface FileRouteTypes {
     | '/benchmarks/decision-index'
     | '/benchmarks/deepswe'
     | '/benchmarks/frontiercode'
+    | '/benchmarks/robotics'
     | '/docs/api'
     | '/models/$slug'
     | '/models/'
@@ -337,6 +347,7 @@ export interface FileRouteTypes {
     | '/benchmarks/decision-index'
     | '/benchmarks/deepswe'
     | '/benchmarks/frontiercode'
+    | '/benchmarks/robotics'
     | '/docs/api'
     | '/models/$slug'
     | '/models'
@@ -368,6 +379,7 @@ export interface FileRouteTypes {
     | '/benchmarks/decision-index'
     | '/benchmarks/deepswe'
     | '/benchmarks/frontiercode'
+    | '/benchmarks/robotics'
     | '/docs/api'
     | '/models/$slug'
     | '/models/'
@@ -400,6 +412,7 @@ export interface RootRouteChildren {
   BenchmarksDecisionIndexRoute: typeof BenchmarksDecisionIndexRoute
   BenchmarksDeepsweRoute: typeof BenchmarksDeepsweRoute
   BenchmarksFrontiercodeRoute: typeof BenchmarksFrontiercodeRoute
+  BenchmarksRoboticsRoute: typeof BenchmarksRoboticsRoute
   DocsApiRoute: typeof DocsApiRoute
   ModelsSlugRoute: typeof ModelsSlugRoute
   ModelsIndexRoute: typeof ModelsIndexRoute
@@ -504,6 +517,13 @@ declare module '@tanstack/react-router' {
       path: '/docs/api'
       fullPath: '/docs/api'
       preLoaderRoute: typeof DocsApiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/benchmarks/robotics': {
+      id: '/benchmarks/robotics'
+      path: '/benchmarks/robotics'
+      fullPath: '/benchmarks/robotics'
+      preLoaderRoute: typeof BenchmarksRoboticsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/benchmarks/frontiercode': {
@@ -640,6 +660,7 @@ const rootRouteChildren: RootRouteChildren = {
   BenchmarksDecisionIndexRoute: BenchmarksDecisionIndexRoute,
   BenchmarksDeepsweRoute: BenchmarksDeepsweRoute,
   BenchmarksFrontiercodeRoute: BenchmarksFrontiercodeRoute,
+  BenchmarksRoboticsRoute: BenchmarksRoboticsRoute,
   DocsApiRoute: DocsApiRoute,
   ModelsSlugRoute: ModelsSlugRoute,
   ModelsIndexRoute: ModelsIndexRoute,
