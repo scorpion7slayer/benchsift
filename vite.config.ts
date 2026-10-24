@@ -19,6 +19,7 @@ export default defineConfig({
       plugins: ["./server/plugins/logging.ts"],
       routeRules: {
         "/**": { headers: {
+          "Strict-Transport-Security": "max-age=63072000; includeSubDomains",
           "X-Content-Type-Options": "nosniff",
           "Referrer-Policy": "no-referrer",
           "X-Frame-Options": "DENY",
