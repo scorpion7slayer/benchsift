@@ -48,9 +48,10 @@ Cloudflare's own HSTS setting (SSL/TLS → Edge Certificates) replaces the origi
 header when it is enabled, so keep both at the same value; a `max-age=0` there
 disables HSTS. `preload` is deliberately absent.
 
-`/.well-known/security.txt` (RFC 9116) lists `contact@nxtaigen.com` and links
-to the policy in `SECURITY.md`. Its `Expires` date is `2027-10-23`; move it forward,
-at most one year, before then, or scanners treat the file as missing.
+`/.well-known/security.txt` (RFC 9116) lists `contact@nxtaigen.com`, then the
+GitHub Security Advisory form, and links to the policy in `SECURITY.md`. Its
+`Expires` date is `2027-10-23`; move it forward, at most one year, before then,
+or scanners treat the file as missing.
 
 ## Cache on Dokploy
 
