@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SITE_URL } from "@/lib/seo";
 
-// RFC 9116. Contact matches SECURITY.md; renew Expires before it passes.
-const BODY = `Contact: https://github.com/scorpion7slayer/benchsift/security/advisories/new
+// RFC 9116. Renew Expires before it passes.
+const BODY = `Contact: mailto:contact@nxtaigen.com
 Expires: 2027-10-23T00:00:00.000Z
 Preferred-Languages: fr, en
 Policy: https://github.com/scorpion7slayer/benchsift/security/policy

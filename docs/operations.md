@@ -43,13 +43,13 @@ the real one with a `301`. Hashed assets, `/_serverFn/`, `/logos/` and
 ## Security headers and security.txt
 
 Nitro adds the shared security headers in `vite.config.ts`, including
-`Strict-Transport-Security: max-age=63072000; includeSubDomains`. Cloudflare's
-own HSTS setting (SSL/TLS → Edge Certificates) replaces the origin header when it
-is enabled, so it must be off or use the same value; a `max-age=0` there
+`Strict-Transport-Security: max-age=15552000; includeSubDomains` (six months).
+Cloudflare's own HSTS setting (SSL/TLS → Edge Certificates) replaces the origin
+header when it is enabled, so keep both at the same value; a `max-age=0` there
 disables HSTS. `preload` is deliberately absent.
 
-`/.well-known/security.txt` (RFC 9116) points to the GitHub Security Advisory
-form from `SECURITY.md`. Its `Expires` date is `2027-10-23`; move it forward,
+`/.well-known/security.txt` (RFC 9116) lists `contact@nxtaigen.com` and links
+to the policy in `SECURITY.md`. Its `Expires` date is `2027-10-23`; move it forward,
 at most one year, before then, or scanners treat the file as missing.
 
 ## Cache on Dokploy
