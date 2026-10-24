@@ -40,6 +40,19 @@ Model slugs keep their case, because AA publishes some with capitals
 the real one with a `301`. Hashed assets, `/_serverFn/`, `/logos/` and
 `/fonts/` are never rewritten.
 
+## Security headers and security.txt
+
+Nitro adds the shared security headers in `vite.config.ts`, including
+`Strict-Transport-Security: max-age=15552000; includeSubDomains` (six months).
+Cloudflare's own HSTS setting (SSL/TLS → Edge Certificates) replaces the origin
+header when it is enabled, so keep both at the same value; a `max-age=0` there
+disables HSTS. `preload` is deliberately absent.
+
+`/.well-known/security.txt` (RFC 9116) lists `contact@nxtaigen.com`, then the
+GitHub Security Advisory form, and links to the policy in `SECURITY.md`. Its
+`Expires` date is `2027-10-23`; move it forward, at most one year, before then,
+or scanners treat the file as missing.
+
 ## Cache on Dokploy
 
 Keep a persistent volume mounted at `/app/.data` and set

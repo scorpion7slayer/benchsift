@@ -29,6 +29,7 @@ import { Route as BenchmarksDecisionIndexRouteImport } from './routes/benchmarks
 import { Route as BenchmarksCyberRouteImport } from './routes/benchmarks/cyber'
 import { Route as BenchmarksAa3dRouteImport } from './routes/benchmarks/aa-3d'
 import { Route as AgentsCodingRouteImport } from './routes/agents/coding'
+import { Route as DotwellKnownSecurityDottxtRouteImport } from './routes/[.]well-known/security[.]txt'
 import { Route as DotwellKnownOpenapiDotjsonRouteImport } from './routes/[.]well-known/openapi[.]json'
 import { Route as DotwellKnownApiCatalogRouteImport } from './routes/[.]well-known/api-catalog'
 import { Route as ModelsPagePageRouteImport } from './routes/models/page/$page'
@@ -140,6 +141,12 @@ const AgentsCodingRoute = AgentsCodingRouteImport.update({
   path: '/agents/coding',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotwellKnownSecurityDottxtRoute =
+  DotwellKnownSecurityDottxtRouteImport.update({
+    id: '/.well-known/security.txt',
+    path: '/.well-known/security.txt',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const DotwellKnownOpenapiDotjsonRoute =
   DotwellKnownOpenapiDotjsonRouteImport.update({
     id: '/.well-known/openapi.json',
@@ -210,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/.well-known/openapi.json': typeof DotwellKnownOpenapiDotjsonRoute
+  '/.well-known/security.txt': typeof DotwellKnownSecurityDottxtRoute
   '/agents/coding': typeof AgentsCodingRoute
   '/benchmarks/aa-3d': typeof BenchmarksAa3dRoute
   '/benchmarks/cyber': typeof BenchmarksCyberRoute
@@ -242,6 +250,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/.well-known/openapi.json': typeof DotwellKnownOpenapiDotjsonRoute
+  '/.well-known/security.txt': typeof DotwellKnownSecurityDottxtRoute
   '/agents/coding': typeof AgentsCodingRoute
   '/benchmarks/aa-3d': typeof BenchmarksAa3dRoute
   '/benchmarks/cyber': typeof BenchmarksCyberRoute
@@ -275,6 +284,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/.well-known/openapi.json': typeof DotwellKnownOpenapiDotjsonRoute
+  '/.well-known/security.txt': typeof DotwellKnownSecurityDottxtRoute
   '/agents/coding': typeof AgentsCodingRoute
   '/benchmarks/aa-3d': typeof BenchmarksAa3dRoute
   '/benchmarks/cyber': typeof BenchmarksCyberRoute
@@ -309,6 +319,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/.well-known/api-catalog'
     | '/.well-known/openapi.json'
+    | '/.well-known/security.txt'
     | '/agents/coding'
     | '/benchmarks/aa-3d'
     | '/benchmarks/cyber'
@@ -341,6 +352,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/.well-known/api-catalog'
     | '/.well-known/openapi.json'
+    | '/.well-known/security.txt'
     | '/agents/coding'
     | '/benchmarks/aa-3d'
     | '/benchmarks/cyber'
@@ -373,6 +385,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/.well-known/api-catalog'
     | '/.well-known/openapi.json'
+    | '/.well-known/security.txt'
     | '/agents/coding'
     | '/benchmarks/aa-3d'
     | '/benchmarks/cyber'
@@ -406,6 +419,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   DotwellKnownApiCatalogRoute: typeof DotwellKnownApiCatalogRoute
   DotwellKnownOpenapiDotjsonRoute: typeof DotwellKnownOpenapiDotjsonRoute
+  DotwellKnownSecurityDottxtRoute: typeof DotwellKnownSecurityDottxtRoute
   AgentsCodingRoute: typeof AgentsCodingRoute
   BenchmarksAa3dRoute: typeof BenchmarksAa3dRoute
   BenchmarksCyberRoute: typeof BenchmarksCyberRoute
@@ -568,6 +582,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgentsCodingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.well-known/security.txt': {
+      id: '/.well-known/security.txt'
+      path: '/.well-known/security.txt'
+      fullPath: '/.well-known/security.txt'
+      preLoaderRoute: typeof DotwellKnownSecurityDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/.well-known/openapi.json': {
       id: '/.well-known/openapi.json'
       path: '/.well-known/openapi.json'
@@ -654,6 +675,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   DotwellKnownApiCatalogRoute: DotwellKnownApiCatalogRoute,
   DotwellKnownOpenapiDotjsonRoute: DotwellKnownOpenapiDotjsonRoute,
+  DotwellKnownSecurityDottxtRoute: DotwellKnownSecurityDottxtRoute,
   AgentsCodingRoute: AgentsCodingRoute,
   BenchmarksAa3dRoute: BenchmarksAa3dRoute,
   BenchmarksCyberRoute: BenchmarksCyberRoute,
