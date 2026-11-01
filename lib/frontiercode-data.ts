@@ -3,15 +3,15 @@ import { findFlightElementProps, parseFlightRecords } from "./aa-flight";
 import { getCanonicalCreatorSlug, getCreatorDisplayName } from "./provider-map";
 
 /*
- * Artificial Analysis FrontierCode leaderboard, read from the `initialModels`
- * prop of the `/evaluations/frontiercode` RSC payload. AA publishes the score
+ * Artificial Analysis FrontierCode 2.0 leaderboard, read from the `initialModels`
+ * prop of the `/evaluations/frontiercode-2-0` RSC payload. AA publishes the score
  * per model as a fraction, plus the token counts, prices, cache hit rate and
  * output speed its page turns into cost, time and tokens per task. The same
  * formulas are applied here; tests pin them to the values AA displays.
  */
 
-/** Size of FrontierCode 1.1 Main, the task set AA runs; per-task figures divide by it. */
-export const FRONTIERCODE_TASKS = 100;
+/** Size of FrontierCode 2.0, the task set AA runs; per-task figures divide by it. */
+export const FRONTIERCODE_TASKS = 132;
 
 export interface FrontierCodeRow {
   /** AA model slug, also the catalogue join key. */
@@ -61,7 +61,7 @@ function flag(value: unknown): boolean | null {
 type PerTask = Pick<FrontierCodeRow, "output_tokens_per_task" | "cost_per_task_usd" | "time_per_task_seconds">;
 
 function perTask(model: Props): PerTask {
-  const figures = aaEvalPerTask(model, "frontierCode", FRONTIERCODE_TASKS);
+  const figures = aaEvalPerTask(model, "frontierCode20", FRONTIERCODE_TASKS);
   return {
     output_tokens_per_task: figures.output_tokens,
     cost_per_task_usd: figures.cost_usd,
@@ -89,7 +89,7 @@ export function parseFrontierCode(payload: string): FrontierCodeRow[] {
     if (!isProps(model)) return [];
     const slug = text(model.slug);
     const name = text(model.name);
-    const score = model.frontierCode;
+    const score = model.frontierCode20;
     if (!slug || !SLUG_PATTERN.test(slug) || !name || seen.has(slug)) return [];
     if (typeof score !== "number" || !Number.isFinite(score) || score < 0 || score > 1) return [];
     seen.add(slug);

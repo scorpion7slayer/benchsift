@@ -822,6 +822,13 @@ export interface Translations {
     omniscience_non_hallucination: string;
     cyber: string;
     terminalbench_v4_0: string;
+    frontiercode_2_0: string;
+    terminalbench_science: string;
+    hle_diamond: string;
+    critpt_v2: string;
+    automationbench_aa: string;
+    gdp_pdf: string;
+    aa_briefcase: string;
     finance_and_accounting: string;
     strategy_and_ops: string;
     legal: string;
@@ -928,8 +935,8 @@ const T: Record<Lang, Translations> = {
     },
     trust: {
       "contact": "Contact",
-      "privacyContact": "Pour une question sur vos données personnelles ou pour exercer vos droits, vous pouvez contacter Théo Darville à l’adresse suivante :",
-      "legalContact": "Pour contacter Théo Darville au sujet de BenchSift :",
+      "privacyContact": "Pour une question sur vos données personnelles ou pour exercer vos droits, écrivez à :",
+      "legalContact": "Pour toute question au sujet de BenchSift :",
       "privacy": "Confidentialité",
       "legal": "Mentions légales",
       "accessibility": "Accessibilité",
@@ -938,7 +945,7 @@ const T: Record<Lang, Translations> = {
       "privacySections": [
             {
                   "title": "Responsable du traitement",
-                  "body": "Théo Darville est responsable des traitements de données liés à BenchSift, un site gratuit développé à titre personnel en Belgique."
+                  "body": "L’éditeur de BenchSift est responsable des traitements de données liés au site. Il est joignable à l’adresse indiquée ci-dessous."
             },
             {
                   "title": "Ce que le site conserve",
@@ -957,11 +964,11 @@ const T: Record<Lang, Translations> = {
                   "body": "Votre accord ou refus pour Rybbit est conservé 180 jours dans le cookie fonctionnel benchsift_analytics_v1. Le stockage local transmet ce choix aux autres onglets, sans prolonger sa validité. Le bouton « Préférences de confidentialité » en bas de chaque page permet de refuser ou de retirer votre accord. Le retrait recharge la page pour arrêter le suivi ; il n’efface pas les données déjà collectées. Vous pouvez supprimer les cookies et le stockage du site dans les paramètres de votre navigateur pour réinitialiser vos préférences. Le RGPD prévoit notamment des droits d’accès, de rectification, d’effacement, de limitation et, selon le traitement, d’opposition ou de portabilité. Une réclamation peut être adressée à l’Autorité de protection des données belge."
             }
       ],
-      "legalLead": "BenchSift est un site gratuit et indépendant, développé par Théo Darville à titre personnel en Belgique.",
+      "legalLead": "BenchSift est un site gratuit et indépendant.",
       "legalSections": [
             {
                   "title": "Édition et hébergement",
-                  "body": "Théo Darville édite et développe BenchSift en solo, sans société, depuis la Belgique. Le site est hébergé sur un VPS OVHcloud à Gravelines (GRA), en France. Dokploy est l’outil de déploiement. L’entité contractuelle précise de l’hébergeur reste à confirmer."
+                  "body": "BenchSift est édité à titre personnel, sans société. Le site est hébergé sur un VPS OVHcloud à Gravelines (GRA), en France. Dokploy est l’outil de déploiement. L’entité contractuelle précise de l’hébergeur reste à confirmer."
             },
             {
                   "title": "Données, sources et limites",
@@ -1497,10 +1504,10 @@ const T: Record<Lang, Translations> = {
     frontierCode: {
       title: "FrontierCode",
       description: "Classement Artificial Analysis des modèles sur des tâches de programmation agentique réalisées dans de vrais dépôts open source : le changement serait-il fusionné par un mainteneur ?",
-      methodDescription: "FrontierCode 1.1 est l'implémentation par Artificial Analysis du benchmark privé de Cognition. Chaque tâche demande à un agent de modifier un dépôt open source réel, puis des vérifications automatiques déterminent si un mainteneur accepterait la modification.",
+      methodDescription: "FrontierCode 2.0 est l'implémentation par Artificial Analysis du benchmark privé de Cognition : 132 tâches dans de vrais dépôts open source. Chaque tâche demande à un agent de modifier un dépôt open source réel, puis des vérifications automatiques déterminent si un mainteneur accepterait la modification.",
       scoreHint: "Moyenne des trois tentatives par tâche. Une tentative vaut zéro si elle échoue à une vérification bloquante ou si le scanner de trajectoire détecte une recherche de la solution.",
       empty: "Données FrontierCode indisponibles pour l'instant.",
-      sourceNote: "Données via Artificial Analysis, FrontierCode 1.1.",
+      sourceNote: "Données via Artificial Analysis, FrontierCode 2.0.",
       viewOnSource: "Voir sur Artificial Analysis",
       search: "Rechercher un modèle ou un créateur…",
       models: "modèles",
@@ -1785,7 +1792,14 @@ const T: Record<Lang, Translations> = {
       itbench_aa: "ITBench-AA",
       omniscience_non_hallucination: "AA-Omniscience Non-Hallucination",
       cyber: "Cyber Index",
-      terminalbench_v4_0: "Terminal-Bench v4",
+      terminalbench_v4_0: "Terminal-Bench 4.0",
+      frontiercode_2_0: "FrontierCode 2.0",
+      terminalbench_science: "Terminal-Bench-Science",
+      hle_diamond: "HLE-Diamond",
+      critpt_v2: "CritPt v2",
+      automationbench_aa: "AutomationBench-AA",
+      gdp_pdf: "GDP.pdf (tous critères)",
+      aa_briefcase: "AA-Briefcase Elo",
       finance_and_accounting: "Finance et comptabilité",
       strategy_and_ops: "Stratégie et opérations",
       legal: "Juridique",
@@ -1890,8 +1904,8 @@ const T: Record<Lang, Translations> = {
     },
     trust: {
       "contact": "Contact",
-      "privacyContact": "For questions about your personal data or to exercise your rights, you can contact Théo Darville at the following address:",
-      "legalContact": "To contact Théo Darville about BenchSift:",
+      "privacyContact": "For questions about your personal data or to exercise your rights, write to:",
+      "legalContact": "For any question about BenchSift:",
       "privacy": "Privacy",
       "legal": "Legal notice",
       "accessibility": "Accessibility",
@@ -1900,7 +1914,7 @@ const T: Record<Lang, Translations> = {
       "privacySections": [
             {
                   "title": "Data controller",
-                  "body": "Théo Darville is responsible for data processing associated with BenchSift, a free website developed as a personal project in Belgium."
+                  "body": "The publisher of BenchSift is responsible for data processing associated with the site and can be reached at the address below."
             },
             {
                   "title": "What the site stores",
@@ -1919,11 +1933,11 @@ const T: Record<Lang, Translations> = {
                   "body": "Your acceptance or refusal of Rybbit is stored for 180 days in the functional benchsift_analytics_v1 cookie. Local storage signals this choice to other tabs without extending its validity. “Privacy preferences” in the footer lets you refuse or withdraw consent. Withdrawal reloads the page to stop tracking; it does not delete data already collected. You can delete site cookies and local storage in your browser settings to reset your preferences. The GDPR provides rights including access, rectification, erasure, restriction and, depending on the processing, objection or portability. You may lodge a complaint with the Belgian Data Protection Authority."
             }
       ],
-      "legalLead": "BenchSift is a free, independent website developed by Théo Darville as a personal project in Belgium.",
+      "legalLead": "BenchSift is a free, independent website.",
       "legalSections": [
             {
                   "title": "Publisher and hosting",
-                  "body": "Théo Darville publishes and develops BenchSift independently from Belgium, without a company. The site is hosted on an OVHcloud VPS in Gravelines (GRA), France. Dokploy is the deployment tool. The precise contractual hosting entity still needs confirmation."
+                  "body": "BenchSift is published as a personal project, without a company. The site is hosted on an OVHcloud VPS in Gravelines (GRA), France. Dokploy is the deployment tool. The precise contractual hosting entity still needs confirmation."
             },
             {
                   "title": "Data, sources and limitations",
@@ -2459,10 +2473,10 @@ const T: Record<Lang, Translations> = {
     frontierCode: {
       title: "FrontierCode",
       description: "Artificial Analysis leaderboard for models on agentic coding tasks in real open-source repositories: would a maintainer merge the change?",
-      methodDescription: "FrontierCode 1.1 is Artificial Analysis' implementation of Cognition's private benchmark. Each task asks an agent to change a real open-source repository, then automated checks decide whether a maintainer would accept the change.",
+      methodDescription: "FrontierCode 2.0 is Artificial Analysis' implementation of Cognition's private benchmark: 132 tasks in real open-source repositories. Each task asks an agent to change a real open-source repository, then automated checks decide whether a maintainer would accept the change.",
       scoreHint: "Mean over three attempts per task. An attempt scores zero if it fails a blocking check or if the trajectory scanner flags it for looking up the solution.",
       empty: "FrontierCode data unavailable for now.",
-      sourceNote: "Data via Artificial Analysis, FrontierCode 1.1.",
+      sourceNote: "Data via Artificial Analysis, FrontierCode 2.0.",
       viewOnSource: "View on Artificial Analysis",
       search: "Search for a model or creator…",
       models: "models",
@@ -2747,7 +2761,14 @@ const T: Record<Lang, Translations> = {
       itbench_aa: "ITBench-AA",
       omniscience_non_hallucination: "AA-Omniscience Non-Hallucination",
       cyber: "Cyber Index",
-      terminalbench_v4_0: "Terminal-Bench v4",
+      terminalbench_v4_0: "Terminal-Bench 4.0",
+      frontiercode_2_0: "FrontierCode 2.0",
+      terminalbench_science: "Terminal-Bench-Science",
+      hle_diamond: "HLE-Diamond",
+      critpt_v2: "CritPt v2",
+      automationbench_aa: "AutomationBench-AA",
+      gdp_pdf: "GDP.pdf (all-pass)",
+      aa_briefcase: "AA-Briefcase Elo",
       finance_and_accounting: "Finance & Accounting",
       strategy_and_ops: "Strategy & Ops",
       legal: "Legal",

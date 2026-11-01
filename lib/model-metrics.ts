@@ -33,7 +33,14 @@ const AA_INDEX_KEYS = new Set<string>([
   ...AA_CAPABILITY_INDEX_KEYS,
 ]);
 
+/** Intelligence Index v5 benchmarks published as 0–1 fractions (AA-Briefcase is an Elo). */
+export const AA_INDEX_V5_FRACTION_KEYS = [
+  "frontiercode_2_0", "terminalbench_science", "hle_diamond", "critpt_v2", "automationbench_aa", "gdp_pdf",
+] as const;
+
 export const TEXT_BENCHMARK_KEYS = new Set([
+  ...AA_INDEX_V5_FRACTION_KEYS,
+  "aa_briefcase",
   "mmlu_pro",
   "gpqa",
   "hle",
@@ -102,6 +109,7 @@ export const AA_MEDIA_BENCHMARK_DEFS = [
 
 /** Benchmarks Artificial Analysis publishes as 0–1 fractions, in display order. */
 export const FRACTION_BENCHMARK_KEYS = [
+  ...AA_INDEX_V5_FRACTION_KEYS,
   "mmlu_pro", "gpqa", "hle", "livecodebench", "scicode", "math_500", "aime", "aime_25",
   "ifbench", "lcr", "terminalbench_hard", "terminalbench_v2_1", "terminalbench_v4_0", "tau2", "tau_banking",
   "humaneval", "omniscience", "multilingual_aa", "mmmu_pro", "critpt", "gdpval_normalized",
