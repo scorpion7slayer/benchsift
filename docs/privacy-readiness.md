@@ -1,7 +1,7 @@
 # Privacy and legal readiness — Belgium
 
 This is implementation guidance, not a claim of legal compliance or immunity.
-The publisher identified himself as Théo Darville and confirmed that BenchSift
+The publisher confirmed that BenchSift
 is a free personal solo project in Belgium, without a company. The site runs on
 an OVH VPS in Gravelines (GRA), France, and uses Rybbit analytics. The confirmed
 public contact is contact@nxtaigen.com, linked from the legal and privacy
@@ -21,8 +21,9 @@ nosniff, frame restrictions and camera/microphone/geolocation restrictions.
 The pages deliberately disclose the remaining gaps. Before claiming compliance:
 
 1. Determine applicable Belgian publisher identification/contact duties for this
-   activity, and GDPR controller transparency/contact requirements. The publisher
-   is named in the legal and privacy pages with the confirmed contact email.
+   activity, and GDPR controller transparency/contact requirements. The pages
+   identify the publisher only by the confirmed contact email, by choice; no
+   name is published.
    Postal identification requirements remain to be assessed; no postal address
    was provided. Free access and solo development are not treated as proof of
    exemption from all transparency duties.

@@ -1,5 +1,6 @@
 import { parseCodingAgents } from "@/lib/aa-coding-agents";
 import { mergeAACyberIndex, parseAACyberIndex, type AACyberIndexEntry } from "@/lib/aa-cyber";
+import { mergeAAIndexV5, parseAAIndexV5, type AAIndexV5Entry } from "@/lib/aa-index-v5";
 import { enrichModelsWithModelsDev } from "@/lib/models-dev-source";
 import { mergeModelsDev } from "@/lib/models-dev";
 import { cached } from "@/lib/revalidate-cache";
@@ -396,6 +397,7 @@ const scrapeModelCapabilities = cached(
 );
 
 const AA_HOME_PAGE = "https://artificialanalysis.ai/";
+const AA_INDEX_V5_PAGE = "https://artificialanalysis.ai/evaluations/artificial-analysis-intelligence-index";
 
 /**
  * Cyber Index leaderboard from the RSC payload of the AA home page, where AA
@@ -423,6 +425,32 @@ async function fetchAACyberIndex(): Promise<AACyberIndexEntry[]> {
     return entries;
   } catch {
     logEvent("warn", "source.aa_cyber_interrupted");
+    return [];
+  }
+}
+
+async function fetchAAIndexV5(): Promise<AAIndexV5Entry[]> {
+  try {
+    const res = await fetchWithTimeout(
+      AA_INDEX_V5_PAGE,
+      {
+        headers: {
+          "User-Agent": SCRAPE_USER_AGENT,
+          "RSC": "1",
+          "Accept": "text/x-component, */*",
+        },
+      },
+      HOME_FETCH_TIMEOUT_MS,
+    );
+    if (!res.ok) {
+      logEvent("warn", "source.aa_index_v5_failed", { status: res.status });
+      return [];
+    }
+    const entries = parseAAIndexV5(await res.text());
+    if (entries.length === 0) logEvent("warn", "source.aa_index_v5_empty");
+    return entries;
+  } catch {
+    logEvent("warn", "source.aa_index_v5_interrupted");
     return [];
   }
 }
@@ -514,6 +542,7 @@ interface CronSourceStats extends Record<string, number> {
   missingSitemapSlugs: number;
   builtPartialModels: number;
   cyberIndexModels: number;
+  indexV5Models: number;
   transientRetries: number;
 }
 
@@ -534,11 +563,12 @@ interface CronFetchResult {
 async function fetchModelsForCron(): Promise<CronFetchResult> {
   logEvent("info", "refresh.sources_started");
   const retriesBefore = getFetchRetryCount();
-  const [apiModels, validSlugs, mediaModels, cyberEntries] = await Promise.all([
+  const [apiModels, validSlugs, mediaModels, cyberEntries, indexV5Entries] = await Promise.all([
     fetchAALanguageModels(),
     scrapeAllModelSlugs(),
     fetchAAMediaModels(apiFetchPreferred),
     fetchAACyberIndex(),
+    fetchAAIndexV5(),
   ]);
 
   const validSlugSet = new Set(validSlugs);
@@ -556,16 +586,18 @@ async function fetchModelsForCron(): Promise<CronFetchResult> {
     missingSitemapSlugs: missingSlugs.length,
   };
 
-  logEvent("info", "refresh.sources_received", { ...statsBase, cyberIndexEntries: cyberEntries.length });
+  logEvent("info", "refresh.sources_received", { ...statsBase, cyberIndexEntries: cyberEntries.length, indexV5Entries: indexV5Entries.length });
   if (missingSlugs.length === 0) {
     const cyber = mergeAACyberIndex(apiAndMediaModels, cyberEntries);
-    const models = await enrichCronModelsWithSources(cyber.models, validSlugSet);
+    const indexV5 = mergeAAIndexV5(cyber.models, indexV5Entries);
+    const models = await enrichCronModelsWithSources(indexV5.models, validSlugSet);
     return {
       models,
       stats: {
         ...statsBase,
         builtPartialModels: 0,
         cyberIndexModels: cyber.matched,
+        indexV5Models: indexV5.matched,
         transientRetries: getFetchRetryCount() - retriesBefore,
       },
     };
@@ -588,13 +620,15 @@ async function fetchModelsForCron(): Promise<CronFetchResult> {
   }
 
   const cyber = mergeAACyberIndex([...apiAndMediaModels, ...extraModels], cyberEntries);
-  const models = await enrichCronModelsWithSources(cyber.models, validSlugSet);
+  const indexV5 = mergeAAIndexV5(cyber.models, indexV5Entries);
+  const models = await enrichCronModelsWithSources(indexV5.models, validSlugSet);
   return {
     models,
     stats: {
       ...statsBase,
       builtPartialModels: extraModels.length,
       cyberIndexModels: cyber.matched,
+      indexV5Models: indexV5.matched,
       transientRetries: getFetchRetryCount() - retriesBefore,
     },
   };

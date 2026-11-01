@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 import { getModelLogoKey, resolveCreatorFromModelSlug } from "@/lib/provider-map";
 import { providerColor, shadeIndex } from "@/lib/provider-colors";
 
-const SOURCE_URL = "https://artificialanalysis.ai/evaluations/frontiercode";
+const SOURCE_URL = "https://artificialanalysis.ai/evaluations/frontiercode-2-0";
 
 type XAxis = "cost" | "time" | "tokens";
 
@@ -162,7 +162,7 @@ export function FrontierCodeView({ data }: { data: FrontierCodeData & { catalog:
           series={series}
           title={copy.chartTitle}
           xLabel={copy.axes[xAxis]}
-          yLabel="FrontierCode 1.1 · %"
+          yLabel="FrontierCode 2.0 · %"
           formatX={(value) => (xAxis === "cost" ? formatMoneyCompact(value, lang) : xAxis === "time" ? formatDuration(value, lang) : formatTokens(value, lang))}
           formatY={(value) => `${formatNumber(value, lang, Number.isInteger(value) ? 0 : 1)} %`}
           better="lower"

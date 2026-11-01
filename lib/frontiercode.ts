@@ -5,7 +5,7 @@ import { cached } from "@/lib/revalidate-cache";
 import { parseFrontierCode, type FrontierCodeData } from "./frontiercode-data";
 export type { FrontierCodeData, FrontierCodeRow } from "./frontiercode-data";
 
-const FRONTIERCODE_URL = "https://artificialanalysis.ai/evaluations/frontiercode";
+const FRONTIERCODE_URL = "https://artificialanalysis.ai/evaluations/frontiercode-2-0";
 const FETCH_TIMEOUT_MS = 8_000;
 const CACHE_SECONDS = 21_600; // 6h
 
@@ -27,7 +27,7 @@ const getFrontierCodeDataCached = cached(
     if (!rows.length) throw new Error("FrontierCode source unavailable");
     return { rows };
   },
-  ["frontiercode-data"],
+  ["frontiercode-2-0-data"],
   { revalidate: CACHE_SECONDS },
 );
 

@@ -4,6 +4,7 @@ import { cyberIndexResult } from "./cyber-index";
 import { modelAccessRestriction } from "./model-availability";
 import {
   AA_CAPABILITY_INDEX_KEYS,
+  AA_INDEX_V5_FRACTION_KEYS,
   AA_MEDIA_BENCHMARK_DEFS,
   TEXT_BENCHMARK_KEYS,
   applicableExtraBenchmarkEntries,
@@ -171,6 +172,7 @@ export function buildComparisonRows(
     "agentic_index",
   ];
   const percentages = [
+    ...AA_INDEX_V5_FRACTION_KEYS,
     "mmlu_pro",
     "gpqa",
     "hle",
