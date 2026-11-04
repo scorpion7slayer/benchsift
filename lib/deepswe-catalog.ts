@@ -51,3 +51,17 @@ export function matchDeepSweModels(
   }
   return matches;
 }
+
+/** Readable name for a DeepSWE slug the catalogue does not list. */
+export function deepSweFallbackName(slug: string): string {
+  return slug
+    .split("-")
+    .map((part, index, parts) => {
+      // "5-6" → "5.6" inside version numbers.
+      if (/^\d+$/.test(part) && /^\d+$/.test(parts[index - 1] ?? "")) return `.${part}`;
+      if (/^(gpt|glm|gpt\d.*)$/i.test(part)) return part.toUpperCase();
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join(" ")
+    .replace(/ \./g, ".");
+}

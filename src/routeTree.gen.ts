@@ -22,6 +22,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ModelsIndexRouteImport } from './routes/models/index'
 import { Route as ModelsSlugRouteImport } from './routes/models/$slug'
 import { Route as DocsApiRouteImport } from './routes/docs/api'
+import { Route as ComparePairRouteImport } from './routes/compare_.$pair'
 import { Route as BenchmarksRoboticsRouteImport } from './routes/benchmarks/robotics'
 import { Route as BenchmarksFrontiercodeRouteImport } from './routes/benchmarks/frontiercode'
 import { Route as BenchmarksDeepsweRouteImport } from './routes/benchmarks/deepswe'
@@ -104,6 +105,11 @@ const ModelsSlugRoute = ModelsSlugRouteImport.update({
 const DocsApiRoute = DocsApiRouteImport.update({
   id: '/docs/api',
   path: '/docs/api',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComparePairRoute = ComparePairRouteImport.update({
+  id: '/compare_/$pair',
+  path: '/compare/$pair',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BenchmarksRoboticsRoute = BenchmarksRoboticsRouteImport.update({
@@ -225,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
   '/benchmarks/frontiercode': typeof BenchmarksFrontiercodeRoute
   '/benchmarks/robotics': typeof BenchmarksRoboticsRoute
+  '/compare/$pair': typeof ComparePairRoute
   '/docs/api': typeof DocsApiRoute
   '/models/$slug': typeof ModelsSlugRoute
   '/models/': typeof ModelsIndexRoute
@@ -258,6 +265,7 @@ export interface FileRoutesByTo {
   '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
   '/benchmarks/frontiercode': typeof BenchmarksFrontiercodeRoute
   '/benchmarks/robotics': typeof BenchmarksRoboticsRoute
+  '/compare/$pair': typeof ComparePairRoute
   '/docs/api': typeof DocsApiRoute
   '/models/$slug': typeof ModelsSlugRoute
   '/models': typeof ModelsIndexRoute
@@ -292,6 +300,7 @@ export interface FileRoutesById {
   '/benchmarks/deepswe': typeof BenchmarksDeepsweRoute
   '/benchmarks/frontiercode': typeof BenchmarksFrontiercodeRoute
   '/benchmarks/robotics': typeof BenchmarksRoboticsRoute
+  '/compare_/$pair': typeof ComparePairRoute
   '/docs/api': typeof DocsApiRoute
   '/models/$slug': typeof ModelsSlugRoute
   '/models/': typeof ModelsIndexRoute
@@ -327,6 +336,7 @@ export interface FileRouteTypes {
     | '/benchmarks/deepswe'
     | '/benchmarks/frontiercode'
     | '/benchmarks/robotics'
+    | '/compare/$pair'
     | '/docs/api'
     | '/models/$slug'
     | '/models/'
@@ -360,6 +370,7 @@ export interface FileRouteTypes {
     | '/benchmarks/deepswe'
     | '/benchmarks/frontiercode'
     | '/benchmarks/robotics'
+    | '/compare/$pair'
     | '/docs/api'
     | '/models/$slug'
     | '/models'
@@ -393,6 +404,7 @@ export interface FileRouteTypes {
     | '/benchmarks/deepswe'
     | '/benchmarks/frontiercode'
     | '/benchmarks/robotics'
+    | '/compare_/$pair'
     | '/docs/api'
     | '/models/$slug'
     | '/models/'
@@ -427,6 +439,7 @@ export interface RootRouteChildren {
   BenchmarksDeepsweRoute: typeof BenchmarksDeepsweRoute
   BenchmarksFrontiercodeRoute: typeof BenchmarksFrontiercodeRoute
   BenchmarksRoboticsRoute: typeof BenchmarksRoboticsRoute
+  ComparePairRoute: typeof ComparePairRoute
   DocsApiRoute: typeof DocsApiRoute
   ModelsSlugRoute: typeof ModelsSlugRoute
   ModelsIndexRoute: typeof ModelsIndexRoute
@@ -531,6 +544,13 @@ declare module '@tanstack/react-router' {
       path: '/docs/api'
       fullPath: '/docs/api'
       preLoaderRoute: typeof DocsApiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compare_/$pair': {
+      id: '/compare_/$pair'
+      path: '/compare/$pair'
+      fullPath: '/compare/$pair'
+      preLoaderRoute: typeof ComparePairRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/benchmarks/robotics': {
@@ -683,6 +703,7 @@ const rootRouteChildren: RootRouteChildren = {
   BenchmarksDeepsweRoute: BenchmarksDeepsweRoute,
   BenchmarksFrontiercodeRoute: BenchmarksFrontiercodeRoute,
   BenchmarksRoboticsRoute: BenchmarksRoboticsRoute,
+  ComparePairRoute: ComparePairRoute,
   DocsApiRoute: DocsApiRoute,
   ModelsSlugRoute: ModelsSlugRoute,
   ModelsIndexRoute: ModelsIndexRoute,

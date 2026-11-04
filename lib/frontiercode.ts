@@ -25,7 +25,7 @@ const getFrontierCodeDataCached = cached(
     if (!res.ok) throw new Error("FrontierCode source unavailable");
     const rows = parseFrontierCode(await res.text());
     if (!rows.length) throw new Error("FrontierCode source unavailable");
-    return { rows };
+    return { rows, fetched_at: new Date().toISOString() };
   },
   ["frontiercode-2-0-data"],
   { revalidate: CACHE_SECONDS },

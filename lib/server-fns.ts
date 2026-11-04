@@ -44,6 +44,15 @@ import {
 import { readCookieValue } from "@/lib/http-cookie";
 import { readAnalyticsConsent, type AnalyticsConsent } from "@/lib/analytics-consent";
 import { getModelCatalogPage } from "@/lib/model-catalog";
+import { catalogueRefreshedAt } from "@/lib/cron-cache";
+import { summarizeRanking } from "@/lib/data-summary";
+import {
+  parseComparePair,
+  popularComparePairs,
+  popularPairOrder,
+  relatedComparePairs,
+  type ComparePair,
+} from "@/lib/compare-pairs";
 import { resolveModelSlug } from "./model-identity";
 
 // Loaders also run inside cookie-personalised SSR documents. Never mark those
@@ -93,8 +102,18 @@ export const fetchHomeCatalog = createServerFn({ method: "GET" })
     const models = await getLLMModels();
     let data = homeSnapshots.get(models);
     if (!data) {
-      const full = buildHomeCatalogData(models);
-      data = { full, preview: homeCatalogPreview(full) };
+      const updatedAt = await catalogueRefreshedAt();
+      const built = buildHomeCatalogData(models);
+      // The summary reads the whole default ranking, so a preview carries it too.
+      const summary = summarizeRanking(built.models.map((model) => ({
+        name: model.name,
+        href: `/models/${encodeURIComponent(model.slug)}`,
+        score: model.evaluations.artificial_analysis_intelligence_index ?? null,
+        cost: model.pricing.price_1m_blended_3_to_1 ?? null,
+        speed: model.median_output_tokens_per_second ?? null,
+      })));
+      const full = { ...built, summary, updatedAt };
+      data = { full, preview: { ...homeCatalogPreview(full), summary, updatedAt } };
       homeSnapshots.set(models, data);
     }
     return preview ? data.preview : data.full;
@@ -164,6 +183,41 @@ export const fetchCompareData = createServerFn({ method: "GET" })
     },
   );
 
+export interface ComparePairData {
+  /** Slugs in the order of the address. */
+  pair: [string, string];
+  /** The address the pair is indexed at, when it differs from the request. */
+  redirectTo: [string, string] | null;
+  /** Indexed: one of the popular pairs. */
+  popular: boolean;
+  related: ComparePair[];
+}
+
+/**
+ * A static comparison page: its two models with everything /compare needs,
+ * whether search engines index it, and links to related popular pairs.
+ */
+export const fetchComparePair = createServerFn({ method: "GET" })
+  .inputValidator((pair: string) => pair)
+  .handler(async ({ data: pairSlug }): Promise<(ComparePairData & Awaited<ReturnType<typeof fetchCompareData>>) | null> => {
+    if (typeof pairSlug !== "string" || pairSlug.length > 250) return null;
+    const models = await getLLMModels();
+    const known = new Set(models.map((model) => model.slug));
+    const parsed = parseComparePair(pairSlug, (slug) => isSafeSlug(slug) && known.has(slug));
+    if (!parsed) return null;
+    const pairs = popularComparePairs(models);
+    const order = popularPairOrder(pairs, parsed[0], parsed[1]);
+    const compare = await fetchCompareData({ data: parsed });
+    if (compare.selected.length !== 2) return null;
+    return {
+      ...compare,
+      pair: parsed,
+      redirectTo: order && (order[0] !== parsed[0] || order[1] !== parsed[1]) ? order : null,
+      popular: order !== null,
+      related: relatedComparePairs(pairs, parsed[0], parsed[1]),
+    };
+  });
+
 /** AA coding-agents leaderboard. */
 export const fetchCodingAgents = createServerFn({ method: "GET" }).handler(
   async () => { setResponseCache(); return getCodingAgents(); },
@@ -173,12 +227,13 @@ const cyberSnapshots = new WeakMap<LLMModel[], CyberLeaderboard>();
 
 /** Artificial Analysis Cyber Index, as stored in the catalogue by the refresh job. */
 export const fetchCyberIndex = createServerFn({ method: "GET" }).handler(
-  async (): Promise<CyberLeaderboard> => {
+  async (): Promise<CyberLeaderboard & { refreshed_at: string | null }> => {
     setResponseCache();
     const models = await getLLMModels();
     let data = cyberSnapshots.get(models);
     if (!data) { data = cyberLeaderboard(models); cyberSnapshots.set(models, data); }
-    return data;
+    // The Cyber Index lives in the catalogue, so its date is the catalogue's.
+    return { ...data, refreshed_at: await catalogueRefreshedAt() };
   },
 );
 
@@ -249,7 +304,8 @@ export const fetchModelDecisionIndex = createServerFn({ method: "GET" })
   });
 
 export interface Preferences {
-  lang: Lang;
+  /** The language the visitor last picked, if any; the page's own comes from its URL. */
+  savedLang: Lang | null;
   theme: string;
   analyticsConsent: AnalyticsConsent;
 }
@@ -262,11 +318,12 @@ export const fetchPreferences = createServerFn({ method: "GET" }).handler(
     const read = (name: string): string | undefined =>
       readCookieValue(cookie, name);
 
-    const lang: Lang = read("benchsift_lang") === "fr" ? "fr" : "en";
+    const saved = read("benchsift_lang");
+    const savedLang: Lang | null = saved === "fr" || saved === "en" ? saved : null;
     const storedTheme = read("benchsift_theme");
     const theme = ["dark", "light", "system"].includes(storedTheme ?? "")
       ? storedTheme!
       : "system";
-    return { lang, theme, analyticsConsent: readAnalyticsConsent(cookie) };
+    return { savedLang, theme, analyticsConsent: readAnalyticsConsent(cookie) };
   },
 );

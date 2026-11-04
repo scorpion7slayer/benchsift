@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Route, Trophy } from "@/components/icons";
 import { SearchField } from "@/components/search-field";
 import { Link } from "@/components/link";
@@ -41,7 +41,7 @@ type Data = DecisionIndexData & { catalog: Record<string, DecisionIndexModelInfo
  * then every measured configuration. Ranks follow the full source order, so
  * filters never renumber them.
  */
-export function DecisionIndexView({ data }: { data: Data }) {
+export function DecisionIndexView({ data, summary }: { data: Data; summary?: ReactNode }) {
   const { t, lang } = useI18n();
   const copy = t.decisionIndex;
   const [query, setQuery] = useState("");
@@ -96,7 +96,7 @@ export function DecisionIndexView({ data }: { data: Data }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <BenchmarkHeader icon={Route} title={copy.title} description={copy.description} source={source} />
+      <BenchmarkHeader icon={Route} title={copy.title} description={copy.description} source={source} summary={summary} />
 
       <div className="relative">
         <PageCat kind="decision" className="absolute bottom-[calc(100%+1px)] right-6" />

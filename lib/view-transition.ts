@@ -1,4 +1,4 @@
-export type TransitionKind = "theme" | "language";
+export type TransitionKind = "theme";
 
 /**
  * Runs a DOM update inside a view transition marked on <html> with

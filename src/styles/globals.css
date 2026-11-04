@@ -224,14 +224,16 @@
   }
 }
 
-/* Preference changes (lib/view-transition.ts). A theme grows as a circle from
-   the toggle; a language swap crossfades the text through a light blur. */
+/* Preference changes. A theme grows as a circle from the toggle
+   (lib/view-transition.ts); a language swap loads the other language's page,
+   which crossfades in as a cross-document view transition. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+}
 @keyframes theme-reveal {
   from { clip-path: circle(0 at var(--vt-x, 100%) var(--vt-y, 0)); }
   to { clip-path: circle(var(--vt-r, 150vmax) at var(--vt-x, 100%) var(--vt-y, 0)); }
 }
-@keyframes language-out { to { opacity: 0; filter: blur(3px); } }
-@keyframes language-in { from { opacity: 0; filter: blur(3px); } }
 
 ::view-transition-old(root),
 ::view-transition-new(root) {
@@ -240,12 +242,6 @@
 html[data-transition="theme"]::view-transition-old(root) { animation: none; }
 html[data-transition="theme"]::view-transition-new(root) {
   animation: theme-reveal 560ms var(--ease-in-out) both;
-}
-html[data-transition="language"]::view-transition-old(root) {
-  animation: language-out 160ms ease-in both;
-}
-html[data-transition="language"]::view-transition-new(root) {
-  animation: language-in 280ms var(--ease-out) 60ms both;
 }
 @keyframes language-label-in { from { opacity: 0; transform: translateY(60%); } }
 .language-label { display: inline-block; animation: language-label-in var(--duration-base) var(--ease-out); }

@@ -3,21 +3,19 @@ import { fetchCodingAgents } from "@/lib/server-fns";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { CodingAgentsView } from "@/components/coding-agents/coding-agents-view";
-import { absoluteUrl, seo } from "@/lib/seo";
+import { localizedUrl } from "@/lib/seo";
+import { pageHead } from "@/lib/route-seo";
 
 export const Route = createFileRoute("/agents/coding")({
-  head: () =>
-    seo({
-      title: "Coding Agents - BenchSift",
-      description:
-        "Artificial Analysis Coding Agent Index: compare Claude Code, Cursor CLI, OpenCode and other harnesses on versioned software engineering benchmarks.",
-      path: "/agents/coding",
-      jsonLd: {
+  head: ({ match }) =>
+    pageHead(match.context.lang, "agentsCoding", "/agents/coding", {
+      jsonLd: [{
         "@context": "https://schema.org",
         "@type": "CollectionPage",
         name: "Coding Agents",
-        url: absoluteUrl("/agents/coding"),
-      },
+        url: localizedUrl("/agents/coding", match.context.lang),
+        inLanguage: match.context.lang,
+      }],
     }),
   loader: async () => fetchCodingAgents(),
   component: CodingAgentsPage,

@@ -102,6 +102,8 @@ export interface Aa3dData {
   tasks: Aa3dTask[];
   /** Lower bound AA states for the panel votes behind the win rates. */
   panel_votes: number | null;
+  /** When BenchSift retrieved this snapshot from the source (ISO 8601). */
+  fetched_at?: string;
 }
 
 export type Aa3dSort = "elo" | "release";

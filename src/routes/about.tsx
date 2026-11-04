@@ -16,24 +16,24 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
-import { absoluteUrl, seo } from "@/lib/seo";
+import { localizedUrl } from "@/lib/seo";
+import { pageHead } from "@/lib/route-seo";
 import { PageCat } from "@/components/pixel-art/page-cats";
 
 export const Route = createFileRoute("/about")({
-  head: () =>
-    seo({
-      title: "About BenchSift - Independent AI Model Comparison",
-      description:
-        "Learn why BenchSift offers a simpler way to compare AI models, where its data comes from, and why it is an alternative rather than a competitor to Artificial Analysis.",
-      path: "/about",
-      jsonLd: {
+  head: ({ match }) =>
+    pageHead(match.context.lang, "about", "/about", {
+      crumb: match.context.lang === "fr" ? "À propos" : "About",
+      jsonLd: [{
         "@context": "https://schema.org",
         "@type": "AboutPage",
-        name: "About BenchSift",
-        url: absoluteUrl("/about"),
-        description:
-          "BenchSift is an independent interface for comparing AI models using attributed data from Artificial Analysis, OpenRouter, and Hugging Face.",
-      },
+        name: match.context.lang === "fr" ? "À propos de BenchSift" : "About BenchSift",
+        url: localizedUrl("/about", match.context.lang),
+        inLanguage: match.context.lang,
+        description: match.context.lang === "fr"
+          ? "BenchSift est une interface indépendante pour comparer les modèles d'IA, avec des données attribuées d'Artificial Analysis, d'OpenRouter et de Hugging Face."
+          : "BenchSift is an independent interface for comparing AI models using attributed data from Artificial Analysis, OpenRouter, and Hugging Face.",
+      }],
     }),
   component: AboutPage,
 });

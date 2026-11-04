@@ -100,6 +100,8 @@ export interface RoboticsData {
   rows: RoboticsRow[];
   human: RoboticsHumanBaseline | null;
   media: RoboticsMedia;
+  /** When BenchSift retrieved this snapshot from the source (ISO 8601). */
+  fetched_at?: string;
 }
 
 export const EMPTY_ROBOTICS_MEDIA: RoboticsMedia = { task_videos: {}, run_videos: {}, issues: [], clips: [] };

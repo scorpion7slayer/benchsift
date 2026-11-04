@@ -7,7 +7,8 @@ import { ChevronLeft, GitCompareArrows } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/components/link";
-import { absoluteUrl, seo } from "@/lib/seo";
+import { localizedUrl } from "@/lib/seo";
+import { pageHead } from "@/lib/route-seo";
 import { useI18n } from "@/lib/i18n";
 
 interface CompareSearch {
@@ -28,20 +29,17 @@ export const Route = createFileRoute("/compare")({
   pendingMs: 200,
   pendingMinMs: 0,
   pendingComponent: ComparePending,
-  head: () =>
-    seo({
-      title: "AI Model Compare - BenchSift",
-      description:
-        "Compare AI models side by side across benchmarks, pricing, latency, throughput, context window and capabilities.",
-      path: "/compare",
+  head: ({ match }) =>
+    pageHead(match.context.lang, "compare", "/compare", {
       robots:
         "noindex, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
-      jsonLd: {
+      jsonLd: [{
         "@context": "https://schema.org",
         "@type": "WebPage",
         name: "AI Model Compare",
-        url: absoluteUrl("/compare"),
-      },
+        url: localizedUrl("/compare", match.context.lang),
+        inLanguage: match.context.lang,
+      }],
     }),
   component: ComparePage,
 });

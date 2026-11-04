@@ -1,8 +1,6 @@
-import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from "react";
 
-import { flushSync } from "react-dom";
-import { animateContent } from "./content-motion";
-import { runViewTransition } from "./view-transition";
+import { switchLocaleHref } from "./locale";
 
 export type Lang = "fr" | "en";
 
@@ -13,7 +11,62 @@ function ordinal(value: number): string {
   return `${value}${suffix}`;
 }
 
+export type SeoPageKey =
+  | "home" | "models" | "compare" | "agentsCoding" | "deepswe" | "frontiercode" | "aa3d"
+  | "decisionIndex" | "cyber" | "robotics" | "about" | "privacy" | "legal" | "accessibility";
+
 export interface Translations {
+  /** Page titles and descriptions for search results and link previews. */
+  seo: {
+    pages: Record<SeoPageKey, { title: string; description: string }>;
+    modelsPage: (page: number) => { title: string; description: string };
+    /** Short description of a model page, from what the catalogue holds. */
+    model: {
+      media: (name: string, creator: string, category: string, benchmark: string) => string;
+      text: (name: string, creator: string) => string;
+      other: (name: string, creator: string, category: string, pricing: boolean) => string;
+      categories: Record<"text" | "image" | "audio" | "video" | "embeddings" | "rerank" | "transcription" | "decisions" | "unknown", string>;
+    };
+    breadcrumb: { home: string; models: string; compare: string };
+    /** Prepended to a benchmark page's description: the current leader. */
+    leaderLead: (benchmark: string, leader: string, score: string) => string;
+  };
+  /** The data-generated summary on the home page and the benchmark pages. */
+  summary: {
+    title: string;
+    leader: (name: ReactNode, score: string, count: string, unit: "models" | "results") => ReactNode;
+    value: (name: ReactNode, score: string, cost: string) => ReactNode;
+    cheapest: (name: ReactNode, cost: string) => ReactNode;
+    fastest: (name: ReactNode, measure: string) => ReactNode;
+    pool: (pool: string) => string;
+    updated: (date: string) => string;
+    perTask: string;
+    perScene: string;
+    perMillion: string;
+    perTaskTime: string;
+  };
+  /** Banner offering the visitor's language when the page is in the other one. */
+  langSuggestion: { message: string; action: string; dismiss: string };
+  /** Static pages comparing two models, /compare/<a>-vs-<b>. */
+  comparePair: {
+    title: (a: string, b: string) => string;
+    description: (a: string, b: string, facts: string) => string;
+    heading: (a: string, b: string) => string;
+    lead: string;
+    intelligence: (a: ReactNode, b: ReactNode, sa: string, sb: string) => ReactNode;
+    intelligenceTie: (a: ReactNode, b: ReactNode, score: string) => ReactNode;
+    price: (cheaper: ReactNode, pa: string, other: ReactNode, pb: string) => ReactNode;
+    priceTie: (a: ReactNode, b: ReactNode, price: string) => ReactNode;
+    speed: (faster: ReactNode, sa: string, other: ReactNode, sb: string) => ReactNode;
+    context: (larger: ReactNode, ca: string, other: ReactNode, cb: string) => ReactNode;
+    contextTie: (a: ReactNode, b: ReactNode, size: string) => ReactNode;
+    factIntelligence: (sa: string, sb: string) => string;
+    factPrice: (pa: string, pb: string) => string;
+    factSpeed: (sa: string, sb: string) => string;
+    related: string;
+    popular: string;
+    allCompare: string;
+  };
   mobile: { filters: string; showResults: string; close: string; catalog: string; ranking: string; category: string; overview: string; specifications: string; selection: string; };
   stealth: { active: string; former: string; title: string; listed: string; firstSeen: string; description: string; source: string; revealed: string; unranked: string; unknownCreator: string; };
   benchmarkUi: {
@@ -840,6 +893,83 @@ export interface Translations {
 
 const T: Record<Lang, Translations> = {
   fr: {
+    seo: {
+      pages: {
+        home: { title: "BenchSift - Benchmarks, prix et vitesse des modèles d'IA", description: "Comparez les modèles d'IA par intelligence, code, maths, vitesse, latence et prix, avec les données d'Artificial Analysis, d'OpenRouter et de Hugging Face réunies en français." },
+        models: { title: "Tous les modèles d'IA - BenchSift", description: "Parcourez tous les modèles d'IA indexés sur BenchSift, avec leurs benchmarks, leurs prix, leur vitesse et leurs capacités." },
+        compare: { title: "Comparateur de modèles d'IA - BenchSift", description: "Comparez jusqu'à quatre modèles d'IA côte à côte : benchmarks, prix, latence, débit, fenêtre de contexte et capacités." },
+        agentsCoding: { title: "Agents de code - BenchSift", description: "Classez les agents de code comme Claude Code, Cursor CLI ou OpenCode par score, coût et temps par tâche, d'après le Coding Agent Index d'Artificial Analysis." },
+        deepswe: { title: "Benchmark DeepSWE - BenchSift", description: "Voyez quels agents de code réussissent les longues tâches d'ingénierie logicielle de DeepSWE (Datacurve), avec taux de réussite, coût et durée côte à côte." },
+        frontiercode: { title: "Benchmark FrontierCode - BenchSift", description: "Quels modèles d'IA écrivent des modifications qu'un mainteneur accepterait ? Scores FrontierCode sur de vrais dépôts open source, avec coût et temps par tâche." },
+        aa3d: { title: "Benchmark AA-3D - BenchSift", description: "Comparez les modèles d'IA sur la création de scènes three.js interactives : Elo issu de votes à l'aveugle, coût par scène et tours d'agent, avec des scènes d'exemple." },
+        decisionIndex: { title: "Decision Index - BenchSift", description: "Comparez modèles de décision et modèles de langage en classification, appel d'outils, connaissances, hallucinations et raisonnement, avec coût et temps par tâche." },
+        cyber: { title: "Cyber Index - BenchSift", description: "Les performances des modèles d'IA en cybersécurité dans un seul classement : scores, refus de sécurité, modèles à accès restreint et coût par tâche." },
+        robotics: { title: "AA-Robotics - BenchSift", description: "Des modèles de langage pilotent un bras robotique sur des tâches de table : score, coût et temps par tâche, comparés à un humain, avec les vidéos des essais." },
+        about: { title: "À propos de BenchSift - Comparaison indépendante des modèles d'IA", description: "Pourquoi BenchSift simplifie la comparaison des modèles d'IA, d'où viennent ses données et pourquoi c'est une alternative à Artificial Analysis, pas un concurrent." },
+        privacy: { title: "Confidentialité | BenchSift", description: "Comment BenchSift traite la mesure d'audience, les cookies et vos données." },
+        legal: { title: "Mentions légales | BenchSift", description: "Éditeur, hébergement, licence et sources des données de BenchSift." },
+        accessibility: { title: "Accessibilité | BenchSift", description: "L'engagement d'accessibilité de BenchSift, ses limites connues et comment signaler un problème." },
+      },
+      modelsPage: (page) => ({
+        title: `Tous les modèles d'IA - Page ${page} - BenchSift`,
+        description: `Parcourez les modèles d'IA sur BenchSift, page ${page}, avec un lien direct vers leurs benchmarks, leurs prix, leur vitesse et leurs capacités.`,
+      }),
+      model: {
+        media: (name, creator, category, benchmark) => `${name} de ${creator} : ${category}, avec ${benchmark} d'Artificial Analysis, son rang et ses prix quand ils sont publiés.`,
+        text: (name, creator) => `${name} de ${creator} : benchmarks du modèle de texte, scores de code et de maths, vitesse, latence et prix.`,
+        other: (name, creator, category, pricing) => `${name} de ${creator} : détails du ${category}${pricing ? ", prix" : ""}, modalités et sources.`,
+        categories: {
+          text: "modèle de texte",
+          image: "modèle d'image",
+          audio: "modèle audio",
+          video: "modèle vidéo",
+          embeddings: "modèle d'embeddings",
+          rerank: "modèle de reranking",
+          transcription: "modèle de transcription",
+          decisions: "modèle de décision",
+          unknown: "modèle d'IA",
+        },
+      },
+      breadcrumb: { home: "BenchSift", models: "Modèles", compare: "Comparer" },
+      leaderLead: (benchmark, leader, score) => `${benchmark} sur BenchSift : ${leader} est en tête avec ${score}.`,
+    },
+    summary: {
+      title: "En bref",
+      leader: (name, score, count, unit) => <>{name} est en tête avec {score}, sur {count} {unit === "models" ? "modèles classés" : "résultats"}.</>,
+      value: (name, score, cost) => <>Meilleur rapport score/coût : {name}, {score} pour {cost}.</>,
+      cheapest: (name, cost) => <>Le moins cher : {name}, à {cost}.</>,
+      fastest: (name, measure) => <>Le plus rapide : {name}, {measure}.</>,
+      pool: (pool) => `Rapport et vitesse sont choisis parmi les ${pool} premiers, pour qu'un essai bon marché ou rapide mais faible ne l'emporte pas.`,
+      updated: (date) => `Données relevées le ${date}.`,
+      perTask: "par tâche",
+      perScene: "par scène",
+      perMillion: "par million de tokens",
+      perTaskTime: "par tâche",
+    },
+    langSuggestion: {
+      message: "Cette page existe en français.",
+      action: "Voir en français",
+      dismiss: "Rester en anglais",
+    },
+    comparePair: {
+      title: (a, b) => `${a} vs ${b} : benchmarks, prix et vitesse - BenchSift`,
+      description: (a, b, facts) => `${a} face à ${b} sur BenchSift${facts ? ` : ${facts}` : ""}. Tous les benchmarks, prix et capacités côte à côte.`,
+      heading: (a, b) => `${a} vs ${b}`,
+      lead: "Comparaison générée à partir des données du catalogue. Ajoutez ou retirez des modèles ci-dessous pour affiner.",
+      intelligence: (a, b, sa, sb) => <>{a} obtient {sa} à l'Intelligence Index d'Artificial Analysis, contre {sb} pour {b}.</>,
+      intelligenceTie: (a, b, score) => <>{a} et {b} sont à égalité à l'Intelligence Index, avec {score}.</>,
+      price: (cheaper, pa, other, pb) => <>{cheaper} coûte {pa} par million de tokens (mélange 3:1), contre {pb} pour {other}.</>,
+      priceTie: (a, b, price) => <>{a} et {b} coûtent tous deux {price} par million de tokens (mélange 3:1).</>,
+      speed: (faster, sa, other, sb) => <>{faster} génère {sa}, contre {sb} pour {other}.</>,
+      context: (larger, ca, other, cb) => <>Fenêtre de contexte : {ca} pour {larger}, {cb} pour {other}.</>,
+      contextTie: (a, b, size) => <>Les deux acceptent un contexte de {size} tokens.</>,
+      factIntelligence: (sa, sb) => `Intelligence Index ${sa} contre ${sb}`,
+      factPrice: (pa, pb) => `${pa} contre ${pb} par million de tokens`,
+      factSpeed: (sa, sb) => `${sa} contre ${sb}`,
+      related: "Autres comparaisons",
+      popular: "Comparaisons populaires",
+      allCompare: "Comparer d'autres modèles",
+    },
     mobile: { filters: "Filtres et tri", showResults: "Voir les résultats", close: "Fermer", catalog: "Catalogue", ranking: "Classement", category: "Type de modèle", overview: "Benchmarks", specifications: "Prix et capacités", selection: "Votre sélection" },
     stealth: { active: "Modèle furtif", former: "Ancien modèle furtif", title: "Historique du modèle furtif", listed: "Publié sur OpenRouter", firstSeen: "Détecté par BenchSift", description: "Le fournisseur était anonyme pendant cet aperçu. Les correspondances ci-dessous sont confirmées par OpenRouter. La date de détection indique notre première observation, pas la sortie du modèle.", source: "Source OpenRouter", revealed: "Identité révélée", unranked: "Sans classement", unknownCreator: "Créateur non révélé" },
     benchmarkUi: {
@@ -1809,6 +1939,83 @@ const T: Record<Lang, Translations> = {
     },
   },
   en: {
+    seo: {
+      pages: {
+        home: { title: "BenchSift - AI Model Benchmarks, Pricing and Speed", description: "Compare AI models by intelligence, coding, math, speed, latency and price, with Artificial Analysis, OpenRouter and Hugging Face data in one place, in English and French." },
+        models: { title: "All AI Models - BenchSift", description: "Browse every indexable AI model on BenchSift, with direct links to benchmarks, pricing, speed and capability details." },
+        compare: { title: "AI Model Compare - BenchSift", description: "Compare up to four AI models side by side across benchmarks, pricing, latency, throughput, context window and capabilities." },
+        agentsCoding: { title: "Coding Agents - BenchSift", description: "Rank coding agents such as Claude Code, Cursor CLI and OpenCode by score, cost and time per task, using the Artificial Analysis Coding Agent Index." },
+        deepswe: { title: "DeepSWE Benchmark - BenchSift", description: "See which coding agents solve DeepSWE's long software engineering tasks from Datacurve, with pass rates, cost and run time side by side." },
+        frontiercode: { title: "FrontierCode Benchmark - BenchSift", description: "Which AI models write changes a maintainer would merge? FrontierCode scores on real open-source repositories, with cost and time per task." },
+        aa3d: { title: "AA-3D Benchmark - BenchSift", description: "Compare AI models at building interactive three.js scenes: Elo from blind votes, cost per scene and agent turns, with sample scenes." },
+        decisionIndex: { title: "Decision Index - BenchSift", description: "Compare decision models and language models on classification, tool calling, knowledge, hallucination and reasoning, with cost and time per task." },
+        cyber: { title: "Cyber Index - BenchSift", description: "How AI models perform on cybersecurity tasks in one ranking: scores, safety refusals, trusted-access models and cost per task." },
+        robotics: { title: "AA-Robotics - BenchSift", description: "Language models drive a robot arm on tabletop tasks: score, cost and time per task, compared with a human baseline, with run videos." },
+        about: { title: "About BenchSift - Independent AI Model Comparison", description: "Learn why BenchSift offers a simpler way to compare AI models, where its data comes from, and why it is an alternative rather than a competitor to Artificial Analysis." },
+        privacy: { title: "Privacy | BenchSift", description: "How BenchSift handles analytics, cookies and your data." },
+        legal: { title: "Legal | BenchSift", description: "Publisher, hosting, license and data sources of BenchSift." },
+        accessibility: { title: "Accessibility | BenchSift", description: "BenchSift's accessibility commitment, its known limits and how to report a problem." },
+      },
+      modelsPage: (page) => ({
+        title: `All AI Models - Page ${page} - BenchSift`,
+        description: `Browse AI models on BenchSift, page ${page}, with direct links to benchmarks, pricing, speed and capability details.`,
+      }),
+      model: {
+        media: (name, creator, category, benchmark) => `${name} by ${creator}: ${category} with Artificial Analysis ${benchmark}, rank and pricing data when available.`,
+        text: (name, creator) => `${name} by ${creator}: text model benchmarks, coding and math scores, speed, latency and pricing.`,
+        other: (name, creator, category, pricing) => `${name} by ${creator}: ${category} details${pricing ? ", pricing" : ""}, modalities and source metadata.`,
+        categories: {
+          text: "text AI model",
+          image: "image AI model",
+          audio: "audio AI model",
+          video: "video AI model",
+          embeddings: "embeddings AI model",
+          rerank: "rerank AI model",
+          transcription: "transcription AI model",
+          decisions: "decision AI model",
+          unknown: "AI model",
+        },
+      },
+      breadcrumb: { home: "BenchSift", models: "Models", compare: "Compare" },
+      leaderLead: (benchmark, leader, score) => `${benchmark} on BenchSift: ${leader} leads with ${score}.`,
+    },
+    summary: {
+      title: "At a glance",
+      leader: (name, score, count, unit) => <>{name} leads with {score}, out of {count} {unit === "models" ? "ranked models" : "results"}.</>,
+      value: (name, score, cost) => <>Best score for the money: {name}, {score} for {cost}.</>,
+      cheapest: (name, cost) => <>Lowest cost: {name}, at {cost}.</>,
+      fastest: (name, measure) => <>Fastest: {name}, {measure}.</>,
+      pool: (pool) => `Value and speed are picked among the top ${pool}, so a cheap or quick run with a low score never wins.`,
+      updated: (date) => `Data retrieved on ${date}.`,
+      perTask: "per task",
+      perScene: "per scene",
+      perMillion: "per million tokens",
+      perTaskTime: "per task",
+    },
+    langSuggestion: {
+      message: "This page is available in English.",
+      action: "View in English",
+      dismiss: "Stay in French",
+    },
+    comparePair: {
+      title: (a, b) => `${a} vs ${b}: Benchmarks, Price and Speed - BenchSift`,
+      description: (a, b, facts) => `${a} vs ${b} on BenchSift${facts ? `: ${facts}` : ""}. Every benchmark, price and capability side by side.`,
+      heading: (a, b) => `${a} vs ${b}`,
+      lead: "Comparison generated from the catalogue data. Add or remove models below to refine it.",
+      intelligence: (a, b, sa, sb) => <>{a} scores {sa} on the Artificial Analysis Intelligence Index, against {sb} for {b}.</>,
+      intelligenceTie: (a, b, score) => <>{a} and {b} tie on the Intelligence Index at {score}.</>,
+      price: (cheaper, pa, other, pb) => <>{cheaper} costs {pa} per million tokens (3:1 blend), against {pb} for {other}.</>,
+      priceTie: (a, b, price) => <>{a} and {b} both cost {price} per million tokens (3:1 blend).</>,
+      speed: (faster, sa, other, sb) => <>{faster} generates {sa}, against {sb} for {other}.</>,
+      context: (larger, ca, other, cb) => <>Context window: {ca} for {larger}, {cb} for {other}.</>,
+      contextTie: (a, b, size) => <>Both accept a context of {size} tokens.</>,
+      factIntelligence: (sa, sb) => `Intelligence Index ${sa} vs ${sb}`,
+      factPrice: (pa, pb) => `${pa} vs ${pb} per million tokens`,
+      factSpeed: (sa, sb) => `${sa} vs ${sb}`,
+      related: "More comparisons",
+      popular: "Popular comparisons",
+      allCompare: "Compare other models",
+    },
     mobile: { filters: "Filter and sort", showResults: "Show results", close: "Close", catalog: "Catalog", ranking: "Ranking", category: "Model type", overview: "Benchmarks", specifications: "Price and capabilities", selection: "Your selection" },
     stealth: { active: "Stealth model", former: "Former stealth model", title: "Stealth model history", listed: "Listed on OpenRouter", firstSeen: "First seen by BenchSift", description: "The provider was anonymous during this preview. The identities below are confirmed by OpenRouter. First seen is our first observation, not the model release date.", source: "OpenRouter source", revealed: "Identity revealed", unranked: "Unranked", unknownCreator: "Undisclosed creator" },
     benchmarkUi: {
@@ -2798,22 +3005,16 @@ export function LanguageProvider({
   children: React.ReactNode;
   initialLang?: Lang;
 }) {
-  const [lang, setLangState] = useState<Lang>(initialLang);
-  const motion = useRef<Animation | null>(null);
+  // The language is the page's URL (/fr/... or the root); it never changes
+  // while a document is open. Picking the other one saves the choice and
+  // loads that language's own address, which crawlers and shared links see too.
+  const [lang] = useState<Lang>(initialLang);
   const setLang = useCallback((l: Lang) => {
     document.cookie = `benchsift_lang=${l};path=/;max-age=31536000;SameSite=Lax`;
-    // flushSync lets the view transition capture the page in the new language.
-    const apply = () => {
-      flushSync(() => setLangState(l));
-      document.documentElement.lang = l;
-    };
-    const transition = runViewTransition("language", apply);
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!transition && !reduceMotion) {
-      motion.current = animateContent(document.querySelector("main"), motion.current);
-    }
-  }, []);
-  useEffect(() => () => motion.current?.cancel(), []);
+    if (l === lang) return;
+    const { pathname, search, hash } = window.location;
+    window.location.assign(switchLocaleHref(`${pathname}${search}${hash}`, l));
+  }, [lang]);
 
   const value = useMemo(() => ({ lang, setLang, t: T[lang] }), [lang, setLang]);
 
@@ -2822,6 +3023,11 @@ export function LanguageProvider({
       {children}
     </LangContext.Provider>
   );
+}
+
+/** The strings of one language, for code that runs outside React (route heads). */
+export function translationsFor(lang: Lang): Translations {
+  return T[lang];
 }
 
 export function useI18n() {
