@@ -26,7 +26,7 @@ const getAa3dDataCached = cached(
     if (!res.ok) throw new Error("AA-3D source unavailable");
     const data = parseAa3dPage(await res.text());
     if (!data.rows.length) throw new Error("AA-3D source unavailable");
-    return data;
+    return { ...data, fetched_at: new Date().toISOString() };
   },
   ["aa3d-data"],
   { revalidate: CACHE_SECONDS },

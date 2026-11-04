@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { TrustPage } from "@/components/trust-page";
-import { seo } from "@/lib/seo";
+import { pageHead } from "@/lib/route-seo";
 export const Route = createFileRoute("/privacy")({
-  head: () => seo({ title: "Privacy | BenchSift", path: "/privacy" }),
+  head: ({ match }) => pageHead(match.context.lang, "privacy", "/privacy"),
   component: () => <TrustPage kind="privacy" />,
 });

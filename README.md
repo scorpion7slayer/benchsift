@@ -1,8 +1,13 @@
 # BenchSift
 
-BenchSift helps you compare AI models using text and media benchmarks, speed, pricing, and context windows.
+[![Live site: benchsift.nxtaigen.com](https://img.shields.io/badge/live-benchsift.nxtaigen.com-2f6f4f?style=flat-square)](https://benchsift.nxtaigen.com)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
-![BenchSift](./benchsift.png)
+[![The BenchSift home page: the AI model ranking with score, price, speed and context](./benchsift.png)](https://benchsift.nxtaigen.com)
+
+**BenchSift brings Artificial Analysis, OpenRouter, Models.dev and Hugging Face data together in one open-source comparator, in English and French, with a coding-agent ranking that shows each agent's cost and time per task next to its score.**
+
+BenchSift helps you compare AI models using text and media benchmarks, speed, pricing, and context windows. Open it at [benchsift.nxtaigen.com](https://benchsift.nxtaigen.com) ([version française](https://benchsift.nxtaigen.com/fr)).
 
 Data comes from [Artificial Analysis](https://artificialanalysis.ai), [OpenRouter](https://openrouter.ai), and [Hugging Face](https://huggingface.co). Refresh frequency depends on the deployment schedule; see [DOKPLOY.md](DOKPLOY.md#schedule-job).
 
@@ -13,8 +18,9 @@ Data comes from [Artificial Analysis](https://artificialanalysis.ai), [OpenRoute
 - **Detailed model pages** — context window, output speed, pricing, text benchmarks (MMLU, HumanEval, MATH…) and media ELO benchmarks when Artificial Analysis exposes them
 - **Search & filter** — find models by name or provider instantly
 - **Light/dark theme** — persisted across sessions
-- **French & English** — language auto-detected, switchable in one click
+- **French & English** — every page has its own address in each language (`/models`, `/fr/models`); the browser language is only suggested, never forced
 - **No account required** — language, theme and comparison preferences stay in the browser
+- **Indexable comparisons** — static pages such as `/compare/<model-a>-vs-<model-b>` for the week's most used models, with a summary written from the data
 
 ## Getting started
 
@@ -47,11 +53,12 @@ Commercial response when the configured key grants access.
 
 ```
 src/
-  router.tsx              # Router instance
+  router.tsx              # Router instance, with the /fr URL rewrite
   routes/
     __root.tsx            # Root layout, <head>, providers, error boundary
     index.tsx             # Homepage — catalogue and rankings
     compare.tsx           # Side-by-side comparison
+    compare_.$pair.tsx    # Static pair pages, /compare/<a>-vs-<b>
     agents/coding.tsx     # Coding-agents leaderboard
     models/$slug.tsx      # Model detail page
     api/cron/refresh.ts   # Authenticated cache-refresh endpoint
@@ -72,6 +79,10 @@ lib/
   openrouter-model-filter.ts # OpenRouter model exclusions
   coding-agents.ts        # Coding-agent types + harness metadata (client-safe)
   i18n.tsx                # French/English translations
+  locale.ts               # Language in the URL (/fr prefix) and hreflang paths
+  seo.ts, route-seo.ts    # Head tags, hreflang, BreadcrumbList and Dataset
+  data-summary.ts         # Data-generated summaries (leader, value, fastest)
+  compare-pairs.ts        # Popular comparison pairs
   compare-store.tsx       # Client-side comparison state
 ```
 

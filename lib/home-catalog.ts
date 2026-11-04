@@ -1,4 +1,5 @@
 import type { Evaluations, LLMModel, ModelCreator, Pricing } from "@/lib/api";
+import type { RankingSummary } from "@/lib/data-summary";
 import { modelAccessRestriction, type ModelAccessRestriction } from "@/lib/model-availability";
 import { isOpenWeightsModel, textMetricValue } from "@/lib/model-metrics";
 import { modelReleaseTime } from "@/lib/model-release";
@@ -63,6 +64,10 @@ export interface HomeCatalogData {
    * with the first render: the length of the full ranking, for its counts.
    */
   previewOf?: number;
+  /** Data-generated summary of the default ranking (leader, value, speed). */
+  summary?: RankingSummary;
+  /** When the catalogue was last refreshed, ISO 8601. */
+  updatedAt?: string | null;
 }
 
 function latestModelSummaries(models: LLMModel[], limit = 3): LatestModelSummary[] {

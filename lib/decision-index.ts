@@ -25,7 +25,7 @@ const getDecisionIndexDataCached = cached(
     if (!res.ok) throw new Error("Decision Index source unavailable");
     const rows = parseDecisionIndex(await res.text());
     if (!rows.length) throw new Error("Decision Index source unavailable");
-    return { rows };
+    return { rows, fetched_at: new Date().toISOString() };
   },
   ["decision-index-data"],
   { revalidate: CACHE_SECONDS },

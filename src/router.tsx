@@ -1,10 +1,14 @@
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 import { RouteError, RouteNotFound } from "@/components/error-page";
+import { createLocaleRewrite } from "@/lib/locale";
 
 export function getRouter() {
+  // English at the root, French under /fr: one route tree for both.
+  const { rewrite } = createLocaleRewrite();
   return createRouter({
     routeTree,
+    rewrite,
     defaultPreload: "intent",
     defaultPreloadDelay: 100,
     defaultStaleTime: 30_000,

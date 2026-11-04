@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { CatalogSelect } from "@/components/catalog-select";
 import { CompareModelSearch } from "@/components/compare-model-search";
@@ -29,10 +29,13 @@ export function CompareWorkspace({
   models: baseModels,
   allModels,
   families,
+  heading,
 }: {
   models: LLMModel[];
   allModels: CompareModelOption[];
   families: Record<string, ComparisonFamily>;
+  /** Title and introduction of a static pair page, in place of the generic ones. */
+  heading?: { title: string; intro: ReactNode };
 }) {
   const { t, lang } = useI18n();
   const copy = t.compareWorkspace;
@@ -165,10 +168,10 @@ export function CompareWorkspace({
         <div className="min-w-0">
           <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight sm:text-3xl">
             <GitCompareArrows aria-hidden="true" className="size-5 text-muted-foreground sm:size-6" />
-            {t.compare.title}
+            {heading?.title ?? t.compare.title}
             <PageCat kind="compare" className="ml-2 self-end" />
           </h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{copy.lead}</p>
+          {heading ? heading.intro : <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{copy.lead}</p>}
         </div>
         {models.length > 0 && (
           <div className="flex gap-2">

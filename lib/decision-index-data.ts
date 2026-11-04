@@ -49,6 +49,8 @@ export interface DecisionIndexRow {
 
 export interface DecisionIndexData {
   rows: DecisionIndexRow[];
+  /** When BenchSift retrieved this snapshot from the source (ISO 8601). */
+  fetched_at?: string;
 }
 
 const ID_PATTERN = /^([a-z0-9][a-z0-9-]{0,59})_([a-z0-9][a-z0-9._-]{0,119})$/;

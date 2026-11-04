@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Shield, Trophy } from "@/components/icons";
 import { BenchmarkDisclosure, BenchmarkHeader, ScoreBar, StatTiles } from "@/components/benchmark-page";
 import { CatalogSelect } from "@/components/catalog-select";
@@ -42,8 +42,10 @@ export function CyberIndexView({
   data,
   search,
   onSearchChange,
+  summary,
 }: {
   data: CyberLeaderboard;
+  summary?: ReactNode;
   search: CyberSearch;
   onSearchChange: (search: CyberSearch) => void;
 }) {
@@ -151,7 +153,7 @@ export function CyberIndexView({
 
   return (
     <div className="flex flex-col gap-6">
-      <BenchmarkHeader icon={Shield} title={copy.title} description={copy.description} source={source}>
+      <BenchmarkHeader icon={Shield} title={copy.title} description={copy.description} source={source} summary={summary}>
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           {data.version && <Badge variant="outline" className="font-mono text-xs">{copy.version(data.version)}</Badge>}
           {data.benchmarks.map((benchmark) => (

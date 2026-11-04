@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { TrustPage } from "@/components/trust-page";
-import { seo } from "@/lib/seo";
+import { pageHead } from "@/lib/route-seo";
 export const Route = createFileRoute("/accessibility")({
-  head: () => seo({ title: "Accessibility | BenchSift", path: "/accessibility" }),
+  head: ({ match }) => pageHead(match.context.lang, "accessibility", "/accessibility"),
   component: () => <TrustPage kind="accessibility" />,
 });

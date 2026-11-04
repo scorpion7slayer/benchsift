@@ -15,17 +15,22 @@ import { WebMcpProvider } from "@/components/webmcp-provider";
 import { fetchPreferences } from "@/lib/server-fns";
 import { useI18n } from "@/lib/i18n";
 import { SITE_NAME, seo, websiteJsonLd } from "@/lib/seo";
+import { localeFromPath } from "@/lib/locale";
+import { LanguageSuggestion } from "@/components/language-suggestion";
 import appCss from "../styles/globals.css?url";
 
 export const Route = createRootRoute({
-  head: () => ({
+  // The language is the URL's: /fr/... is French, everything else English.
+  beforeLoad: ({ location }) => ({ lang: localeFromPath(new URL(location.publicHref, "http://localhost").pathname) }),
+  head: ({ match }) => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       ...seo({
         title: SITE_NAME,
         path: "/",
-        jsonLd: websiteJsonLd(),
+        lang: match.context.lang,
+        jsonLd: websiteJsonLd(match.context.lang),
       }).meta,
     ],
     links: [
@@ -62,11 +67,13 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
-  const { lang, theme, analyticsConsent } = Route.useLoaderData();
+  const { theme, analyticsConsent } = Route.useLoaderData();
+  const { lang } = Route.useRouteContext();
   return (
     <RootDocument lang={lang}>
       <Providers initialLang={lang} initialTheme={theme} initialAnalyticsConsent={analyticsConsent}>
         <SkipLink />
+        <LanguageSuggestion />
         <PageTransitionProvider>
           <Outlet />
         </PageTransitionProvider>

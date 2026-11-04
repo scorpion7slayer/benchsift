@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { parseCatalogSearch, type CatalogSearch } from "@/lib/catalog-search";
 import { fetchHomeCatalog } from "@/lib/server-fns";
@@ -8,7 +8,11 @@ import { SiteHeader } from "@/components/site-header";
 import { HomeHero } from "@/components/home-hero";
 import { SiteFooter } from "@/components/site-footer";
 import { ScrollToTop } from "@/components/scroll-to-top";
-import { SITE_NAME, absoluteUrl, seo, websiteJsonLd } from "@/lib/seo";
+import { SITE_NAME, localizedUrl, seo, websiteJsonLd } from "@/lib/seo";
+import { translationsFor } from "@/lib/i18n";
+import { homeSummary } from "@/lib/benchmark-summaries";
+import { summaryLead } from "@/lib/route-seo";
+import { DataSummary } from "@/components/data-summary";
 import {
   agentDiscoveryLinkHeader,
   homepageMarkdown,
@@ -45,25 +49,30 @@ export const Route = createFileRoute("/")({
     Link: agentDiscoveryLinkHeader(),
     Vary: "Accept",
   }),
-  head: ({ loaderData }) =>
-    seo({
-      title: "BenchSift - AI Model Benchmarks, Pricing and Speed",
-      description:
-        "Compare AI models by intelligence, coding, math, speed, latency and price. Updated hourly with Artificial Analysis data.",
+  head: ({ match, loaderData }) => {
+    const lang = match.context.lang;
+    const page = translationsFor(lang).seo.pages.home;
+    const lead = loaderData?.summary ? summaryLead(lang, homeSummary(loaderData.summary, loaderData.updatedAt ?? null)) : "";
+    return seo({
+      title: page.title,
+      description: lead ? `${page.description} ${lead}` : page.description,
+      lang,
       path: "/",
       jsonLd: [
-        websiteJsonLd(),
+        websiteJsonLd(lang),
         {
           "@context": "https://schema.org",
           "@type": "CollectionPage",
           name: SITE_NAME,
-          url: absoluteUrl("/"),
-          description:
-            "A ranked directory of AI models with benchmarks, performance and pricing.",
+          url: localizedUrl("/", lang),
+          inLanguage: lang,
+          description: page.description,
           numberOfItems: loaderData?.count,
+          ...(loaderData?.updatedAt ? { dateModified: loaderData.updatedAt } : {}),
         },
       ],
-    }),
+    });
+  },
   // The default view renders only the top of the ranking; any other view
   // needs the full list from the first render.
   // (The context is typed loosely: inferring it from the route tree is circular.)
@@ -113,6 +122,11 @@ function useCompleteHomeCatalog(loaded: HomeCatalogData) {
 function HomePage() {
   const { data, preview } = useCompleteHomeCatalog(Route.useLoaderData());
   const { count, latestModels, models, cyberModels } = data;
+  const loaded = Route.useLoaderData();
+  const summary = useMemo(
+    () => (loaded.summary ? homeSummary(loaded.summary, loaded.updatedAt ?? null) : null),
+    [loaded.summary, loaded.updatedAt],
+  );
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const updateSearch = useCallback(
@@ -129,6 +143,7 @@ function HomePage() {
           count={count}
           latestModels={latestModels}
         />
+        {summary && <DataSummary data={summary} className="mb-6 sm:mb-8" />}
         <ModelGrid models={models} cyberModels={cyberModels} preview={preview} search={search} onSearchChange={updateSearch} />
       </main>
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { RobotArm, Trophy } from "@/components/icons";
 import { Link } from "@/components/link";
 import { BenchmarkDisclosure, BenchmarkHeader, ScoreBar, StatTiles } from "@/components/benchmark-page";
@@ -37,8 +37,10 @@ export function RoboticsView({
   data,
   search,
   onSearchChange,
+  summary,
 }: {
   data: RoboticsData & { catalog: Record<string, FrontierCodeModelInfo> };
+  summary?: ReactNode;
   search: RoboticsSearch;
   onSearchChange: (search: RoboticsSearch) => void;
 }) {
@@ -93,7 +95,7 @@ export function RoboticsView({
 
   return (
     <div className="flex flex-col gap-6">
-      <BenchmarkHeader icon={RobotArm} title={copy.title} description={copy.description} source={source}>{preview}</BenchmarkHeader>
+      <BenchmarkHeader icon={RobotArm} title={copy.title} description={copy.description} source={source} summary={summary}>{preview}</BenchmarkHeader>
 
       <StatTiles
         tiles={[

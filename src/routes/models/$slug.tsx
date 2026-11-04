@@ -3,7 +3,8 @@ import { fetchModelDetail, fetchModelCapabilities, fetchModelDecisionIndex } fro
 import { ModelDetailClient } from "@/components/model-detail-client";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { absoluteUrl, seo } from "@/lib/seo";
+import { breadcrumbJsonLd, localizedUrl, seo } from "@/lib/seo";
+import { translationsFor } from "@/lib/i18n";
 import {
   getPrimaryCategory,
   hasAnyBenchmarkData,
@@ -31,21 +32,23 @@ export const Route = createFileRoute("/models/$slug")({
     const decisionIndexPromise = fetchModelDecisionIndex({ data: detail.model.slug });
     return { ...detail, capabilitiesPromise, decisionIndexPromise };
   },
-  head: ({ loaderData }) => {
+  head: ({ match, loaderData }) => {
     const model = loaderData?.model;
     if (!model) return {};
+    const lang = match.context.lang;
+    const t = translationsFor(lang);
     const category = getPrimaryCategory(model);
-    const categoryLabel = category === "unknown"
-      ? "AI"
-      : category === "decisions" ? "decision AI" : `${category} AI`;
+    const categoryLabel = t.seo.model.categories[category];
     const hasBenchmarks = hasAnyBenchmarkData(model);
     const hasPricing = hasPricingData(model);
     const mediaBenchmark = mediaBenchmarkValues(model)[0];
+    const creator = model.model_creator.name;
     const description = hasMediaBenchmarks(model) && mediaBenchmark
-      ? `${model.name} by ${model.model_creator.name}: ${categoryLabel} model with Artificial Analysis ${mediaBenchmark.label.en}, rank and pricing data when available.`
+      ? t.seo.model.media(model.name, creator, categoryLabel, mediaBenchmark.label[lang])
       : isTextOutputModel(model) && hasBenchmarks
-        ? `${model.name} by ${model.model_creator.name}: text model benchmarks, coding and math scores, speed, latency and pricing.`
-        : `${model.name} by ${model.model_creator.name}: ${categoryLabel} model details${hasPricing ? ", pricing" : ""}, modalities and source metadata.`;
+        ? t.seo.model.text(model.name, creator)
+        : t.seo.model.other(model.name, creator, categoryLabel, hasPricing);
+    const pageUrl = localizedUrl(`/models/${model.slug}`, lang);
     const firstUnitPrice = model.pricing.openrouter_display_prices?.[0];
     const offerPrice = model.pricing.price_1m_blended_3_to_1 ?? firstUnitPrice?.price ?? null;
     const offerUnit = model.pricing.price_1m_blended_3_to_1 != null
@@ -55,27 +58,24 @@ export const Route = createFileRoute("/models/$slug")({
       ...seo({
         title: `${model.name} - BenchSift`,
         description,
+        lang,
         path: `/models/${model.slug}`,
         // One indexed page per family: the variant the catalogue and sitemap list.
         robots: shouldIndexModelPage(model) &&
           (loaderData.variants.length <= 1 || canonicalVariantSlug(loaderData.variants.map((variant) => variant.slug)) === model.slug)
           ? undefined
           : "noindex, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
-        jsonLd: [{
-          "@context": "https://schema.org",
-          "@type": "BreadcrumbList",
-          itemListElement: [
-            { "@type": "ListItem", position: 1, name: "BenchSift", item: absoluteUrl("/") },
-            { "@type": "ListItem", position: 2, name: model.model_creator.name, item: absoluteUrl(`/?provider=${encodeURIComponent(model.model_creator.slug)}`) },
-            { "@type": "ListItem", position: 3, name: model.name, item: absoluteUrl(`/models/${model.slug}`) },
-          ],
-        }, {
+        jsonLd: [breadcrumbJsonLd(lang, [
+          { name: t.seo.breadcrumb.home, path: "/" },
+          { name: model.model_creator.name, path: `/?provider=${encodeURIComponent(model.model_creator.slug)}` },
+          { name: model.name, path: `/models/${model.slug}` },
+        ]), {
           "@context": "https://schema.org",
           "@type": "SoftwareApplication",
           name: model.name,
           applicationCategory: "AI model",
           operatingSystem: "Cloud",
-          url: absoluteUrl(`/models/${model.slug}`),
+          url: pageUrl,
           creator: {
             "@type": "Organization",
             name: model.model_creator.name,

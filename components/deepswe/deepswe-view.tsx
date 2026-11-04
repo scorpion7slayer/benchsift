@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Activity, Trophy } from "@/components/icons";
 import { SearchField } from "@/components/search-field";
 import { Link } from "@/components/link";
@@ -9,7 +9,7 @@ import { SegmentedControl } from "@/components/segmented-control";
 import { SortButton } from "@/components/sort-button";
 import { TradeoffChart, type ChartScale, type ChartSeries } from "@/components/tradeoff-chart";
 import { Badge } from "@/components/ui/badge";
-import { deepSweCatalogKey, type DeepSweModelInfo } from "@/lib/deepswe-catalog";
+import { deepSweCatalogKey, deepSweFallbackName, type DeepSweModelInfo } from "@/lib/deepswe-catalog";
 import {
   DEEPSWE_DEFAULT_DIRECTION,
   selectDeepSweRows,
@@ -28,25 +28,11 @@ import { PageCat } from "@/components/pixel-art/page-cats";
 
 type XAxis = "cost" | "time";
 
-/** Readable name for a DeepSWE slug the catalogue does not list. */
-function fallbackName(slug: string): string {
-  return slug
-    .split("-")
-    .map((part, index, parts) => {
-      // "5-6" → "5.6" inside version numbers.
-      if (/^\d+$/.test(part) && /^\d+$/.test(parts[index - 1] ?? "")) return `.${part}`;
-      if (/^(gpt|glm|gpt\d.*)$/i.test(part)) return part.toUpperCase();
-      return part.charAt(0).toUpperCase() + part.slice(1);
-    })
-    .join(" ")
-    .replace(/ \./g, ".");
-}
-
 /**
  * DeepSWE leaderboard: headline figures, the score against cost chart (one
  * line per model across its effort levels), then the sortable table.
  */
-export function DeepSweView({ data }: { data: DeepSweData & { catalog: Record<string, DeepSweModelInfo> } }) {
+export function DeepSweView({ data, summary }: { data: DeepSweData & { catalog: Record<string, DeepSweModelInfo> }; summary?: ReactNode }) {
   const { t, lang } = useI18n();
   const copy = t.deepSwe;
   const ui = t.benchmarkUi;
@@ -63,7 +49,7 @@ export function DeepSweView({ data }: { data: DeepSweData & { catalog: Record<st
   const [scale, setScale] = useState<ChartScale>("log");
 
   const info = (row: DeepSweRow) => data.catalog[deepSweCatalogKey(row.model, row.reasoning_effort)];
-  const nameOf = (row: DeepSweRow) => info(row)?.name ?? fallbackName(row.model);
+  const nameOf = (row: DeepSweRow) => info(row)?.name ?? deepSweFallbackName(row.model);
   const creatorOf = (row: DeepSweRow) =>
     info(row)?.creatorSlug ?? row.provider ?? resolveCreatorFromModelSlug(row.model, row.model.split("-")[0] ?? "");
 
@@ -139,7 +125,7 @@ export function DeepSweView({ data }: { data: DeepSweData & { catalog: Record<st
 
   return (
     <div className="flex flex-col gap-6">
-      <BenchmarkHeader icon={Activity} title={copy.title} description={copy.description} source={source}>
+      <BenchmarkHeader icon={Activity} title={copy.title} description={copy.description} source={source} summary={summary}>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <SegmentedControl
             value={version}

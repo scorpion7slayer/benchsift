@@ -33,7 +33,7 @@ const getRoboticsDataCached = cached(
       payload,
     );
     if (!data.rows.length) throw new Error("AA-Robotics source unavailable");
-    return data;
+    return { ...data, fetched_at: new Date().toISOString() };
   },
   ["aa-robotics-data"],
   { revalidate: CACHE_SECONDS },

@@ -37,6 +37,8 @@ export interface FrontierCodeRow {
 
 export interface FrontierCodeData {
   rows: FrontierCodeRow[];
+  /** When BenchSift retrieved this snapshot from the source (ISO 8601). */
+  fetched_at?: string;
 }
 
 export type FrontierCodeSort = "score" | "release";

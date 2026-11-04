@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Boxes, ChevronDown, Trophy } from "@/components/icons";
 import { SearchField } from "@/components/search-field";
 import { Link } from "@/components/link";
@@ -35,7 +35,7 @@ const X_VALUE: Record<XAxis, (row: Aa3dRow) => number | null> = {
  * behavior follow the same search, then comes the task explorer. Ranks follow the full source
  * order, so filters never renumber them.
  */
-export function Aa3dView({ data }: { data: Aa3dData & { catalog: Record<string, FrontierCodeModelInfo> } }) {
+export function Aa3dView({ data, summary }: { data: Aa3dData & { catalog: Record<string, FrontierCodeModelInfo> }; summary?: ReactNode }) {
   const { t, lang } = useI18n();
   const copy = t.aa3d;
   const colon = lang === "fr" ? " : " : ": ";
@@ -112,7 +112,7 @@ export function Aa3dView({ data }: { data: Aa3dData & { catalog: Record<string, 
 
   return (
     <div className="flex flex-col gap-6">
-      <BenchmarkHeader icon={Boxes} title={copy.title} description={copy.description} source={source} />
+      <BenchmarkHeader icon={Boxes} title={copy.title} description={copy.description} source={source} summary={summary} />
 
       <StatTiles
         tiles={[

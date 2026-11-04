@@ -1,4 +1,6 @@
 import { useRef, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
+import { switchLocaleHref } from "@/lib/locale";
 import { Link } from "@/components/link";
 import {
   Activity,
@@ -39,18 +41,31 @@ function GithubIcon({ className }: { className?: string }) {
   );
 }
 
+/** A real link to this page in the other language, so crawlers follow it too. */
 function LangToggle() {
   const { lang, setLang } = useI18n();
   const next: Lang = lang === "fr" ? "en" : "fr";
+  const publicHref = useRouterState({ select: (state) => state.location.publicHref });
   return (
     <Button
       variant="ghost"
       size="sm"
-      onClick={() => setLang(next)}
-      aria-label={lang === "fr" ? "Switch to English" : "Passer en français"}
+      asChild
       className="touch-target h-10 px-2.5 text-xs font-mono font-medium sm:h-8"
     >
-      <span key={next} className="language-label">{next.toUpperCase()}</span>
+      <a
+        href={switchLocaleHref(publicHref, next)}
+        hrefLang={next}
+        lang={next}
+        aria-label={lang === "fr" ? "Switch to English" : "Passer en français"}
+        onClick={(event) => {
+          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+          event.preventDefault();
+          setLang(next);
+        }}
+      >
+        <span key={next} className="language-label">{next.toUpperCase()}</span>
+      </a>
     </Button>
   );
 }

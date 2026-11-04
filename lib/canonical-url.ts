@@ -16,11 +16,19 @@ const SECTION_ROOTS: Record<string, string> = {
 /** The canonical form of a request path, or null when it is already canonical. */
 export function canonicalPath(pathname: string): string | null {
   if (UNTOUCHED.test(pathname)) return null;
+  // French pages share the rules of their English path under the /fr prefix.
+  const french = pathname.replace(/\/{2,}/g, "/").match(/^\/fr(?=\/|$)/i);
+  if (french) {
+    const rest = pathname.replace(/\/{2,}/g, "/").slice(3) || "/";
+    const inner = canonicalPath(rest) ?? rest;
+    const path = inner === "/" ? "/fr" : `/fr${inner}`;
+    return path === pathname ? null : path;
+  }
 
-  // Fixed segments are lowercase; a model slug keeps its case (AA has "QwQ-32B-Preview"),
+  // Fixed segments are lowercase; a model slug (alone or in a comparison) keeps its case (AA has "QwQ-32B-Preview"),
   // and its page redirects other spellings to the model's own slug.
   let path = pathname.replace(/\/{2,}/g, "/").split("/").map((segment, index, parts) => (
-    index === 2 && parts[1].toLowerCase() === "models" && segment.toLowerCase() !== "page" ? segment : segment.toLowerCase()
+    index === 2 && (parts[1].toLowerCase() === "compare" || (parts[1].toLowerCase() === "models" && segment.toLowerCase() !== "page")) ? segment : segment.toLowerCase()
   )).join("/");
   // Old static-site addresses: /index.html, /about.html, /about/index.html.
   path = path.replace(/\/index(?:\.html?)?$/, "/").replace(/\.html?$/, "");

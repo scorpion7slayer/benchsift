@@ -3,7 +3,8 @@ import { ModelCatalogPage } from "@/components/model-catalog-page";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { MODEL_CATALOG_PAGE_SIZE } from "@/lib/model-catalog";
-import { absoluteUrl, seo } from "@/lib/seo";
+import { breadcrumbJsonLd, localizedUrl, seo } from "@/lib/seo";
+import { translationsFor } from "@/lib/i18n";
 import { fetchCatalogPage } from "@/lib/server-fns";
 
 export const Route = createFileRoute("/models/page/$page")({
@@ -15,19 +16,27 @@ export const Route = createFileRoute("/models/page/$page")({
     if (!catalogPage) throw notFound();
     return catalogPage;
   },
-  head: ({ loaderData }) => {
+  head: ({ match, loaderData }) => {
     const page = loaderData?.page;
     if (!page) return {};
+    const lang = match.context.lang;
+    const t = translationsFor(lang);
+    const copy = t.seo.modelsPage(page);
 
     return seo({
-      title: `All AI Models - Page ${page} - BenchSift`,
-      description: `Browse AI models on BenchSift, page ${page}, with direct links to benchmarks, pricing, speed and capability details.`,
+      ...copy,
+      lang,
       path: `/models/page/${page}`,
-      jsonLd: {
+      jsonLd: [breadcrumbJsonLd(lang, [
+        { name: t.seo.breadcrumb.home, path: "/" },
+        { name: t.seo.breadcrumb.models, path: "/models" },
+        { name: copy.title.replace(/ - BenchSift$/, ""), path: `/models/page/${page}` },
+      ]), {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
-        name: `All AI Models - Page ${page}`,
-        url: absoluteUrl(`/models/page/${page}`),
+        name: copy.title.replace(/ - BenchSift$/, ""),
+        url: localizedUrl(`/models/page/${page}`, lang),
+        inLanguage: lang,
         mainEntity: {
           "@type": "ItemList",
           numberOfItems: loaderData?.totalModels,
@@ -36,10 +45,10 @@ export const Route = createFileRoute("/models/page/$page")({
             "@type": "ListItem",
             position: (page - 1) * MODEL_CATALOG_PAGE_SIZE + index + 1,
             name: model.name,
-            url: absoluteUrl(`/models/${encodeURIComponent(model.slug)}`),
+            url: localizedUrl(`/models/${encodeURIComponent(model.slug)}`, lang),
           })),
         },
-      },
+      }],
     });
   },
   component: ModelsCatalogPage,

@@ -1,4 +1,5 @@
 import type { JSX } from "react";
+import { LOCALES, OG_LOCALE, localizedPath, type Locale } from "./locale";
 
 export const SITE_NAME = "BenchSift";
 export const SITE_URL = "https://benchsift.nxtaigen.com";
@@ -8,6 +9,11 @@ export const OG_IMAGE = { path: "/og-image.png", width: 1200, height: 630, alt: 
 
 export const DEFAULT_DESCRIPTION =
     "Compare AI models with benchmarks, performance, pricing, coding scores and model capabilities.";
+
+const DEFAULT_DESCRIPTIONS: Record<Locale, string> = {
+    en: DEFAULT_DESCRIPTION,
+    fr: "Comparez les modèles d'IA : benchmarks, performances, prix, scores de code et capacités.",
+};
 
 type JsonLd = Record<string, unknown>;
 type MetaTag = JSX.IntrinsicElements["meta"] & {
@@ -23,6 +29,21 @@ interface SeoOptions {
     type?: "website" | "article";
     jsonLd?: JsonLd | JsonLd[];
     robots?: string;
+    /** Language of this version; `path` is the unprefixed page path. */
+    lang?: Locale;
+}
+
+/** Public URL of a page path in a language: /about, /fr/about. */
+export function localizedUrl(path: string, lang: Locale = "en"): string {
+    return absoluteUrl(localizedPath(path, lang));
+}
+
+/** The hreflang alternates of a page: each language, and English as x-default. */
+export function alternateLinks(path: string): LinkTag[] {
+    return [
+        ...LOCALES.map((locale) => ({ rel: "alternate", hrefLang: locale, href: localizedUrl(path, locale) })),
+        { rel: "alternate", hrefLang: "x-default", href: localizedUrl(path, "en") },
+    ];
 }
 
 export function absoluteUrl(path = "/"): string {
@@ -33,13 +54,15 @@ export function absoluteUrl(path = "/"): string {
 
 export function seo({
     title,
-    description = DEFAULT_DESCRIPTION,
+    lang = "en",
+    description = DEFAULT_DESCRIPTIONS[lang],
     path = "/",
     type = "website",
     jsonLd,
     robots = "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
 }: SeoOptions): { meta: MetaTag[]; links: LinkTag[] } {
-    const url = absoluteUrl(path);
+    // Absolute paths only; the language prefix comes from `lang`.
+    const url = /^https?:\/\//i.test(path) ? path : localizedUrl(path, lang);
     const meta: MetaTag[] = [
         { title },
         { name: "description", content: description },
@@ -52,6 +75,8 @@ export function seo({
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:url", content: url },
+        { property: "og:locale", content: OG_LOCALE[lang] },
+        ...LOCALES.filter((locale) => locale !== lang).map((locale) => ({ property: "og:locale:alternate", content: OG_LOCALE[locale] })),
         { property: "og:image", content: absoluteUrl(OG_IMAGE.path) },
         { property: "og:image:width", content: String(OG_IMAGE.width) },
         { property: "og:image:height", content: String(OG_IMAGE.height) },
@@ -69,16 +94,69 @@ export function seo({
 
     return {
         meta,
-        links: [{ rel: "canonical", href: url }],
+        links: [{ rel: "canonical", href: url }, ...(/^https?:\/\//i.test(path) ? [] : alternateLinks(path))],
     };
 }
 
-export function websiteJsonLd() {
+export function websiteJsonLd(lang: Locale = "en") {
     return {
         "@context": "https://schema.org",
         "@type": "WebSite",
         name: SITE_NAME,
-        url: absoluteUrl("/"),
-        description: DEFAULT_DESCRIPTION,
+        url: localizedUrl("/", lang),
+        description: DEFAULT_DESCRIPTIONS[lang],
+        inLanguage: LOCALES,
+    };
+}
+
+/** schema.org BreadcrumbList from the home page down to the current page. */
+export function breadcrumbJsonLd(lang: Locale, items: Array<{ name: string; path: string }>) {
+    return {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: items.map((item, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            name: item.name,
+            item: localizedUrl(item.path, lang),
+        })),
+    };
+}
+
+interface DatasetOptions {
+    lang: Locale;
+    path: string;
+    name: string;
+    description: string;
+    /** Who publishes the benchmark results BenchSift reshapes. */
+    creator: { name: string; url: string };
+    /** The page the results come from. */
+    sourceUrl: string;
+    measured: string[];
+    dateModified?: string | null;
+    size?: number;
+}
+
+/**
+ * schema.org Dataset for a benchmark page: the results as BenchSift shows
+ * them, credited to the organisation that measured them.
+ */
+export function datasetJsonLd({ lang, path, name, description, creator, sourceUrl, measured, dateModified, size }: DatasetOptions) {
+    const url = localizedUrl(path, lang);
+    return {
+        "@context": "https://schema.org",
+        "@type": "Dataset",
+        name,
+        description,
+        url,
+        inLanguage: lang,
+        isAccessibleForFree: true,
+        creator: { "@type": "Organization", name: creator.name, url: creator.url },
+        publisher: { "@type": "Organization", name: SITE_NAME, url: absoluteUrl("/") },
+        isBasedOn: sourceUrl,
+        variableMeasured: measured,
+        ...(dateModified ? { dateModified } : {}),
+        ...(size ? { size: `${size} ${lang === "fr" ? "résultats" : "results"}` } : {}),
+        distribution: { "@type": "DataDownload", encodingFormat: "text/html", contentUrl: url },
     };
 }

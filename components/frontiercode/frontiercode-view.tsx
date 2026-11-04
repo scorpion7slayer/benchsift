@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { ChevronDown, Gauge, Trophy } from "@/components/icons";
 import { SearchField } from "@/components/search-field";
 import { Link } from "@/components/link";
@@ -37,7 +37,7 @@ const X_VALUE: Record<XAxis, (row: FrontierCodeRow) => number | null> = {
  * searchable table. Ranks follow the full source order, so filters never
  * renumber them.
  */
-export function FrontierCodeView({ data }: { data: FrontierCodeData & { catalog: Record<string, FrontierCodeModelInfo> } }) {
+export function FrontierCodeView({ data, summary }: { data: FrontierCodeData & { catalog: Record<string, FrontierCodeModelInfo> }; summary?: ReactNode }) {
   const { t, lang } = useI18n();
   const copy = t.frontierCode;
   const colon = lang === "fr" ? " : " : ": ";
@@ -98,7 +98,7 @@ export function FrontierCodeView({ data }: { data: FrontierCodeData & { catalog:
 
   return (
     <div className="flex flex-col gap-6">
-      <BenchmarkHeader icon={Gauge} title={copy.title} description={copy.description} source={source} />
+      <BenchmarkHeader icon={Gauge} title={copy.title} description={copy.description} source={source} summary={summary} />
 
       <div className="relative">
         <PageCat kind="frontiercode" className="absolute bottom-[calc(100%+1px)] right-6" />
