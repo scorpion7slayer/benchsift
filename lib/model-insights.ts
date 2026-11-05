@@ -1,6 +1,6 @@
 import type { LLMModel } from "./model-types";
 import { cyberCounterparts, type CyberCounterpart } from "./cyber-index";
-import { AA_CAPABILITY_INDEX_KEYS, FRACTION_BENCHMARK_KEYS, textMetricValue } from "./model-metrics";
+import { AA_CAPABILITY_INDEX_KEYS, ELO_BENCHMARK_KEYS, FRACTION_BENCHMARK_KEYS, textMetricValue } from "./model-metrics";
 import {
   collapseReasoningVariants,
   type ModelReasoningFamily,
@@ -88,7 +88,9 @@ const RANKED_METRICS: Record<string, { better: Better; value: (model: LLMModel) 
   ...Object.fromEntries(
     FRACTION_BENCHMARK_KEYS.map((key) => [key, { better: "higher" as const, value: (m: LLMModel) => textMetricValue(m, key) }]),
   ),
-  gdpval: { better: "higher", value: (m) => textMetricValue(m, "gdpval") },
+  ...Object.fromEntries(
+    ELO_BENCHMARK_KEYS.map((key) => [key, { better: "higher" as const, value: (m: LLMModel) => textMetricValue(m, key) }]),
+  ),
   speed: { better: "higher", value: (m) => finite(m.median_output_tokens_per_second) },
   ttft: { better: "lower", value: (m) => finite(m.median_time_to_first_token_seconds) },
   price: { better: "lower", value: (m) => finite(m.pricing.price_1m_blended_3_to_1) },

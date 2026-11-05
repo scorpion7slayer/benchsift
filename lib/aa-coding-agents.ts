@@ -16,6 +16,9 @@ interface AAAgentRow {
     model?: string;
     creator?: { agent?: string; model?: string };
   };
+  agentCreator?: { slug?: string } | null;
+  modelCreators?: Array<{ slug?: string } | null> | null;
+  model?: { release?: { name?: string } | null; suffix?: string | null } | null;
   displayLabel?: string;
   releaseDate?: string;
   hostName?: string;
@@ -116,6 +119,24 @@ function score(value: unknown): number | null {
   return result !== null && result <= 1 ? result : null;
 }
 
+const EFFORTS = new Set(["minimal", "low", "medium", "high", "xhigh", "max"]);
+
+/**
+ * AA states a single model's suffix ("Max", "Max, Default Fallback", null).
+ * The effort is its leading word; other qualifiers stay with the name, and a
+ * null suffix means a name like "Qwen3.8 Max" carries no effort at all.
+ */
+function effortFromSuffix(model: AAAgentRow["model"]): { name: string; effort: string | null } | undefined {
+  const name = model?.release?.name;
+  if (!model || typeof name !== "string" || !name.trim() || !("suffix" in model)) return undefined;
+  const suffix = typeof model.suffix === "string" ? model.suffix.trim() : "";
+  if (!suffix) return { name: name.trim(), effort: null };
+  const [first, ...rest] = suffix.split(",").map((part) => part.trim()).filter(Boolean);
+  const effort = first && EFFORTS.has(first.toLowerCase()) ? first.toLowerCase() : null;
+  const qualifiers = effort ? rest : [first, ...rest].filter(Boolean);
+  return { name: qualifiers.length ? `${name.trim()} (${qualifiers.join(", ")})` : name.trim(), effort };
+}
+
 export function parseCodingAgents(payload: string): CodingAgent[] {
   const rows = extractRowsFromRSC(payload);
   if (!Array.isArray(rows)) return [];
@@ -152,7 +173,14 @@ export function parseCodingAgents(payload: string): CodingAgent[] {
     const mean = row.mean ?? {};
     const index = score(row.indexScore);
     const displayModel = row.display?.model ?? row.modelName ?? modelSlug;
-    const creators = row.display?.creator?.model?.split(" + ");
+    const parts = displayModel.split(" + ");
+    const sourceCreators = Array.isArray(row.modelCreators)
+      ? row.modelCreators.map((creator) => (typeof creator?.slug === "string" ? creator.slug : null))
+      : [];
+    const creators =
+      sourceCreators.length === parts.length && sourceCreators.every(Boolean)
+        ? (sourceCreators as string[])
+        : row.display?.creator?.model?.split(" + ");
     // AA explicitly uses these creator prefixes for Devin's published compound configuration.
     const fusion =
       row.display?.agent === "Devin Fusion CLI" ||
@@ -163,7 +191,8 @@ export function parseCodingAgents(payload: string): CodingAgent[] {
       Penguin: "cognition",
       "SWE-": "cognition",
     };
-    const modelParts = displayModel.split(" + ").map((name, index) => {
+    const sourceEffort = parts.length === 1 ? effortFromSuffix(row.model) : undefined;
+    const modelParts = parts.map((name, index) => {
       const creator =
         creators?.[index] ??
         (fusion
@@ -172,7 +201,8 @@ export function parseCodingAgents(payload: string): CodingAgent[] {
             )?.[1]
           : undefined);
       return {
-        name,
+        name: sourceEffort?.name ?? name,
+        ...(sourceEffort ? { effort: sourceEffort.effort } : {}),
         creator: creator
           ? getCanonicalCreatorSlug(creator.toLowerCase())
           : !fusion && !displayModel.includes(" + ")
@@ -188,7 +218,9 @@ export function parseCodingAgents(payload: string): CodingAgent[] {
         id: row.id ?? `${slug}-${i}`,
         agent_name: agentName,
         agent_slug: slug,
-        agent_creator_slug: row.display?.creator?.agent
+        agent_creator_slug: typeof row.agentCreator?.slug === "string"
+          ? getCanonicalCreatorSlug(row.agentCreator.slug.toLowerCase())
+          : row.display?.creator?.agent
           ? getCanonicalCreatorSlug(row.display.creator.agent.toLowerCase())
           : fusion
             ? "cognition"
@@ -200,7 +232,9 @@ export function parseCodingAgents(payload: string): CodingAgent[] {
         model_name: row.modelName ?? row.display?.model ?? modelSlug,
         model_short: row.display?.model ?? row.modelName ?? "",
         model_slug: modelSlug,
-        model_creator_slug: resolveCreatorFromModelSlug(
+        model_creator_slug: parts.length === 1 && creators?.[0]
+          ? getCanonicalCreatorSlug(creators[0].toLowerCase())
+          : resolveCreatorFromModelSlug(
           modelSlug,
           (hostRaw || row.provider || "").toLowerCase(),
         ),

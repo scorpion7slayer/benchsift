@@ -450,4 +450,14 @@ export const aaLogoAssets: Record<string, { file: string; color?: string }> = {
     file: "kokoro_small.jpeg",
     color: "#C2D5E3",
   },
+  reflection: {
+    file: "reflection.svg",
+    color: "#195428",
+  },
+  "nace-ai": {
+    file: "nace.svg",
+  },
+  subquadratic: {
+    file: "subquadratic.svg",
+  },
 };

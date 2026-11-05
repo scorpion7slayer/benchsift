@@ -13,6 +13,7 @@ import { useI18n } from "@/lib/i18n";
 import {
   applicableExtraBenchmarkEntries,
   capabilityIndexValues,
+  ELO_BENCHMARK_KEYS,
   FRACTION_BENCHMARK_KEYS,
   mediaBenchmarkValues,
   numericEval,
@@ -32,7 +33,8 @@ const INDEX_ROWS = [
 ] as const;
 
 const COLLAPSED_BENCHMARKS = 8;
-const GDPVAL_SCALE = 2000;
+/** Bar scale for Elo-rated benchmarks; AA's current leaders sit below it. */
+const ELO_SCALE = 2000;
 const MEDIA_ELO_SCALE = 1400;
 
 function benchmarkLabel(key: string, t: Translations): string {
@@ -260,9 +262,11 @@ export function StandardBenchmarksCard({ model, ranks }: { model: LLMModel; rank
     const value = textMetricValue(model, key);
     return value == null ? [] : [{ key, label: benchmarkLabel(key, t), value: formatPercent(value, lang), share: value }];
   });
-  const gdpval = numericEval(model.evaluations, "gdpval");
-  if (gdpval != null) {
-    rows.push({ key: "gdpval", label: t.benchmarks.gdpval, value: formatNumber(gdpval, lang, 0), share: gdpval / GDPVAL_SCALE });
+  for (const key of ELO_BENCHMARK_KEYS) {
+    const elo = numericEval(model.evaluations, key);
+    if (elo != null) {
+      rows.push({ key, label: benchmarkLabel(key, t), value: `${formatNumber(elo, lang, 0)} Elo`, share: Math.min(1, elo / ELO_SCALE) });
+    }
   }
   if (!rows.length) return null;
   const visible = expanded ? rows : rows.slice(0, COLLAPSED_BENCHMARKS);
