@@ -1,5 +1,6 @@
 import { createMiddleware, createStart } from "@tanstack/react-start";
 import { canonicalRedirect } from "@/lib/canonical-url";
+import { serveWithHtmlCache } from "@/lib/html-cache";
 
 const LEGACY_HOST = "nxtaicard.nxtaigen.com";
 const CANONICAL_HOST = "benchsift.nxtaigen.com";
@@ -23,6 +24,10 @@ const canonicalHostRedirect = createMiddleware().server(({ request, next }) => {
 /** One permanent redirect from any variant of a path to its canonical form. */
 const canonicalPathRedirect = createMiddleware().server(({ request, next }) => canonicalRedirect(request) ?? next());
 
+/** Anonymous model pages come from the server-side render cache. */
+const modelPageCache = createMiddleware().server(({ request, next }) =>
+  serveWithHtmlCache(request, async () => (await next()).response));
+
 export const startInstance = createStart(() => ({
-  requestMiddleware: [canonicalHostRedirect, canonicalPathRedirect],
+  requestMiddleware: [canonicalHostRedirect, canonicalPathRedirect, modelPageCache],
 }));

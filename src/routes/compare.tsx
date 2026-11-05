@@ -31,8 +31,11 @@ export const Route = createFileRoute("/compare")({
   pendingComponent: ComparePending,
   head: ({ match }) =>
     pageHead(match.context.lang, "compare", "/compare", {
-      robots:
-        "noindex, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
+      // The empty comparator is a pillar page; a chosen selection is a
+      // variant of it (the indexed pairs live under /compare/<a>-vs-<b>).
+      robots: match.search.models
+        ? "noindex, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+        : undefined,
       jsonLd: [{
         "@context": "https://schema.org",
         "@type": "WebPage",

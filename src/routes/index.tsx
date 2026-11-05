@@ -11,7 +11,6 @@ import { ScrollToTop } from "@/components/scroll-to-top";
 import { SITE_NAME, localizedUrl, seo, websiteJsonLd } from "@/lib/seo";
 import { translationsFor } from "@/lib/i18n";
 import { homeSummary } from "@/lib/benchmark-summaries";
-import { summaryLead } from "@/lib/route-seo";
 import { DataSummary } from "@/components/data-summary";
 import {
   agentDiscoveryLinkHeader,
@@ -52,10 +51,11 @@ export const Route = createFileRoute("/")({
   head: ({ match, loaderData }) => {
     const lang = match.context.lang;
     const page = translationsFor(lang).seo.pages.home;
-    const lead = loaderData?.summary ? summaryLead(lang, homeSummary(loaderData.summary, loaderData.updatedAt ?? null)) : "";
+    // A fixed description: a live leader or count would change the snippet
+    // with every catalogue refresh.
     return seo({
       title: page.title,
-      description: lead ? `${page.description} ${lead}` : page.description,
+      description: page.description,
       lang,
       path: "/",
       jsonLd: [

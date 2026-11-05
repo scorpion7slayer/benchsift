@@ -54,6 +54,7 @@ import {
   type ComparePair,
 } from "@/lib/compare-pairs";
 import { resolveModelSlug } from "./model-identity";
+import { withinRenderBudget } from "@/lib/html-cache";
 
 // Loaders also run inside cookie-personalised SSR documents. Never mark those
 // documents public; the server snapshot already avoids repeated data work.
@@ -136,7 +137,9 @@ export const fetchModelCapabilities = createServerFn({ method: "GET" })
   .inputValidator((slug: string) => slug)
   .handler(async ({ data }): Promise<Partial<LLMModel>> => {
     if (!isSafeSlug(data)) return {};
-    return getLLMModelSupplementary(data);
+    // A cached render is not held for a cold scrape: it goes out without
+    // these details and is rendered again, with them, about 30 s later.
+    return withinRenderBudget(getLLMModelSupplementary(data), {});
   });
 
 /** Lightweight search options + the selected, enriched comparison models. */
@@ -299,8 +302,9 @@ export const fetchModelDecisionIndex = createServerFn({ method: "GET" })
   .inputValidator((slug: string) => slug)
   .handler(async ({ data: slug }): Promise<ModelDecisionIndex | null> => {
     if (!isSafeSlug(slug)) return null;
-    const [data, models] = await Promise.all([getDecisionIndexData(), getLLMModels()]);
-    return decisionIndexForModel(data.rows, decisionIndexMatches(data, models), slug);
+    const result = Promise.all([getDecisionIndexData(), getLLMModels()])
+      .then(([data, models]) => decisionIndexForModel(data.rows, decisionIndexMatches(data, models), slug));
+    return withinRenderBudget(result, null);
   });
 
 export interface Preferences {

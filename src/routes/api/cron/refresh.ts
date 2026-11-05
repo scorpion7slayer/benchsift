@@ -2,6 +2,7 @@
 // this endpoint with `Authorization: Bearer <CRON_SECRET>`.
 import { createFileRoute } from "@tanstack/react-router";
 import { refreshModelsCache } from "@/lib/api";
+import { expireHtmlCache } from "@/lib/html-cache";
 
 function unauthorized(reason: string): Response {
   return new Response(JSON.stringify({ error: reason }), {
@@ -40,6 +41,8 @@ async function handle(request: Request): Promise<Response> {
   const started = Date.now();
   try {
     const result = await refreshModelsCache();
+    // Cached model pages render again with the new catalogue on their next visit.
+    await expireHtmlCache();
     return Response.json({ ok: true, ...result, durationMs: Date.now() - started });
   } catch {
     return Response.json(

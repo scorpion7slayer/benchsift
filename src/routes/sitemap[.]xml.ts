@@ -1,10 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { getLLMModels } from "@/lib/api";
 import { localizedUrl } from "@/lib/seo";
 import { LOCALES } from "@/lib/locale";
-import { comparePairPath, popularComparePairs } from "@/lib/compare-pairs";
 import { readModelsCacheSummary } from "@/lib/cron-cache";
-import { getIndexableCatalogModels } from "@/lib/model-catalog";
 
 interface SitemapEntry {
   /** Unprefixed page path; each language gets its own <url>. */
@@ -60,8 +57,7 @@ export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
       GET: async () => {
-        const [models, updated] = await Promise.all([getLLMModels(), catalogueDate()]);
-        const indexableModels = getIndexableCatalogModels(models);
+        const updated = await catalogueDate();
         // Catalogue pages carry the refresh date. Pages fed by separate live
         // sources or static text have no tracked date, so they omit lastmod
         // rather than claim today.
@@ -73,13 +69,15 @@ export const Route = createFileRoute("/sitemap.xml")({
         });
         const live = (path: string): SitemapEntry => ({ path, changeFrequency: "daily", priority: 0.8 });
 
+        // Pillar pages only, until Search Console reports them indexed. Model
+        // pages, comparison pairs and legal pages stay crawlable through
+        // internal links but are left out, so the crawl budget goes to the
+        // pages that lead to them.
         const entries: SitemapEntry[] = [
           catalogue("/", 1),
           catalogue("/models", 0.9),
-          { path: "/about", changeFrequency: "monthly", priority: 0.7 },
-          ...["/privacy", "/legal", "/accessibility"].map((path) => ({
-            path, changeFrequency: "monthly", priority: 0.2,
-          })),
+          { path: "/compare", changeFrequency: "monthly", priority: 0.8 },
+          { path: "/about", changeFrequency: "monthly", priority: 0.6 },
           live("/agents/coding"),
           live("/benchmarks/deepswe"),
           live("/benchmarks/frontiercode"),
@@ -87,9 +85,6 @@ export const Route = createFileRoute("/sitemap.xml")({
           live("/benchmarks/decision-index"),
           catalogue("/benchmarks/cyber", 0.8),
           live("/benchmarks/robotics"),
-          ...indexableModels.map((model) => catalogue(`/models/${encodeURIComponent(model.slug)}`, 0.7, "weekly")),
-          // The indexed comparison pages: pairs of the week's most used models.
-          ...popularComparePairs(models).map((pair) => catalogue(comparePairPath(pair.a.slug, pair.b.slug), 0.6, "weekly")),
         ];
 
         return new Response(renderSitemap(entries), {

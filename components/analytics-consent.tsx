@@ -85,7 +85,8 @@ export function AnalyticsConsentProvider({ children, initialConsent = null }: {
       <div className={cn(modal ? "flex flex-col gap-3 p-4" : "grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2 px-3 py-2.5 sm:px-4 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center")} data-analytics-consent>
         {!modal && <Lock aria-hidden="true" className="mt-0.5 size-4 text-muted-foreground md:mt-0" />}
         <div className="min-w-0">
-          <h2 id={titleId} className={cn("font-semibold", modal ? "text-sm" : "text-[13px] leading-[18px]")}>{modal ? copy.title : copy.bannerTitle}</h2>
+          {/* Not a heading: consent UI stays out of the page outline. */}
+          <p id={titleId} className={modal ? "text-sm" : "text-[13px] leading-[18px]"}><strong className="font-semibold">{modal ? copy.title : copy.bannerTitle}</strong></p>
           <p className={cn("text-muted-foreground", modal ? "mt-1 text-sm leading-5" : "mt-0.5 text-xs leading-4")}>{modal ? copy.description : copy.bannerDescription}</p>
         </div>
         {modal && <>

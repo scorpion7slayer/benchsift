@@ -902,7 +902,7 @@ const T: Record<Lang, Translations> = {
   fr: {
     seo: {
       pages: {
-        home: { title: "BenchSift - Benchmarks, prix et vitesse des modèles d'IA", description: "Comparez les modèles d'IA par intelligence, code, maths, vitesse, latence et prix, avec les données d'Artificial Analysis, d'OpenRouter et de Hugging Face réunies en français." },
+        home: { title: "BenchSift - Benchmarks, prix et vitesse des modèles d'IA", description: "Comparez les modèles d'IA par intelligence, code, vitesse, latence et prix grâce aux données d'Artificial Analysis, OpenRouter et Hugging Face, en français." },
         models: { title: "Tous les modèles d'IA - BenchSift", description: "Parcourez tous les modèles d'IA indexés sur BenchSift, avec leurs benchmarks, leurs prix, leur vitesse et leurs capacités." },
         compare: { title: "Comparateur de modèles d'IA - BenchSift", description: "Comparez jusqu'à quatre modèles d'IA côte à côte : benchmarks, prix, latence, débit, fenêtre de contexte et capacités." },
         agentsCoding: { title: "Agents de code - BenchSift", description: "Classez les agents de code comme Claude Code, Cursor CLI ou OpenCode par score, coût et temps par tâche, d'après le Coding Agent Index d'Artificial Analysis." },
@@ -1955,7 +1955,7 @@ const T: Record<Lang, Translations> = {
   en: {
     seo: {
       pages: {
-        home: { title: "BenchSift - AI Model Benchmarks, Pricing and Speed", description: "Compare AI models by intelligence, coding, math, speed, latency and price, with Artificial Analysis, OpenRouter and Hugging Face data in one place, in English and French." },
+        home: { title: "BenchSift - AI Model Benchmarks, Pricing and Speed", description: "Compare AI models by intelligence, coding, speed, latency and price, with Artificial Analysis, OpenRouter and Hugging Face data side by side, in two languages." },
         models: { title: "All AI Models - BenchSift", description: "Browse every indexable AI model on BenchSift, with direct links to benchmarks, pricing, speed and capability details." },
         compare: { title: "AI Model Compare - BenchSift", description: "Compare up to four AI models side by side across benchmarks, pricing, latency, throughput, context window and capabilities." },
         agentsCoding: { title: "Coding Agents - BenchSift", description: "Rank coding agents such as Claude Code, Cursor CLI and OpenCode by score, cost and time per task, using the Artificial Analysis Coding Agent Index." },
