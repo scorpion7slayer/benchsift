@@ -61,7 +61,7 @@ export function Aa3dTasks({
       <p role="status" className="text-xs text-muted-foreground">
         {copy.count(formatNumber(shown.length, lang, 0), formatNumber(tasks.length, lang, 0))}
       </p>
-      <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+      <ul className="grid grid-cols-1 items-start gap-2 lg:grid-cols-2">
         {shown.map((task) => (
           <TaskItem key={task.id} task={task} domainLabel={label(task.domain)} models={models} order={order} modelCount={modelCount} />
         ))}

@@ -13,6 +13,7 @@ export function SortButton({
   hint,
   onClick,
   align = "end",
+  wrap = false,
 }: {
   active: boolean;
   direction: SortDirection;
@@ -21,6 +22,8 @@ export function SortButton({
   hint?: string;
   onClick: () => void;
   align?: "start" | "end";
+  /** Let a long label wrap instead of widening its column. */
+  wrap?: boolean;
 }) {
   return (
     <button
@@ -41,7 +44,7 @@ export function SortButton({
       ) : (
         <ArrowUpDown aria-hidden="true" className="size-3 shrink-0 opacity-0 transition-opacity duration-150 group-hover:opacity-50 group-focus-visible:opacity-50" />
       )}
-      <span className="truncate">{label}</span>
+      <span className={wrap ? "text-balance text-right leading-tight" : "truncate"}>{label}</span>
       {hint && <span className="sr-only">, {hint}</span>}
     </button>
   );

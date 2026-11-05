@@ -228,7 +228,7 @@ export function DeepSweView({ data, summary }: { data: DeepSweData & { catalog: 
         <p role="status" className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">{t.grid.noResults}</p>
       ) : (
         <>
-          <ol className="grid grid-cols-1 gap-2 md:hidden">
+          <ol className="grid grid-cols-1 gap-2 lg:hidden">
             {rows.map((row) => (
               <li key={row.config} className="rounded-xl border bg-card p-4">
                 <div className="flex items-start gap-3">
@@ -257,7 +257,7 @@ export function DeepSweView({ data, summary }: { data: DeepSweData & { catalog: 
             ))}
           </ol>
 
-          <div className="hidden overflow-clip rounded-xl border bg-card md:block">
+          <div className="hidden overflow-clip rounded-xl border bg-card lg:block">
             <table className="w-full text-sm">
               <caption className="sr-only">{copy.title}</caption>
               <thead className="model-table-head">
@@ -316,7 +316,7 @@ export function DeepSweView({ data, summary }: { data: DeepSweData & { catalog: 
         </>
       )}
 
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid items-start gap-3 lg:grid-cols-2">
         {version === "v1.1" && data.comparison && <VersionComparison comparison={data.comparison} nameOf={(model) => nameOf({ model, reasoning_effort: null } as DeepSweRow)} />}
         <Disclosure title={t.benchmarkUi.methodology}>
           <p>{copy.methodDescription}</p>

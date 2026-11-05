@@ -223,7 +223,7 @@ export function CodingAgentsView({ agents }: { agents: CodingAgent[] }) {
         <p role="status" className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">{t.grid.noResults}</p>
       ) : (
         <>
-          <ol className="grid grid-cols-1 gap-2 md:hidden">
+          <ol className="grid grid-cols-1 gap-2 xl:hidden">
             {rows.map((agent) => (
               <li key={agent.id} className="rounded-xl border bg-card p-4">
                 <div className="flex items-start gap-3">
@@ -247,7 +247,7 @@ export function CodingAgentsView({ agents }: { agents: CodingAgent[] }) {
             ))}
           </ol>
 
-          <div className="hidden overflow-clip rounded-xl border bg-card md:block">
+          <div className="hidden overflow-clip rounded-xl border bg-card xl:block">
             <table className="w-full text-sm">
               <caption className="sr-only">{copy.title}</caption>
               <thead className="model-table-head">
@@ -262,7 +262,7 @@ export function CodingAgentsView({ agents }: { agents: CodingAgent[] }) {
                       aria-sort={sort === column.key ? (direction === "asc" ? "ascending" : "descending") : undefined}
                       className="px-2 py-1.5 text-right text-xs font-medium text-muted-foreground"
                     >
-                      <SortButton active={sort === column.key} direction={direction} label={column.label} hint={directionHint(column.key)} onClick={() => sortBy(column.key)} />
+                      <SortButton active={sort === column.key} direction={direction} label={column.label} hint={directionHint(column.key)} onClick={() => sortBy(column.key)} wrap />
                     </th>
                   ))}
                 </tr>
