@@ -9,77 +9,42 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as LegalRouteImport } from './routes/legal'
-import { Route as HealthRouteImport } from './routes/health'
-import { Route as CompareRouteImport } from './routes/compare'
-import { Route as AuthDotmdRouteImport } from './routes/auth[.]md'
-import { Route as AccessibilityRouteImport } from './routes/accessibility'
-import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AccessibilityRouteImport } from './routes/accessibility'
+import { Route as AuthDotmdRouteImport } from './routes/auth[.]md'
+import { Route as CompareRouteImport } from './routes/compare'
+import { Route as HealthRouteImport } from './routes/health'
+import { Route as LegalRouteImport } from './routes/legal'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as DotwellKnownApiCatalogRouteImport } from './routes/[.]well-known/api-catalog'
+import { Route as DotwellKnownOpenapiDotjsonRouteImport } from './routes/[.]well-known/openapi[.]json'
+import { Route as DotwellKnownSecurityDottxtRouteImport } from './routes/[.]well-known/security[.]txt'
+import { Route as AgentsCodingRouteImport } from './routes/agents/coding'
+import { Route as BenchmarksAa3dRouteImport } from './routes/benchmarks/aa-3d'
+import { Route as BenchmarksCyberRouteImport } from './routes/benchmarks/cyber'
+import { Route as BenchmarksDecisionIndexRouteImport } from './routes/benchmarks/decision-index'
+import { Route as BenchmarksDeepsweRouteImport } from './routes/benchmarks/deepswe'
+import { Route as BenchmarksFrontiercodeRouteImport } from './routes/benchmarks/frontiercode'
+import { Route as BenchmarksRoboticsRouteImport } from './routes/benchmarks/robotics'
+import { Route as ComparePairRouteImport } from './routes/compare_.$pair'
+import { Route as DocsApiRouteImport } from './routes/docs/api'
 import { Route as ModelsIndexRouteImport } from './routes/models/index'
 import { Route as ModelsSlugRouteImport } from './routes/models/$slug'
-import { Route as DocsApiRouteImport } from './routes/docs/api'
-import { Route as ComparePairRouteImport } from './routes/compare_.$pair'
-import { Route as BenchmarksRoboticsRouteImport } from './routes/benchmarks/robotics'
-import { Route as BenchmarksFrontiercodeRouteImport } from './routes/benchmarks/frontiercode'
-import { Route as BenchmarksDeepsweRouteImport } from './routes/benchmarks/deepswe'
-import { Route as BenchmarksDecisionIndexRouteImport } from './routes/benchmarks/decision-index'
-import { Route as BenchmarksCyberRouteImport } from './routes/benchmarks/cyber'
-import { Route as BenchmarksAa3dRouteImport } from './routes/benchmarks/aa-3d'
-import { Route as AgentsCodingRouteImport } from './routes/agents/coding'
-import { Route as DotwellKnownSecurityDottxtRouteImport } from './routes/[.]well-known/security[.]txt'
-import { Route as DotwellKnownOpenapiDotjsonRouteImport } from './routes/[.]well-known/openapi[.]json'
-import { Route as DotwellKnownApiCatalogRouteImport } from './routes/[.]well-known/api-catalog'
-import { Route as ModelsPagePageRouteImport } from './routes/models/page/$page'
-import { Route as ApiCronStatusRouteImport } from './routes/api/cron/status'
-import { Route as ApiCronRefreshRouteImport } from './routes/api/cron/refresh'
-import { Route as DotwellKnownMcpServerCardDotjsonRouteImport } from './routes/[.]well-known/mcp/server-card[.]json'
-import { Route as DotwellKnownAgentSkillsSearchModelsDotmdRouteImport } from './routes/[.]well-known/agent-skills/search-models[.]md'
-import { Route as DotwellKnownAgentSkillsIndexDotjsonRouteImport } from './routes/[.]well-known/agent-skills/index[.]json'
-import { Route as DotwellKnownAgentSkillsCompareModelsDotmdRouteImport } from './routes/[.]well-known/agent-skills/compare-models[.]md'
 import { Route as DotwellKnownAgentSkillsCodingBenchmarksDotmdRouteImport } from './routes/[.]well-known/agent-skills/coding-benchmarks[.]md'
+import { Route as DotwellKnownAgentSkillsCompareModelsDotmdRouteImport } from './routes/[.]well-known/agent-skills/compare-models[.]md'
+import { Route as DotwellKnownAgentSkillsIndexDotjsonRouteImport } from './routes/[.]well-known/agent-skills/index[.]json'
+import { Route as DotwellKnownAgentSkillsSearchModelsDotmdRouteImport } from './routes/[.]well-known/agent-skills/search-models[.]md'
+import { Route as DotwellKnownMcpServerCardDotjsonRouteImport } from './routes/[.]well-known/mcp/server-card[.]json'
+import { Route as ApiCronRefreshRouteImport } from './routes/api/cron/refresh'
+import { Route as ApiCronStatusRouteImport } from './routes/api/cron/status'
+import { Route as ModelsPagePageRouteImport } from './routes/models/page/$page'
 
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
-  id: '/robots.txt',
-  path: '/robots.txt',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LegalRoute = LegalRouteImport.update({
-  id: '/legal',
-  path: '/legal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HealthRoute = HealthRouteImport.update({
-  id: '/health',
-  path: '/health',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CompareRoute = CompareRouteImport.update({
-  id: '/compare',
-  path: '/compare',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthDotmdRoute = AuthDotmdRouteImport.update({
-  id: '/auth.md',
-  path: '/auth.md',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AccessibilityRoute = AccessibilityRouteImport.update({
-  id: '/accessibility',
-  path: '/accessibility',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -87,9 +52,106 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AccessibilityRoute = AccessibilityRouteImport.update({
+  id: '/accessibility',
+  path: '/accessibility',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthDotmdRoute = AuthDotmdRouteImport.update({
+  id: '/auth.md',
+  path: '/auth.md',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompareRoute = CompareRouteImport.update({
+  id: '/compare',
+  path: '/compare',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HealthRoute = HealthRouteImport.update({
+  id: '/health',
+  path: '/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalRoute = LegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DotwellKnownApiCatalogRoute = DotwellKnownApiCatalogRouteImport.update({
+  id: '/.well-known/api-catalog',
+  path: '/.well-known/api-catalog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DotwellKnownOpenapiDotjsonRoute =
+  DotwellKnownOpenapiDotjsonRouteImport.update({
+    id: '/.well-known/openapi.json',
+    path: '/.well-known/openapi.json',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const DotwellKnownSecurityDottxtRoute =
+  DotwellKnownSecurityDottxtRouteImport.update({
+    id: '/.well-known/security.txt',
+    path: '/.well-known/security.txt',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AgentsCodingRoute = AgentsCodingRouteImport.update({
+  id: '/agents/coding',
+  path: '/agents/coding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BenchmarksAa3dRoute = BenchmarksAa3dRouteImport.update({
+  id: '/benchmarks/aa-3d',
+  path: '/benchmarks/aa-3d',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BenchmarksCyberRoute = BenchmarksCyberRouteImport.update({
+  id: '/benchmarks/cyber',
+  path: '/benchmarks/cyber',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BenchmarksDecisionIndexRoute = BenchmarksDecisionIndexRouteImport.update({
+  id: '/benchmarks/decision-index',
+  path: '/benchmarks/decision-index',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BenchmarksDeepsweRoute = BenchmarksDeepsweRouteImport.update({
+  id: '/benchmarks/deepswe',
+  path: '/benchmarks/deepswe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BenchmarksFrontiercodeRoute = BenchmarksFrontiercodeRouteImport.update({
+  id: '/benchmarks/frontiercode',
+  path: '/benchmarks/frontiercode',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BenchmarksRoboticsRoute = BenchmarksRoboticsRouteImport.update({
+  id: '/benchmarks/robotics',
+  path: '/benchmarks/robotics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComparePairRoute = ComparePairRouteImport.update({
+  id: '/compare_/$pair',
+  path: '/compare/$pair',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsApiRoute = DocsApiRouteImport.update({
+  id: '/docs/api',
+  path: '/docs/api',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ModelsIndexRoute = ModelsIndexRouteImport.update({
@@ -102,99 +164,10 @@ const ModelsSlugRoute = ModelsSlugRouteImport.update({
   path: '/models/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DocsApiRoute = DocsApiRouteImport.update({
-  id: '/docs/api',
-  path: '/docs/api',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ComparePairRoute = ComparePairRouteImport.update({
-  id: '/compare_/$pair',
-  path: '/compare/$pair',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BenchmarksRoboticsRoute = BenchmarksRoboticsRouteImport.update({
-  id: '/benchmarks/robotics',
-  path: '/benchmarks/robotics',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BenchmarksFrontiercodeRoute = BenchmarksFrontiercodeRouteImport.update({
-  id: '/benchmarks/frontiercode',
-  path: '/benchmarks/frontiercode',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BenchmarksDeepsweRoute = BenchmarksDeepsweRouteImport.update({
-  id: '/benchmarks/deepswe',
-  path: '/benchmarks/deepswe',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BenchmarksDecisionIndexRoute = BenchmarksDecisionIndexRouteImport.update({
-  id: '/benchmarks/decision-index',
-  path: '/benchmarks/decision-index',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BenchmarksCyberRoute = BenchmarksCyberRouteImport.update({
-  id: '/benchmarks/cyber',
-  path: '/benchmarks/cyber',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BenchmarksAa3dRoute = BenchmarksAa3dRouteImport.update({
-  id: '/benchmarks/aa-3d',
-  path: '/benchmarks/aa-3d',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AgentsCodingRoute = AgentsCodingRouteImport.update({
-  id: '/agents/coding',
-  path: '/agents/coding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DotwellKnownSecurityDottxtRoute =
-  DotwellKnownSecurityDottxtRouteImport.update({
-    id: '/.well-known/security.txt',
-    path: '/.well-known/security.txt',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const DotwellKnownOpenapiDotjsonRoute =
-  DotwellKnownOpenapiDotjsonRouteImport.update({
-    id: '/.well-known/openapi.json',
-    path: '/.well-known/openapi.json',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const DotwellKnownApiCatalogRoute = DotwellKnownApiCatalogRouteImport.update({
-  id: '/.well-known/api-catalog',
-  path: '/.well-known/api-catalog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ModelsPagePageRoute = ModelsPagePageRouteImport.update({
-  id: '/models/page/$page',
-  path: '/models/page/$page',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCronStatusRoute = ApiCronStatusRouteImport.update({
-  id: '/api/cron/status',
-  path: '/api/cron/status',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCronRefreshRoute = ApiCronRefreshRouteImport.update({
-  id: '/api/cron/refresh',
-  path: '/api/cron/refresh',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DotwellKnownMcpServerCardDotjsonRoute =
-  DotwellKnownMcpServerCardDotjsonRouteImport.update({
-    id: '/.well-known/mcp/server-card.json',
-    path: '/.well-known/mcp/server-card.json',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const DotwellKnownAgentSkillsSearchModelsDotmdRoute =
-  DotwellKnownAgentSkillsSearchModelsDotmdRouteImport.update({
-    id: '/.well-known/agent-skills/search-models.md',
-    path: '/.well-known/agent-skills/search-models.md',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const DotwellKnownAgentSkillsIndexDotjsonRoute =
-  DotwellKnownAgentSkillsIndexDotjsonRouteImport.update({
-    id: '/.well-known/agent-skills/index.json',
-    path: '/.well-known/agent-skills/index.json',
+const DotwellKnownAgentSkillsCodingBenchmarksDotmdRoute =
+  DotwellKnownAgentSkillsCodingBenchmarksDotmdRouteImport.update({
+    id: '/.well-known/agent-skills/coding-benchmarks.md',
+    path: '/.well-known/agent-skills/coding-benchmarks.md',
     getParentRoute: () => rootRouteImport,
   } as any)
 const DotwellKnownAgentSkillsCompareModelsDotmdRoute =
@@ -203,12 +176,39 @@ const DotwellKnownAgentSkillsCompareModelsDotmdRoute =
     path: '/.well-known/agent-skills/compare-models.md',
     getParentRoute: () => rootRouteImport,
   } as any)
-const DotwellKnownAgentSkillsCodingBenchmarksDotmdRoute =
-  DotwellKnownAgentSkillsCodingBenchmarksDotmdRouteImport.update({
-    id: '/.well-known/agent-skills/coding-benchmarks.md',
-    path: '/.well-known/agent-skills/coding-benchmarks.md',
+const DotwellKnownAgentSkillsIndexDotjsonRoute =
+  DotwellKnownAgentSkillsIndexDotjsonRouteImport.update({
+    id: '/.well-known/agent-skills/index.json',
+    path: '/.well-known/agent-skills/index.json',
     getParentRoute: () => rootRouteImport,
   } as any)
+const DotwellKnownAgentSkillsSearchModelsDotmdRoute =
+  DotwellKnownAgentSkillsSearchModelsDotmdRouteImport.update({
+    id: '/.well-known/agent-skills/search-models.md',
+    path: '/.well-known/agent-skills/search-models.md',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const DotwellKnownMcpServerCardDotjsonRoute =
+  DotwellKnownMcpServerCardDotjsonRouteImport.update({
+    id: '/.well-known/mcp/server-card.json',
+    path: '/.well-known/mcp/server-card.json',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiCronRefreshRoute = ApiCronRefreshRouteImport.update({
+  id: '/api/cron/refresh',
+  path: '/api/cron/refresh',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCronStatusRoute = ApiCronStatusRouteImport.update({
+  id: '/api/cron/status',
+  path: '/api/cron/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ModelsPagePageRoute = ModelsPagePageRouteImport.update({
+  id: '/models/page/$page',
+  path: '/models/page/$page',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -455,60 +455,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/robots.txt': {
-      id: '/robots.txt'
-      path: '/robots.txt'
-      fullPath: '/robots.txt'
-      preLoaderRoute: typeof RobotsDottxtRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/legal': {
-      id: '/legal'
-      path: '/legal'
-      fullPath: '/legal'
-      preLoaderRoute: typeof LegalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/health': {
-      id: '/health'
-      path: '/health'
-      fullPath: '/health'
-      preLoaderRoute: typeof HealthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/compare': {
-      id: '/compare'
-      path: '/compare'
-      fullPath: '/compare'
-      preLoaderRoute: typeof CompareRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth.md': {
-      id: '/auth.md'
-      path: '/auth.md'
-      fullPath: '/auth.md'
-      preLoaderRoute: typeof AuthDotmdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/accessibility': {
-      id: '/accessibility'
-      path: '/accessibility'
-      fullPath: '/accessibility'
-      preLoaderRoute: typeof AccessibilityRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -518,11 +469,144 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/accessibility': {
+      id: '/accessibility'
+      path: '/accessibility'
+      fullPath: '/accessibility'
+      preLoaderRoute: typeof AccessibilityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth.md': {
+      id: '/auth.md'
+      path: '/auth.md'
+      fullPath: '/auth.md'
+      preLoaderRoute: typeof AuthDotmdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compare': {
+      id: '/compare'
+      path: '/compare'
+      fullPath: '/compare'
+      preLoaderRoute: typeof CompareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/health': {
+      id: '/health'
+      path: '/health'
+      fullPath: '/health'
+      preLoaderRoute: typeof HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal': {
+      id: '/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof LegalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/api-catalog': {
+      id: '/.well-known/api-catalog'
+      path: '/.well-known/api-catalog'
+      fullPath: '/.well-known/api-catalog'
+      preLoaderRoute: typeof DotwellKnownApiCatalogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/openapi.json': {
+      id: '/.well-known/openapi.json'
+      path: '/.well-known/openapi.json'
+      fullPath: '/.well-known/openapi.json'
+      preLoaderRoute: typeof DotwellKnownOpenapiDotjsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/security.txt': {
+      id: '/.well-known/security.txt'
+      path: '/.well-known/security.txt'
+      fullPath: '/.well-known/security.txt'
+      preLoaderRoute: typeof DotwellKnownSecurityDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agents/coding': {
+      id: '/agents/coding'
+      path: '/agents/coding'
+      fullPath: '/agents/coding'
+      preLoaderRoute: typeof AgentsCodingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/benchmarks/aa-3d': {
+      id: '/benchmarks/aa-3d'
+      path: '/benchmarks/aa-3d'
+      fullPath: '/benchmarks/aa-3d'
+      preLoaderRoute: typeof BenchmarksAa3dRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/benchmarks/cyber': {
+      id: '/benchmarks/cyber'
+      path: '/benchmarks/cyber'
+      fullPath: '/benchmarks/cyber'
+      preLoaderRoute: typeof BenchmarksCyberRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/benchmarks/decision-index': {
+      id: '/benchmarks/decision-index'
+      path: '/benchmarks/decision-index'
+      fullPath: '/benchmarks/decision-index'
+      preLoaderRoute: typeof BenchmarksDecisionIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/benchmarks/deepswe': {
+      id: '/benchmarks/deepswe'
+      path: '/benchmarks/deepswe'
+      fullPath: '/benchmarks/deepswe'
+      preLoaderRoute: typeof BenchmarksDeepsweRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/benchmarks/frontiercode': {
+      id: '/benchmarks/frontiercode'
+      path: '/benchmarks/frontiercode'
+      fullPath: '/benchmarks/frontiercode'
+      preLoaderRoute: typeof BenchmarksFrontiercodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/benchmarks/robotics': {
+      id: '/benchmarks/robotics'
+      path: '/benchmarks/robotics'
+      fullPath: '/benchmarks/robotics'
+      preLoaderRoute: typeof BenchmarksRoboticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compare_/$pair': {
+      id: '/compare_/$pair'
+      path: '/compare/$pair'
+      fullPath: '/compare/$pair'
+      preLoaderRoute: typeof ComparePairRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/api': {
+      id: '/docs/api'
+      path: '/docs/api'
+      fullPath: '/docs/api'
+      preLoaderRoute: typeof DocsApiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/models/': {
@@ -539,130 +623,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ModelsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/docs/api': {
-      id: '/docs/api'
-      path: '/docs/api'
-      fullPath: '/docs/api'
-      preLoaderRoute: typeof DocsApiRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/compare_/$pair': {
-      id: '/compare_/$pair'
-      path: '/compare/$pair'
-      fullPath: '/compare/$pair'
-      preLoaderRoute: typeof ComparePairRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/benchmarks/robotics': {
-      id: '/benchmarks/robotics'
-      path: '/benchmarks/robotics'
-      fullPath: '/benchmarks/robotics'
-      preLoaderRoute: typeof BenchmarksRoboticsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/benchmarks/frontiercode': {
-      id: '/benchmarks/frontiercode'
-      path: '/benchmarks/frontiercode'
-      fullPath: '/benchmarks/frontiercode'
-      preLoaderRoute: typeof BenchmarksFrontiercodeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/benchmarks/deepswe': {
-      id: '/benchmarks/deepswe'
-      path: '/benchmarks/deepswe'
-      fullPath: '/benchmarks/deepswe'
-      preLoaderRoute: typeof BenchmarksDeepsweRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/benchmarks/decision-index': {
-      id: '/benchmarks/decision-index'
-      path: '/benchmarks/decision-index'
-      fullPath: '/benchmarks/decision-index'
-      preLoaderRoute: typeof BenchmarksDecisionIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/benchmarks/cyber': {
-      id: '/benchmarks/cyber'
-      path: '/benchmarks/cyber'
-      fullPath: '/benchmarks/cyber'
-      preLoaderRoute: typeof BenchmarksCyberRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/benchmarks/aa-3d': {
-      id: '/benchmarks/aa-3d'
-      path: '/benchmarks/aa-3d'
-      fullPath: '/benchmarks/aa-3d'
-      preLoaderRoute: typeof BenchmarksAa3dRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/agents/coding': {
-      id: '/agents/coding'
-      path: '/agents/coding'
-      fullPath: '/agents/coding'
-      preLoaderRoute: typeof AgentsCodingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/.well-known/security.txt': {
-      id: '/.well-known/security.txt'
-      path: '/.well-known/security.txt'
-      fullPath: '/.well-known/security.txt'
-      preLoaderRoute: typeof DotwellKnownSecurityDottxtRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/.well-known/openapi.json': {
-      id: '/.well-known/openapi.json'
-      path: '/.well-known/openapi.json'
-      fullPath: '/.well-known/openapi.json'
-      preLoaderRoute: typeof DotwellKnownOpenapiDotjsonRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/.well-known/api-catalog': {
-      id: '/.well-known/api-catalog'
-      path: '/.well-known/api-catalog'
-      fullPath: '/.well-known/api-catalog'
-      preLoaderRoute: typeof DotwellKnownApiCatalogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/models/page/$page': {
-      id: '/models/page/$page'
-      path: '/models/page/$page'
-      fullPath: '/models/page/$page'
-      preLoaderRoute: typeof ModelsPagePageRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/cron/status': {
-      id: '/api/cron/status'
-      path: '/api/cron/status'
-      fullPath: '/api/cron/status'
-      preLoaderRoute: typeof ApiCronStatusRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/cron/refresh': {
-      id: '/api/cron/refresh'
-      path: '/api/cron/refresh'
-      fullPath: '/api/cron/refresh'
-      preLoaderRoute: typeof ApiCronRefreshRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/.well-known/mcp/server-card.json': {
-      id: '/.well-known/mcp/server-card.json'
-      path: '/.well-known/mcp/server-card.json'
-      fullPath: '/.well-known/mcp/server-card.json'
-      preLoaderRoute: typeof DotwellKnownMcpServerCardDotjsonRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/.well-known/agent-skills/search-models.md': {
-      id: '/.well-known/agent-skills/search-models.md'
-      path: '/.well-known/agent-skills/search-models.md'
-      fullPath: '/.well-known/agent-skills/search-models.md'
-      preLoaderRoute: typeof DotwellKnownAgentSkillsSearchModelsDotmdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/.well-known/agent-skills/index.json': {
-      id: '/.well-known/agent-skills/index.json'
-      path: '/.well-known/agent-skills/index.json'
-      fullPath: '/.well-known/agent-skills/index.json'
-      preLoaderRoute: typeof DotwellKnownAgentSkillsIndexDotjsonRouteImport
+    '/.well-known/agent-skills/coding-benchmarks.md': {
+      id: '/.well-known/agent-skills/coding-benchmarks.md'
+      path: '/.well-known/agent-skills/coding-benchmarks.md'
+      fullPath: '/.well-known/agent-skills/coding-benchmarks.md'
+      preLoaderRoute: typeof DotwellKnownAgentSkillsCodingBenchmarksDotmdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.well-known/agent-skills/compare-models.md': {
@@ -672,11 +637,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotwellKnownAgentSkillsCompareModelsDotmdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/.well-known/agent-skills/coding-benchmarks.md': {
-      id: '/.well-known/agent-skills/coding-benchmarks.md'
-      path: '/.well-known/agent-skills/coding-benchmarks.md'
-      fullPath: '/.well-known/agent-skills/coding-benchmarks.md'
-      preLoaderRoute: typeof DotwellKnownAgentSkillsCodingBenchmarksDotmdRouteImport
+    '/.well-known/agent-skills/index.json': {
+      id: '/.well-known/agent-skills/index.json'
+      path: '/.well-known/agent-skills/index.json'
+      fullPath: '/.well-known/agent-skills/index.json'
+      preLoaderRoute: typeof DotwellKnownAgentSkillsIndexDotjsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/agent-skills/search-models.md': {
+      id: '/.well-known/agent-skills/search-models.md'
+      path: '/.well-known/agent-skills/search-models.md'
+      fullPath: '/.well-known/agent-skills/search-models.md'
+      preLoaderRoute: typeof DotwellKnownAgentSkillsSearchModelsDotmdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/mcp/server-card.json': {
+      id: '/.well-known/mcp/server-card.json'
+      path: '/.well-known/mcp/server-card.json'
+      fullPath: '/.well-known/mcp/server-card.json'
+      preLoaderRoute: typeof DotwellKnownMcpServerCardDotjsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cron/refresh': {
+      id: '/api/cron/refresh'
+      path: '/api/cron/refresh'
+      fullPath: '/api/cron/refresh'
+      preLoaderRoute: typeof ApiCronRefreshRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cron/status': {
+      id: '/api/cron/status'
+      path: '/api/cron/status'
+      fullPath: '/api/cron/status'
+      preLoaderRoute: typeof ApiCronStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/models/page/$page': {
+      id: '/models/page/$page'
+      path: '/models/page/$page'
+      fullPath: '/models/page/$page'
+      preLoaderRoute: typeof ModelsPagePageRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
