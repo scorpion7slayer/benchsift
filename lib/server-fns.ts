@@ -86,7 +86,7 @@ const homeSnapshots = new WeakMap<LLMModel[], { full: HomeCatalogData; preview: 
 
 /** Project pagination on the server rather than sending the entire catalogue. */
 export const fetchCatalogPage = createServerFn({ method: "GET" })
-  .inputValidator((page: number) => page)
+  .validator((page: number) => page)
   .handler(async ({ data }) => {
     setResponseCache();
     return getModelCatalogPage(await getLLMModels(), data);
@@ -97,7 +97,7 @@ export const fetchCatalogPage = createServerFn({ method: "GET" })
  * preview (the top of the ranking); the browser then loads the full list.
  */
 export const fetchHomeCatalog = createServerFn({ method: "GET" })
-  .inputValidator((input: { preview?: boolean } | undefined) => ({ preview: input?.preview === true }))
+  .validator((input: { preview?: boolean } | undefined) => ({ preview: input?.preview === true }))
   .handler(async ({ data: { preview } }): Promise<HomeCatalogData> => {
     setResponseCache();
     const models = await getLLMModels();
@@ -122,7 +122,7 @@ export const fetchHomeCatalog = createServerFn({ method: "GET" })
 
 /** A model and its matching reasoning variants (no scraped capabilities). */
 export const fetchModelDetail = createServerFn({ method: "GET" })
-  .inputValidator((slug: string) => slug)
+  .validator((slug: string) => slug)
   .handler(async ({ data }): Promise<(ModelDetailData & ModelInsights) | null> => {
     if (!isSafeSlug(data)) return null;
     const models = await getLLMModels();
@@ -134,7 +134,7 @@ export const fetchModelDetail = createServerFn({ method: "GET" })
 
 /** Scraped capabilities for a model (context window, modalities, params…). */
 export const fetchModelCapabilities = createServerFn({ method: "GET" })
-  .inputValidator((slug: string) => slug)
+  .validator((slug: string) => slug)
   .handler(async ({ data }): Promise<Partial<LLMModel>> => {
     if (!isSafeSlug(data)) return {};
     // A cached render is not held for a cold scrape: it goes out without
@@ -144,7 +144,7 @@ export const fetchModelCapabilities = createServerFn({ method: "GET" })
 
 /** Lightweight search options + the selected, enriched comparison models. */
 export const fetchCompareData = createServerFn({ method: "GET" })
-  .inputValidator((slugs: string[]) => slugs)
+  .validator((slugs: string[]) => slugs)
   .handler(
     async ({ data }): Promise<{
       allModels: CompareModelOption[];
@@ -201,7 +201,7 @@ export interface ComparePairData {
  * whether search engines index it, and links to related popular pairs.
  */
 export const fetchComparePair = createServerFn({ method: "GET" })
-  .inputValidator((pair: string) => pair)
+  .validator((pair: string) => pair)
   .handler(async ({ data: pairSlug }): Promise<(ComparePairData & Awaited<ReturnType<typeof fetchCompareData>>) | null> => {
     if (typeof pairSlug !== "string" || pairSlug.length > 250) return null;
     const models = await getLLMModels();
@@ -299,7 +299,7 @@ export const fetchDecisionIndexData = createServerFn({ method: "GET" }).handler(
 
 /** Decision Index result of one catalogue model, streamed to its page. */
 export const fetchModelDecisionIndex = createServerFn({ method: "GET" })
-  .inputValidator((slug: string) => slug)
+  .validator((slug: string) => slug)
   .handler(async ({ data: slug }): Promise<ModelDecisionIndex | null> => {
     if (!isSafeSlug(slug)) return null;
     const result = Promise.all([getDecisionIndexData(), getLLMModels()])
