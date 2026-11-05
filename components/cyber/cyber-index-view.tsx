@@ -377,7 +377,7 @@ export function CyberIndexView({
 
       {hasBlocks && <p className="-mt-3 text-xs text-muted-foreground">{copy.footnote}</p>}
 
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid items-start gap-3 lg:grid-cols-2">
         <BenchmarkDisclosure title={ui.methodology}>
           <p>{copy.methodDescription}</p>
           <div className="mt-3 flex flex-wrap gap-1.5">
