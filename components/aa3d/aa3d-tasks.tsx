@@ -120,7 +120,7 @@ function TaskItem({
                         className="inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-md border bg-card px-2 text-xs transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <ModelProviderIcon provider={model.logoKey} iconUrl={model.iconUrl} size={16} />
-                        <span className="truncate">{model.name}</span>
+                        <span className="min-w-0 wrap-break-word">{model.name}</span>
                         <ExternalLink aria-hidden="true" className="size-3 shrink-0 text-muted-foreground" />
                       </a>
                     </li>

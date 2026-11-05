@@ -46,6 +46,23 @@ const POINT_GAP = 10;
 
 interface Box { x: number; y: number; width: number; height: number }
 
+interface Segment { x1: number; y1: number; x2: number; y2: number }
+
+function grow(box: Box, by: number): Box {
+  return { x: box.x - by, y: box.y - by, width: box.width + by * 2, height: box.height + by * 2 };
+}
+
+/** Whether a segment passes through a box (sampled; boxes are wider than the step). */
+function crosses(line: Segment, box: Box): boolean {
+  const steps = Math.max(2, Math.ceil(Math.hypot(line.x2 - line.x1, line.y2 - line.y1) / 4));
+  for (let index = 1; index < steps; index += 1) {
+    const x = line.x1 + ((line.x2 - line.x1) * index) / steps;
+    const y = line.y1 + ((line.y2 - line.y1) * index) / steps;
+    if (x > box.x && x < box.x + box.width && y > box.y && y < box.y + box.height) return true;
+  }
+  return false;
+}
+
 function overlaps(a: Box, b: Box): boolean {
   return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 }
@@ -84,7 +101,8 @@ function logTicks(min: number, max: number): { min: number; max: number; ticks: 
 
 /** Approximate rendered width of a label, enough to keep labels apart. */
 function textWidth(text: string, size: number, mono = false): number {
-  return text.length * size * (mono ? 0.62 : 0.6);
+  // Geist measures about 0.49 em per character at 13px semibold; the margin covers wide glyphs.
+  return text.length * size * (mono ? 0.62 : 0.54);
 }
 
 function useWidth(fallback: number) {
@@ -127,7 +145,6 @@ export function TradeoffChart({
   empty,
   legend = true,
   picker = false,
-  yFromData = false,
   className,
 }: {
   series: ChartSeries[];
@@ -150,8 +167,6 @@ export function TradeoffChart({
   legend?: boolean;
   /** Lists every series below the chart so the reader can show or hide each one. */
   picker?: boolean;
-  /** Fits the vertical axis to the data instead of starting at zero, for unbounded scores such as Elo. */
-  yFromData?: boolean;
   className?: string;
 }) {
   const { t } = useI18n();
@@ -183,7 +198,11 @@ export function TradeoffChart({
         .filter((entry) => entry.points.length > 0),
     [series, scale],
   );
-  const defaultShown = width < 520 ? DEFAULT_SHOWN.narrow : DEFAULT_SHOWN.wide;
+  // Phones: series are numbered on the chart and named in the list below it,
+  // and values are read in a panel under the chart instead of a floating tip.
+  const compact = width < 520;
+  const defaultShown = compact ? DEFAULT_SHOWN.narrow : DEFAULT_SHOWN.wide;
+  const lastPointer = useRef<string>("mouse");
   const visible = useMemo(() => {
     const ids = new Set(drawable.slice(0, defaultShown).map((entry) => entry.id));
     for (const id of choice.added) ids.add(id);
@@ -195,20 +214,29 @@ export function TradeoffChart({
     [drawable, visible, picker],
   );
   const allPoints = plotted.flatMap((entry) => entry.points);
+  const numbered = compact && labelMode === "series";
+  const numbers = useMemo(
+    // A compared model keeps its column number; other series count in order.
+    () => (numbered ? new Map(plotted.map((entry, index) => [entry.id, (entry.highlights.find((item) => item.marker != null)?.marker ?? index) + 1])) : null),
+    [numbered, plotted],
+  );
 
-  const height = width < 520 ? 320 : Math.round(Math.min(460, Math.max(340, width * 0.5)));
+  const height = compact ? 360 : Math.round(Math.min(460, Math.max(340, width * 0.5)));
   const plotWidth = width - MARGIN.left - MARGIN.right;
   const plotHeight = height - MARGIN.top - MARGIN.bottom;
 
-  const yCount = height < 360 ? 5 : 6;
+  const yCount = compact || height < 360 ? 5 : 6;
   const yValues = allPoints.map((point) => point.y);
-  const yAxis = yFromData && yValues.length
+  // A scatter encodes position, not length, so the chart spends its height
+  // on the range the points occupy rather than on zero.
+  const yAxis = yValues.length
     ? (() => {
         const [low, high] = [Math.min(...yValues), Math.max(...yValues)];
         const pad = (high - low) * 0.08 || Math.abs(high) * 0.05 || 1;
-        return linearTicks(high + pad, yCount, low - pad);
+        // Scores are never negative, so the axis stops at zero.
+        return linearTicks(high + pad, yCount, Math.max(0, low - pad));
       })()
-    : linearTicks(Math.max(1, ...yValues) * 1.08, yCount);
+    : linearTicks(1, yCount);
   const xValues = allPoints.map((point) => point.x);
   const xAxis = scale === "log" && xValues.length
     ? logTicks(Math.min(...xValues), Math.max(...xValues))
@@ -271,6 +299,29 @@ export function TradeoffChart({
     });
   }
 
+  /** Touch and pen: a tap reads the nearest point; tapping it again selects it. */
+  function tapNearest(event: React.PointerEvent<SVGSVGElement>) {
+    lastPointer.current = event.pointerType;
+    if (event.pointerType === "mouse") return;
+    const frame = event.currentTarget.getBoundingClientRect();
+    const x = event.clientX - frame.left;
+    const y = event.clientY - frame.top;
+    let nearest: { series: string; point: string; distance: number } | null = null;
+    for (const entry of plotted) {
+      for (const point of entry.points) {
+        const distance = Math.hypot(xPos(point.x) - x, yPos(point.y) - y);
+        if (distance <= 32 && (!nearest || distance < nearest.distance)) nearest = { series: entry.id, point: point.id, distance };
+      }
+    }
+    if (!nearest) return setActive(null);
+    const target = { series: nearest.series, point: nearest.point };
+    const entry = plotted.find((item) => item.id === target.series);
+    const selectable = Boolean(onSelectPoint) && !entry?.highlights.some((item) => item.id === target.point);
+    if (selectable && active?.series === target.series && active.point === target.point) onSelectPoint?.(target.series, target.point);
+    setFocusIndex(Math.max(0, order.findIndex((item) => item.series === target.series && item.point === target.point)));
+    setActive(target);
+  }
+
   function moveFocus(event: KeyboardEvent<SVGSVGElement>) {
     const steps: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
     let next = safeFocus;
@@ -289,12 +340,20 @@ export function TradeoffChart({
   // Labels: one per highlighted point ("series") or one per point ("points"),
   // placed around the point where they do not collide with earlier labels.
   const placed: Box[] = [];
-  const labels: Array<{ key: string; box: Box; anchor: "start" | "middle" | "end"; title: string | null; tag: string | null; color: string; leader: { x1: number; y1: number; x2: number; y2: number } | null }> = [];
+  const labels: Array<{ key: string; box: Box; anchor: "start" | "middle" | "end"; title: string | null; tag: string | null; color: string; badge: boolean; leader: { x1: number; y1: number; x2: number; y2: number } | null }> = [];
   const pointBoxes = allPoints.map((point) => ({ x: xPos(point.x) - 5, y: yPos(point.y) - 5, width: 10, height: 10 }));
   const bounds = { left: MARGIN.left + 2, right: width - MARGIN.right, top: MARGIN.top - 8, bottom: MARGIN.top + plotHeight - 4 };
-  const place = (key: string, px: number, py: number, title: string | null, tag: string | null, color: string, force = false) => {
-    const boxWidth = Math.max(title ? textWidth(title, 13) : 0, tag ? textWidth(tag, 10, true) : 0) + 4;
-    const boxHeight = title && tag ? LABEL_HEIGHT : 16;
+  const leaders: Segment[] = [];
+  const owners = plotted.flatMap((entry) => entry.points.map((point) => ({ series: entry.id, x: xPos(point.x), y: yPos(point.y) })));
+  const distanceTo = (box: Box, x: number, y: number) =>
+    Math.hypot(Math.max(box.x - x, 0, x - box.x - box.width), Math.max(box.y - y, 0, y - box.y - box.height));
+  // Lines joining the levels of each series, which names should not sit on.
+  const lineSegments: Segment[] = plotted.flatMap((entry) =>
+    entry.points.slice(1).map((point, index) => ({ x1: xPos(entry.points[index].x), y1: yPos(entry.points[index].y), x2: xPos(point.x), y2: yPos(point.y) })),
+  );
+  const place = (key: string, px: number, py: number, title: string | null, tag: string | null, color: string, force = false, badge = false, final = false): void => {
+    const boxWidth = badge ? 20 : Math.max(title ? textWidth(title, 13) : 0, tag ? textWidth(tag, 10, true) : 0) + 4;
+    const boxHeight = badge ? 20 : title && tag ? LABEL_HEIGHT : 16;
     const at = (x: number, y: number, anchor: "start" | "middle" | "end") => ({ box: { x, y, width: boxWidth, height: boxHeight }, anchor });
     const above = py - POINT_GAP - boxHeight;
     const below = py + POINT_GAP;
@@ -321,27 +380,51 @@ export function TradeoffChart({
       }
     }
     const fits = (box: Box) => box.x >= bounds.left && box.x + box.width <= bounds.right && box.y >= bounds.top && box.y + box.height <= bounds.bottom;
-    const clearOfLabels = (box: Box) => !placed.some((other) => overlaps(box, other));
-    const clear = (box: Box) => clearOfLabels(box) && !pointBoxes.some((other) => overlaps(box, other));
-    // Clear of points first, near then further out; a series name may then
-    // cover other points, never another label or the frame.
-    const open = ({ box }: (typeof candidates)[number]) => fits(box) && clear(box);
-    const free = ({ box }: (typeof candidates)[number]) => fits(box) && clearOfLabels(box);
-    const spot = candidates.find(open) ?? leaderCandidates.find(open)
-      ?? (force ? candidates.find(free) ?? leaderCandidates.find(free) : undefined);
+    // Text ascenders reach a pixel past the box; a small margin keeps names apart.
+    const clearOfLabels = (box: Box) => !placed.some((other) => overlaps(grow(box, 2), other));
+    const clearOfPoints = (box: Box) => !pointBoxes.some((other) => overlaps(box, other));
+    const clearOfLeaders = (box: Box) => !leaders.some((line) => crosses(line, box));
+    const clearOfLines = (box: Box) => !lineSegments.some((line) => crosses(line, box));
+    // A name must sit nearer its own point than any other series' point, or it reads as theirs.
+    const series = plotted.find((entry) => key.startsWith(`${entry.id}-`))?.id;
+    const nearestIsOwn = (box: Box) => {
+      const own = distanceTo(box, px, py);
+      return !owners.some((other) => other.series !== series && distanceTo(box, other.x, other.y) + 2 < own);
+    };
+    const leaderOf = (box: Box) => ({ x1: px, y1: py, x2: Math.min(Math.max(px, box.x), box.x + box.width), y2: Math.min(Math.max(py, box.y), box.y + box.height) });
+    const leaderClear = (candidate: (typeof candidates)[number]) => {
+      if (!leaderCandidates.includes(candidate)) return true;
+      const line = leaderOf(candidate.box);
+      return !placed.some((other) => crosses(line, other));
+    };
+    // Tiers, best first: clear of names, points, leaders and series lines;
+    // then lines may pass under the name; a series name may cover points
+    // only as a last resort, after a shorter name failed to find room.
+    const tiers = [
+      (c: (typeof candidates)[number]) => fits(c.box) && clearOfLabels(c.box) && clearOfPoints(c.box) && clearOfLeaders(c.box) && clearOfLines(c.box) && leaderClear(c) && nearestIsOwn(c.box),
+      (c: (typeof candidates)[number]) => fits(c.box) && clearOfLabels(c.box) && clearOfPoints(c.box) && clearOfLeaders(c.box) && leaderClear(c) && nearestIsOwn(c.box),
+      // Dense clusters: a whole name beside a neighbour beats a cut or covering one.
+      (c: (typeof candidates)[number]) => fits(c.box) && clearOfLabels(c.box) && clearOfPoints(c.box) && clearOfLeaders(c.box) && leaderClear(c),
+    ];
+    const lastResort = (c: (typeof candidates)[number]) => fits(c.box) && clearOfLabels(c.box) && clearOfLeaders(c.box) && leaderClear(c);
+    let spot: (typeof candidates)[number] | undefined;
+    for (const tier of tiers) {
+      spot = candidates.find(tier) ?? leaderCandidates.find(tier);
+      if (spot) break;
+    }
     if (!spot) {
       // No room for the name and its level: the name alone, then a shortened
       // one, still says which line it is (the tooltip and the picker have it whole).
-      if (force && title && tag) place(key, px, py, title, null, color, true);
-      else if (force && title && title.length > 10) place(key, px, py, `${title.slice(0, Math.max(9, Math.floor(title.length * 0.6))).trimEnd()}…`, null, color, true);
-      return;
+      if (force && title && tag) return place(key, px, py, title, null, color, true, badge, final);
+      if (force && title && title.length > 10 && !final) return place(key, px, py, `${title.slice(0, Math.max(9, Math.floor(title.length * 0.6))).trimEnd()}…`, null, color, true, badge, true);
+      if (force && final) spot = candidates.find(lastResort) ?? leaderCandidates.find(lastResort);
+      if (!spot) return;
     }
     placed.push(spot.box);
     // A label stepped away from its point is joined to it by a thin line.
-    const leader = leaderCandidates.includes(spot)
-      ? { x1: px, y1: py, x2: Math.min(Math.max(px, spot.box.x), spot.box.x + spot.box.width), y2: Math.min(Math.max(py, spot.box.y), spot.box.y + spot.box.height) }
-      : null;
-    labels.push({ key, ...spot, title, tag, color, leader });
+    const leader = leaderCandidates.includes(spot) ? leaderOf(spot.box) : null;
+    if (leader) leaders.push(leader);
+    labels.push({ key, ...spot, title, tag, color, badge, leader });
   };
   // Every series drawn is named on the chart: series come in priority order
   // (best first), so the best ones claim the clearest spots.
@@ -349,7 +432,9 @@ export function TradeoffChart({
     if (labelMode === "series") {
       for (const highlight of entry.highlights) {
         const point = entry.points.find((item) => item.id === highlight.id);
-        if (point) place(`${entry.id}-${point.id}`, xPos(point.x), yPos(point.y), entry.label, point.tag, highlight.color, true);
+        if (!point) continue;
+        if (numbers) place(`${entry.id}-${point.id}`, xPos(point.x), yPos(point.y), String(numbers.get(entry.id)), null, highlight.color, true, true);
+        else place(`${entry.id}-${point.id}`, xPos(point.x), yPos(point.y), entry.label, point.tag, highlight.color, true);
       }
     } else {
       // Highlighted points claim their place first.
@@ -420,6 +505,7 @@ export function TradeoffChart({
             role="group"
             aria-label={`${title}. ${yLabel} / ${xLabel}.`}
             onKeyDown={moveFocus}
+            onPointerDown={tapNearest}
           >
             {/* Axis titles: the score reads across the top, like a chart heading. */}
             <text x={MARGIN.left - 36} y={16} className="fill-foreground text-[13px] font-semibold">{yLabel}</text>
@@ -475,14 +561,14 @@ export function TradeoffChart({
                         aria-current={highlight ? "true" : undefined}
                         className={cn("tradeoff-point outline-none", selectable && "cursor-pointer")}
                         style={{ "--point-delay": `${(picked ? 0 : seriesIndex * 90 + 220) + pointIndex * 40}ms` } as React.CSSProperties}
-                        onPointerEnter={() => setActive({ series: entry.id, point: point.id })}
-                        onPointerLeave={() => setActive((current) => (current?.series === entry.id && current.point === point.id ? null : current))}
+                        onPointerEnter={(event) => event.pointerType === "mouse" && setActive({ series: entry.id, point: point.id })}
+                        onPointerLeave={(event) => event.pointerType === "mouse" && setActive((current) => (current?.series === entry.id && current.point === point.id ? null : current))}
                         onFocus={() => {
                           setFocusIndex(index);
                           setActive({ series: entry.id, point: point.id });
                         }}
-                        onBlur={() => setActive(null)}
-                        onClick={() => selectable && onSelectPoint?.(entry.id, point.id)}
+                        onBlur={() => lastPointer.current === "mouse" && setActive(null)}
+                        onClick={() => selectable && lastPointer.current === "mouse" && onSelectPoint?.(entry.id, point.id)}
                         onKeyDown={(event) => {
                           if (selectable && (event.key === "Enter" || event.key === " ")) {
                             event.preventDefault();
@@ -515,7 +601,12 @@ export function TradeoffChart({
                 return (
                   <g key={label.key} className="transition-opacity duration-150" opacity={hiddenOwn === label.key ? 0 : dimmed ? 0.25 : 1}>
                     {label.leader && <line x1={label.leader.x1} y1={label.leader.y1} x2={label.leader.x2} y2={label.leader.y2} stroke={label.color} strokeOpacity={0.5} strokeWidth={1} />}
-                    {label.title && (
+                    {label.badge ? (
+                      <g>
+                        <circle cx={label.box.x + 10} cy={label.box.y + 10} r={9} fill="var(--card)" stroke={label.color} strokeWidth={1.5} />
+                        <text x={label.box.x + 10} y={label.box.y + 14} textAnchor="middle" className="fill-foreground text-[11px] font-semibold tabular-nums">{label.title}</text>
+                      </g>
+                    ) : label.title && (
                       <text x={x} y={label.box.y + 12} textAnchor={label.anchor} fill={label.color} className="text-[13px] font-semibold [paint-order:stroke] [stroke:var(--card)] [stroke-width:3px]">
                         {label.title}
                       </text>
@@ -538,7 +629,7 @@ export function TradeoffChart({
           </svg>
         )}
 
-        {activeEntry && activePoint && tooltip && (
+        {!compact && activeEntry && activePoint && tooltip && (
           <div
             role="presentation"
             ref={tipRef}
@@ -557,8 +648,34 @@ export function TradeoffChart({
         )}
       </div>
 
+      {compact && plotted.length > 0 && (
+        <div className="mt-2 flex min-h-[4.25rem] items-center gap-3 rounded-lg border bg-muted/30 px-3 py-2 text-xs">
+          {activeEntry && activePoint ? (
+            <>
+              <div aria-hidden="true" className="min-w-0 flex-1">
+                <p className="flex items-center gap-1.5 font-medium leading-snug text-foreground">
+                  {numbers?.get(activeEntry.id) != null && <NumberBadge value={numbers.get(activeEntry.id)!} color={activeEntry.color} />}
+                  <span className="min-w-0 wrap-break-word">{activePoint.name}</span>
+                </p>
+                <p className="mt-1 tabular-nums text-muted-foreground">
+                  {yLabel} <span className="font-medium text-foreground">{formatY(activePoint.y)}</span> · {xLabel} <span className="font-medium text-foreground">{formatX(activePoint.x)}</span>
+                </p>
+              </div>
+              {tooltip?.hint && (
+                <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => onSelectPoint?.(activeEntry.id, activePoint.id)}>
+                  {selectHint}
+                </Button>
+              )}
+            </>
+          ) : (
+            <p className="text-muted-foreground">{t.tradeoff.tapHint}</p>
+          )}
+        </div>
+      )}
+
       {picker && (
         <SeriesPicker
+          numbers={numbers}
           series={drawable}
           visible={visible}
           edited={choice.added.size > 0 || choice.removed.size > 0}
@@ -577,7 +694,7 @@ export function TradeoffChart({
               onPointerLeave={() => setHoveredSeries(null)}
               className="flex min-w-0 items-center gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-muted/60"
             >
-              <span aria-hidden="true" className="h-0.5 w-4 shrink-0 rounded-full" style={{ background: entry.color }} />
+              {numbers && highlight.marker == null ? <NumberBadge value={numbers.get(entry.id)!} color={entry.color} /> : <span aria-hidden="true" className="h-0.5 w-4 shrink-0 rounded-full" style={{ background: entry.color }} />}
               {highlight.marker != null && <ModelMarker index={highlight.marker} color={highlight.color} className="size-4 text-[10px]" />}
               <span className="min-w-0 truncate font-medium" title={point.name}>{point.name}</span>
               <span className="ml-auto shrink-0 tabular-nums text-muted-foreground">{formatY(point.y)} · {formatX(point.x)}</span>
@@ -596,7 +713,17 @@ export function TradeoffChart({
  * act on what the search matches. Hovering or focusing a series brings it
  * forward on the chart.
  */
+/** The number a series carries on a phone chart, repeated beside its name. */
+function NumberBadge({ value, color }: { value: number; color: string }) {
+  return (
+    <span aria-hidden="true" className="flex size-[18px] shrink-0 items-center justify-center rounded-full border-[1.5px] bg-card text-[10px] font-semibold tabular-nums text-foreground" style={{ borderColor: color }}>
+      {value}
+    </span>
+  );
+}
+
 function SeriesPicker({
+  numbers,
   series,
   visible,
   edited,
@@ -604,6 +731,8 @@ function SeriesPicker({
   onReset,
   onPreview,
 }: {
+  /** Phone charts number their series; the chips repeat the numbers. */
+  numbers: ReadonlyMap<string, number> | null;
   series: Array<Pick<ChartSeries, "id" | "label" | "color">>;
   visible: ReadonlySet<string>;
   /** Whether the reader changed the default selection. */
@@ -742,9 +871,9 @@ function SeriesPicker({
                   onChange([entry.id], false);
                 }}
                 {...preview(entry.id)}
-                className="group flex h-7 max-w-full items-center gap-1.5 rounded-md border bg-background pl-2 pr-1 text-xs transition-colors duration-150 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="group flex h-7 max-w-full items-center gap-1.5 rounded-md border pointer-coarse:h-9 bg-background pl-2 pr-1 text-xs transition-colors duration-150 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <span aria-hidden="true" className="size-2.5 shrink-0 rounded-full" style={{ background: entry.color }} />
+                {numbers?.has(entry.id) ? <NumberBadge value={numbers.get(entry.id)!} color={entry.color} /> : <span aria-hidden="true" className="size-2.5 shrink-0 rounded-full" style={{ background: entry.color }} />}
                 <span className="truncate">{entry.label}</span>
                 <X aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground group-hover:text-foreground" />
               </button>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Download, PanelsTopLeft } from "@/components/icons";
+import { ChevronDown, Download, PanelsTopLeft } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -79,10 +79,11 @@ export function ColumnPicker({ columns, onChange }: { columns: ColumnKey[]; onCh
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="control" className="hidden lg:inline-flex">
+        <Button variant="outline" size="control" className="hidden lg:inline-flex" aria-label={`${copy.label} ${columns.length}`}>
           <PanelsTopLeft aria-hidden="true" className="size-4" />
           {copy.label}
           <span className="rounded bg-muted px-1.5 text-xs tabular-nums">{columns.length}</span>
+          <ChevronDown aria-hidden="true" className="size-4 text-muted-foreground transition-transform duration-200 ease-(--ease-out) group-data-[state=open]/button:rotate-180 motion-reduce:transition-none" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">

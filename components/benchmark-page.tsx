@@ -61,11 +61,11 @@ export function StatTiles({ tiles }: { tiles: StatTile[] }) {
       {tiles.map((tile) => (
         <div key={tile.key} className="flex min-w-0 flex-col rounded-xl border bg-card p-3 sm:p-4">
           <dt className="flex items-center gap-1 text-xs text-muted-foreground">
-            <span className="truncate">{tile.label}</span>
+            <span className="min-w-0 wrap-break-word">{tile.label}</span>
             {tile.hint && <InfoTip label={`${t.glossary.infoLabel} · ${tile.label}`} content={tile.hint} />}
           </dt>
           <dd className="mt-1 truncate text-xl font-semibold tracking-tight tabular-nums sm:text-2xl" title={tile.value}>{tile.value}</dd>
-          {tile.detail && <dd className="mt-0.5 truncate text-xs text-muted-foreground" title={tile.detail}>{tile.detail}</dd>}
+          {tile.detail && <dd className="mt-0.5 wrap-break-word text-xs text-muted-foreground">{tile.detail}</dd>}
         </div>
       ))}
     </dl>

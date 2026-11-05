@@ -248,7 +248,7 @@ export function DeepSweView({ data, summary }: { data: DeepSweData & { catalog: 
                     [copy.headers.outputTokens, formatTokens(row.mean_output_tokens, lang)],
                   ].map(([label, value]) => (
                     <div key={label} className="min-w-0">
-                      <dt className="truncate text-muted-foreground">{label}</dt>
+                      <dt className="wrap-break-word text-muted-foreground">{label}</dt>
                       <dd className="mt-0.5 font-medium tabular-nums">{value}</dd>
                     </div>
                   ))}
@@ -355,11 +355,11 @@ function ModelName({ row, info, name }: { row: DeepSweRow; info: DeepSweModelInf
   return (
     <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
       {info ? (
-        <Link href={`/models/${info.slug}`} className="truncate rounded-sm font-medium underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <Link href={`/models/${info.slug}`} className="min-w-0 wrap-break-word rounded-sm font-medium underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           {name}
         </Link>
       ) : (
-        <span className="truncate font-medium" title={row.model}>{name}</span>
+        <span className="min-w-0 wrap-break-word font-medium">{name}</span>
       )}
       {row.reasoning_effort && <Badge variant="secondary" className="font-mono text-[10px] uppercase">{row.reasoning_effort}</Badge>}
     </span>

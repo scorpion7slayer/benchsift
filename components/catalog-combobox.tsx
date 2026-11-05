@@ -16,6 +16,7 @@ export function Combobox({
   value,
   onChange,
   placeholder,
+  label,
   withSearch = false,
   width = "w-full sm:w-52",
 }: {
@@ -23,6 +24,8 @@ export function Combobox({
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
+  /** Names the control for assistive technology; defaults to the placeholder. */
+  label?: string;
   withSearch?: boolean;
   width?: string;
 }) {
@@ -98,6 +101,7 @@ export function Combobox({
   return (
     <div
       ref={ref}
+      data-combobox-open={open || undefined}
       className={cn("relative", width)}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) {
@@ -143,7 +147,7 @@ export function Combobox({
       <button
         ref={triggerRef}
         type="button"
-        aria-label={`${placeholder}: ${selectedLabel}`}
+        aria-label={`${label ?? placeholder}: ${selectedLabel}`}
         onKeyDown={(event) => {
           if (!open && ["ArrowDown", "ArrowUp"].includes(event.key)) {
             event.preventDefault();
@@ -154,21 +158,21 @@ export function Combobox({
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-controls={open ? listboxId : undefined}
-        className="flex h-11 w-full items-center justify-between gap-2 rounded-lg border border-input bg-card px-3 text-sm transition-colors outline-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="flex h-11 w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-card py-2 pr-2 pl-2.5 text-sm transition-colors outline-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
       >
-        <span className="truncate text-left flex-1">{selectedLabel}</span>
+        <span className="line-clamp-1 flex-1 text-left">{selectedLabel}</span>
         <ChevronDown
           className={cn(
-            "size-4 shrink-0 opacity-50 transition-transform duration-200",
+            "pointer-events-none size-4 shrink-0 text-muted-foreground transition-transform duration-200 ease-(--ease-out) motion-reduce:transition-none",
             open && "rotate-180",
           )}
         />
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-1 overflow-hidden rounded-lg border bg-popover shadow-lg animate-in fade-in-0 slide-in-from-top-1 duration-150 motion-reduce:animate-none">
+        <div className="absolute top-full left-0 right-0 z-50 mt-1 overflow-hidden rounded-lg bg-popover text-popover-foreground shadow-md ring-1 ring-foreground/10 origin-top animate-in fade-in-0 zoom-in-95 slide-in-from-top-1 duration-200 ease-(--ease-out) motion-reduce:animate-none">
           {withSearch && (
-            <div className="p-2 border-b">
+            <div className="border-b p-1">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
                 <input
@@ -188,12 +192,12 @@ export function Combobox({
             id={listboxId}
             role="listbox"
             aria-label={placeholder}
-            className="max-h-64 overflow-y-auto"
+            className="max-h-64 overflow-y-auto p-1"
           >
             {[...groups.entries()].map(([group, groupItems]) => (
               <div key={group}>
                 {group && (
-                  <p className="px-3 pt-2.5 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <p className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {group}
                   </p>
                 )}
@@ -211,13 +215,12 @@ export function Combobox({
                       triggerRef.current?.focus();
                     }}
                     className={cn(
-                      "touch-target flex min-h-10 w-full items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-2 focus-visible:outline-ring focus-visible:-outline-offset-2",
-                      value === item.value && "font-medium",
+                      "touch-target relative flex min-h-10 w-full cursor-default items-center rounded-md py-2 pr-9 pl-3 text-left text-sm outline-hidden select-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
                     )}
                   >
                     <span>{item.label}</span>
                     {value === item.value && (
-                      <Check className="size-3.5 text-primary shrink-0" />
+                      <Check className="pointer-events-none absolute right-3 size-4" />
                     )}
                   </button>
                 ))}

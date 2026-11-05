@@ -20,3 +20,13 @@ export const modelFamilyLogoAssets: Readonly<Record<string, { file: string; mono
   hailuo: { file: "lobe/hailuo-color.svg", monochrome: false },
   sora: { file: "lobe/sora-color.svg", monochrome: false },
 };
+
+/**
+ * Marks OpenRouter shows for creators with no other bundled artwork; `file` is
+ * relative to /logos/. Sources are listed in public/licenses/NOTICE.txt.
+ */
+export const openRouterLogoAssets: Readonly<Record<string, { file: string; monochrome: boolean }>> = {
+  // OpenRouter's mark for anonymous previews (stealth/*) until the creator is revealed.
+  stealth: { file: "openrouter/stealth.svg", monochrome: false },
+  moondream: { file: "openrouter/moondream.png", monochrome: false },
+};

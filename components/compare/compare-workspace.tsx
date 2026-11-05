@@ -167,7 +167,7 @@ export function CompareWorkspace({
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-            <GitCompareArrows aria-hidden="true" className="size-5 text-muted-foreground sm:size-6" />
+            <GitCompareArrows aria-hidden="true" className="size-5 shrink-0 text-muted-foreground sm:size-6" />
             {heading?.title ?? t.compare.title}
             <PageCat kind="compare" className="ml-2 self-end" />
           </h1>
@@ -205,7 +205,7 @@ export function CompareWorkspace({
         <EmptyComparison allModels={allModels} search={search(false)} pending={pending} onAdd={add} />
       ) : (
         <>
-          <section aria-label={t.compare.select} className="space-y-3 lg:hidden">
+          <section aria-label={t.compare.selectedModels(models.length)} className="space-y-3 lg:hidden">
             <ol className="grid gap-2 sm:grid-cols-2">
               {models.map((model, index) => (
                 <li

@@ -34,6 +34,8 @@ export interface Translations {
   /** The data-generated summary on the home page and the benchmark pages. */
   summary: {
     title: string;
+    expand: string;
+    collapse: string;
     leader: (name: ReactNode, score: string, count: string, unit: "models" | "results") => ReactNode;
     value: (name: ReactNode, score: string, cost: string) => ReactNode;
     cheapest: (name: ReactNode, cost: string) => ReactNode;
@@ -67,7 +69,7 @@ export interface Translations {
     popular: string;
     allCompare: string;
   };
-  mobile: { filters: string; showResults: string; close: string; catalog: string; ranking: string; category: string; overview: string; specifications: string; selection: string; };
+  mobile: { filters: string; showResults: string; close: string; catalog: string; ranking: string; category: string; overview: string; specifications: string; selection: string; navigation: string; more: string; };
   stealth: { active: string; former: string; title: string; listed: string; firstSeen: string; description: string; source: string; revealed: string; unranked: string; unknownCreator: string; };
   benchmarkUi: {
     search: string;
@@ -126,6 +128,7 @@ export interface Translations {
     familyHint: string;
     openVariant: string;
     empty: string;
+    tapHint: string;
     picker: {
       title: string;
       count: (shown: string, total: string) => string;
@@ -331,6 +334,7 @@ export interface Translations {
     unavailableDescription: string;
     models: string;
     allProviders: string;
+    providerLabel: string;
     categories: {
       all: string;
       new: string;
@@ -499,7 +503,7 @@ export interface Translations {
     title: string;
     description: string;
     selectedCount: (n: number) => string;
-    select: string;
+    selectedModels: (n: number) => string;
     maxReached: string;
     clear: string;
     compare: string;
@@ -942,6 +946,8 @@ const T: Record<Lang, Translations> = {
     },
     summary: {
       title: "En bref",
+      expand: "Lire la suite",
+      collapse: "Réduire",
       leader: (name, score, count, unit) => <>{name} est en tête avec {score}, sur {count} {unit === "models" ? "modèles classés" : "résultats"}.</>,
       value: (name, score, cost) => <>Meilleur rapport score/coût : {name}, {score} pour {cost}.</>,
       cheapest: (name, cost) => <>Le moins cher : {name}, à {cost}.</>,
@@ -977,7 +983,7 @@ const T: Record<Lang, Translations> = {
       popular: "Comparaisons populaires",
       allCompare: "Comparer d'autres modèles",
     },
-    mobile: { filters: "Filtres et tri", showResults: "Voir les résultats", close: "Fermer", catalog: "Catalogue", ranking: "Classement", category: "Type de modèle", overview: "Benchmarks", specifications: "Prix et capacités", selection: "Votre sélection" },
+    mobile: { filters: "Filtres et tri", showResults: "Voir les résultats", close: "Fermer", catalog: "Catalogue", ranking: "Classement", category: "Type de modèle", overview: "Benchmarks", specifications: "Prix et capacités", selection: "Votre sélection", navigation: "Navigation mobile", more: "Plus" },
     stealth: { active: "Modèle furtif", former: "Ancien modèle furtif", title: "Historique du modèle furtif", listed: "Publié sur OpenRouter", firstSeen: "Détecté par BenchSift", description: "Le fournisseur était anonyme pendant cet aperçu. Les correspondances ci-dessous sont confirmées par OpenRouter. La date de détection indique notre première observation, pas la sortie du modèle.", source: "Source OpenRouter", revealed: "Identité révélée", unranked: "Sans classement", unknownCreator: "Créateur non révélé" },
     benchmarkUi: {
       "search": "Rechercher un modèle ou un harnais…",
@@ -1041,6 +1047,7 @@ const T: Record<Lang, Translations> = {
       familyHint: "Chaque point est un niveau de raisonnement de ce modèle : plus de réflexion améliore souvent le score, mais coûte plus cher. Sélectionnez un point pour ouvrir ce niveau.",
       openVariant: "Ouvrir ce niveau",
       empty: "Pas assez de données communes pour tracer ce graphique.",
+      tapHint: "Touchez un point pour lire ses valeurs.",
       picker: {
         title: "Modèles affichés",
         count: (shown, total) => `${shown} sur ${total}`,
@@ -1307,6 +1314,7 @@ const T: Record<Lang, Translations> = {
       unavailableDescription: "Les données réelles des modèles n'ont pas pu être chargées. Réessayez dans un instant.",
       models: "modèles",
       allProviders: "Tous les fournisseurs",
+      providerLabel: "Fournisseur",
       categories: {
         all: "Tous",
         new: "Nouveaux",
@@ -1484,7 +1492,7 @@ const T: Record<Lang, Translations> = {
       title: "Comparateur de modèles",
       description: "Comparez les écarts utiles entre benchmarks, vitesse, prix et capacités, configuration par configuration.",
       selectedCount: (n) => `${n} modèle${n > 1 ? "s" : ""} comparé${n > 1 ? "s" : ""}`,
-      select: "modèle(s) sélectionné(s)",
+      selectedModels: (n) => `${n} modèle${n > 1 ? "s" : ""} sélectionné${n > 1 ? "s" : ""}`,
       maxReached: "Maximum 4 modèles",
       clear: "Effacer",
       compare: "Comparer",
@@ -1995,6 +2003,8 @@ const T: Record<Lang, Translations> = {
     },
     summary: {
       title: "At a glance",
+      expand: "Read more",
+      collapse: "Show less",
       leader: (name, score, count, unit) => <>{name} leads with {score}, out of {count} {unit === "models" ? "ranked models" : "results"}.</>,
       value: (name, score, cost) => <>Best score for the money: {name}, {score} for {cost}.</>,
       cheapest: (name, cost) => <>Lowest cost: {name}, at {cost}.</>,
@@ -2030,7 +2040,7 @@ const T: Record<Lang, Translations> = {
       popular: "Popular comparisons",
       allCompare: "Compare other models",
     },
-    mobile: { filters: "Filter and sort", showResults: "Show results", close: "Close", catalog: "Catalog", ranking: "Ranking", category: "Model type", overview: "Benchmarks", specifications: "Price and capabilities", selection: "Your selection" },
+    mobile: { filters: "Filter and sort", showResults: "Show results", close: "Close", catalog: "Catalog", ranking: "Ranking", category: "Model type", overview: "Benchmarks", specifications: "Price and capabilities", selection: "Your selection", navigation: "Mobile navigation", more: "More" },
     stealth: { active: "Stealth model", former: "Former stealth model", title: "Stealth model history", listed: "Listed on OpenRouter", firstSeen: "First seen by BenchSift", description: "The provider was anonymous during this preview. The identities below are confirmed by OpenRouter. First seen is our first observation, not the model release date.", source: "OpenRouter source", revealed: "Identity revealed", unranked: "Unranked", unknownCreator: "Undisclosed creator" },
     benchmarkUi: {
       "search": "Search for a model or harness…",
@@ -2094,6 +2104,7 @@ const T: Record<Lang, Translations> = {
       familyHint: "Each point is a reasoning level of this model: more reasoning often raises the score but costs more. Select a point to open that level.",
       openVariant: "Open this level",
       empty: "Not enough shared data to draw this chart.",
+      tapHint: "Tap a point to read its values.",
       picker: {
         title: "Models shown",
         count: (shown, total) => `${shown} of ${total}`,
@@ -2360,6 +2371,7 @@ const T: Record<Lang, Translations> = {
       unavailableDescription: "The live model data could not be loaded. Please try again in a moment.",
       models: "models",
       allProviders: "All providers",
+      providerLabel: "Provider",
       categories: {
         all: "All",
         new: "New",
@@ -2537,7 +2549,7 @@ const T: Record<Lang, Translations> = {
       title: "Model Comparator",
       description: "Compare meaningful differences across benchmarks, speed, pricing, and capabilities, configuration by configuration.",
       selectedCount: (n) => `${n} model${n === 1 ? "" : "s"} compared`,
-      select: "model(s) selected",
+      selectedModels: (n) => `${n} model${n === 1 ? "" : "s"} selected`,
       maxReached: "Maximum 4 models",
       clear: "Clear",
       compare: "Compare",

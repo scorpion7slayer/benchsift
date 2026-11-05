@@ -1,6 +1,6 @@
 import { aaLogoAssets } from "./aa-logo-assets";
 import { providerLogoAssets } from "./provider-logo-assets";
-import { modelFamilyLogoAssets, supplementalLogoAssets } from "./supplemental-logo-assets";
+import { modelFamilyLogoAssets, openRouterLogoAssets, supplementalLogoAssets } from "./supplemental-logo-assets";
 import { getCanonicalCreatorSlug, getProviderKey } from "./provider-map";
 
 const aliases: Record<string, string> = {
@@ -73,6 +73,9 @@ export function getBrandLogo(provider: string) {
       color: aa.color,
       monochrome: false,
     };
+  const openRouter = openRouterLogoAssets[canonical] ?? openRouterLogoAssets[key];
+  if (openRouter)
+    return { src: `/logos/${openRouter.file}`, color: undefined, monochrome: openRouter.monochrome };
   const fallback = [canonical, getProviderKey(canonical), key].find((name) =>
     providerLogoAssets.has(name),
   );

@@ -22,9 +22,11 @@ export function StealthHistory({ model }: { model: Identity }) {
   const [expanded, setExpanded] = useState(false);
   const id = useId();
   if (!model.stealth_history?.length) return null;
+  // The history describes a past preview; a model still anonymous has none yet.
+  if (model.is_stealth && !model.stealth_history.some((row) => row.revealedAs)) return null;
   const formatDate = (value: string) => new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeZone: "UTC" }).format(new Date(value));
   return <div>
-    <button type="button" aria-expanded={expanded} aria-controls={id} onClick={() => setExpanded(!expanded)} className="flex min-h-12 w-full items-center gap-2 rounded-lg border bg-card px-3 text-left text-sm sm:hidden"><Eye className="size-4 shrink-0" /><span className="flex-1">{t.stealth.title}</span><ChevronDown className={cn("size-4 shrink-0", expanded && "rotate-180")} /></button>
+    <button type="button" aria-expanded={expanded} aria-controls={id} onClick={() => setExpanded(!expanded)} className="flex min-h-12 w-full items-center gap-2 rounded-lg border bg-card px-3 text-left text-sm sm:hidden"><Eye className="size-4 shrink-0" /><span className="flex-1">{t.stealth.title}</span><ChevronDown className={cn("size-4 shrink-0 transition-transform duration-200 ease-out motion-reduce:transition-none", expanded && "rotate-180")} /></button>
     <Card id={id} className={cn("sm:flex", expanded ? "mt-2 flex sm:mt-0" : "hidden")}>
     <CardHeader>
       <CardTitle className="flex items-center gap-2"><Eye className="size-4" />{t.stealth.title}</CardTitle>

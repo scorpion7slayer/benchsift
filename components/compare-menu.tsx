@@ -15,7 +15,7 @@ export function CompareMenu({
   const { selected } = useCompare();
   const isBubble = variant === "bubble";
   const search = selected.length > 0 ? { models: selected.join(",") } : {};
-  const label = `${t.compare.compare} · ${selected.length} ${t.compare.select}`;
+  const label = `${t.compare.compare} · ${t.compare.selectedModels(selected.length)}`;
 
   return (
     <Button

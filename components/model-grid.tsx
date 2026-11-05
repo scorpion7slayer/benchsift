@@ -207,6 +207,7 @@ export function ModelGrid({
         value={state.provider}
         onChange={(value) => update("provider", value)}
         placeholder={t.grid.allProviders}
+        label={t.grid.providerLabel}
         withSearch
         width="w-56"
       />
@@ -378,7 +379,7 @@ export function ModelGrid({
                 </Suspense>
               </>
             ) : (
-              <div className="overflow-hidden rounded-xl border border-border/70 bg-card">
+              <div className="-mx-4 overflow-hidden border-y border-border/70 bg-card sm:mx-0 sm:rounded-xl sm:border-x">
                 <RankedListHeader metric={state.ranking} />
                 <ol>
                   {normalResults.slice(0, visibleCount).map(({ model, rank }) => (

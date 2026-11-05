@@ -1,26 +1,17 @@
-import { useRef, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { switchLocaleHref } from "@/lib/locale";
 import { Link } from "@/components/link";
 import {
-  Activity,
-  Boxes,
   ChevronDown,
   ChevronLeft,
   Coffee,
   ExternalLink,
-  Gauge,
   Info,
   LibraryBig,
-  Menu,
   MessageSquarePlus,
   PanelsTopLeft,
-  RobotArm,
-  Route,
-  Shield,
-  Terminal,
 } from "@/components/icons";
-import { MobileSheet } from "@/components/mobile-sheet";
+import { BENCHMARK_LINKS, DATA_SOURCE_LINKS } from "@/components/nav-links";
 import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import {
@@ -77,8 +68,6 @@ interface SiteHeaderProps {
 
 export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
   const { t, lang } = useI18n();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuButton = useRef<HTMLButtonElement>(null);
 
   return (
     <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur dark:shadow-sm supports-[backdrop-filter]:bg-card/85">
@@ -133,54 +122,20 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
                   {t.nav.otherBenchmarks}
                   <ChevronDown
                     data-icon="inline-end"
-                    className="transition-transform duration-150 ease-out group-data-[state=open]/button:rotate-180 motion-reduce:transition-none"
+                    className="transition-transform duration-200 ease-(--ease-out) group-data-[state=open]/button:rotate-180 motion-reduce:transition-none"
                   />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" sideOffset={8} className="w-56">
                 <DropdownMenuGroup>
-                  <DropdownMenuItem asChild>
-                    <Link href="/agents/coding">
-                      <Terminal />
-                      {t.nav.codingAgents}
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/benchmarks/deepswe">
-                      <Activity />
-                      {t.nav.deepSwe}
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/benchmarks/frontiercode">
-                      <Gauge />
-                      {t.nav.frontierCode}
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/benchmarks/aa-3d">
-                      <Boxes />
-                      {t.nav.aa3d}
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/benchmarks/decision-index">
-                      <Route />
-                      {t.nav.decisionIndex}
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/benchmarks/cyber">
-                      <Shield />
-                      {t.nav.cyber}
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/benchmarks/robotics">
-                      <RobotArm />
-                      {t.nav.robotics}
-                    </Link>
-                  </DropdownMenuItem>
+                  {BENCHMARK_LINKS.map(({ href, icon: Icon, label }) => (
+                    <DropdownMenuItem key={href} asChild>
+                      <Link href={href}>
+                        <Icon />
+                        {label(t)}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -195,36 +150,20 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
                   {t.nav.dataSources}
                   <ChevronDown
                     data-icon="inline-end"
-                    className="transition-transform duration-150 ease-out group-data-[state=open]/button:rotate-180 motion-reduce:transition-none"
+                    className="transition-transform duration-200 ease-(--ease-out) group-data-[state=open]/button:rotate-180 motion-reduce:transition-none"
                   />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" sideOffset={8} className="w-56">
                 <DropdownMenuGroup>
-                  <DropdownMenuItem asChild>
-                    <a href="https://artificialanalysis.ai" target="_blank" rel="noopener noreferrer">
-                      <ExternalLink />
-                      {t.nav.source}
-                    </a>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <a href="https://openrouter.ai" target="_blank" rel="noopener noreferrer">
-                      <ExternalLink />
-                      OpenRouter
-                    </a>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <a href="https://models.dev/" target="_blank" rel="noopener noreferrer">
-                      <ExternalLink />
-                      Models.dev
-                    </a>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <a href="https://huggingface.co" target="_blank" rel="noopener noreferrer">
-                      <ExternalLink />
-                      {t.nav.huggingFace}
-                    </a>
-                  </DropdownMenuItem>
+                  {DATA_SOURCE_LINKS.map(({ href, label }) => (
+                    <DropdownMenuItem key={href} asChild>
+                      <a href={href} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink />
+                        {label(t)}
+                      </a>
+                    </DropdownMenuItem>
+                  ))}
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -264,45 +203,7 @@ export function SiteHeader({ backHref, modelCount }: SiteHeaderProps) {
 
           {/* Préférences — toujours visibles */}
           <LangToggle />
-          <ThemeToggle />
-
-          {/* Bouton hamburger — mobile uniquement */}
-          <button
-            ref={menuButton}
-            type="button"
-            className="touch-target flex size-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground lg:hidden"
-            onClick={() => setMenuOpen(true)}
-            aria-expanded={menuOpen}
-            aria-controls="mobile-navigation"
-            aria-label={menuOpen
-              ? lang === "fr" ? "Fermer le menu" : "Close menu"
-              : lang === "fr" ? "Ouvrir le menu" : "Open menu"}
-          >
-            <Menu className="size-5" />
-          </button>
-        </div>
-      </div>
-
-      <MobileSheet open={menuOpen} onOpenChange={setMenuOpen} title={t.brand} returnFocus={menuButton} placement="right">
-        <nav aria-label={lang === "fr" ? "Navigation mobile" : "Mobile navigation"} className="grid gap-1 p-3">
-          <p className="px-3 pt-2 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{t.footer.explore}</p>
-          <Link href="/" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl bg-muted px-3 text-sm font-medium"><BrandMark className="size-5" />{t.mobile.catalog}</Link>
-          <Link href="/compare" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><PanelsTopLeft className="size-5" />{t.compare.compare}</Link>
-          <div className="my-2 border-t" />
-          <p className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{t.nav.otherBenchmarks}</p>
-          <Link href="/agents/coding" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Terminal className="size-5" />{t.nav.codingAgents}</Link>
-          <Link href="/benchmarks/deepswe" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Activity className="size-5" />{t.nav.deepSwe}</Link>
-          <Link href="/benchmarks/frontiercode" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Gauge className="size-5" />{t.nav.frontierCode}</Link>
-          <Link href="/benchmarks/aa-3d" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Boxes className="size-5" />{t.nav.aa3d}</Link>
-          <Link href="/benchmarks/decision-index" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Route className="size-5" />{t.nav.decisionIndex}</Link>
-          <Link href="/benchmarks/cyber" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Shield className="size-5" />{t.nav.cyber}</Link>
-          <Link href="/benchmarks/robotics" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><RobotArm className="size-5" />{t.nav.robotics}</Link>
-          <div className="my-2 border-t" />
-          <Link href="/models" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><LibraryBig className="size-5" />{t.nav.allModels}</Link>
-          <Link href="/about" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><Info className="size-5" />{t.nav.about}</Link>
-          <a href="https://github.com/scorpion7slayer/benchsift/issues" target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm hover:bg-muted"><MessageSquarePlus className="size-5" />{t.nav.feedback}</a>
-        </nav>
-      </MobileSheet>
-    </header>
+          <ThemeToggle />        </div>
+      </div>    </header>
   );
 }

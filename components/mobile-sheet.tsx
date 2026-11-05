@@ -12,7 +12,7 @@ export function MobileSheet({ open, onOpenChange, title, children, returnFocus, 
   return <Dialog.Root open={open} onOpenChange={onOpenChange}>
     <Dialog.Portal>
       <Dialog.Overlay className="catalog-sheet-overlay fixed inset-0 z-50 bg-black/45" />
-      <Dialog.Content aria-describedby={undefined} onCloseAutoFocus={(event) => { event.preventDefault(); returnFocus.current?.focus({ preventScroll: true }); }} className={cn("catalog-sheet fixed z-50 flex flex-col border bg-card text-foreground shadow-xl focus:outline-none", placement === "right" ? "catalog-nav-sheet inset-y-0 right-0 w-[min(22rem,92vw)] rounded-l-2xl" : "inset-x-0 bottom-0 max-h-[90dvh] rounded-t-2xl sm:inset-x-auto sm:right-4 sm:top-20 sm:bottom-auto sm:max-h-[calc(100dvh-6rem)] sm:w-96 sm:rounded-2xl")}>
+      <Dialog.Content aria-describedby={undefined} onEscapeKeyDown={(event) => { if (document.querySelector("[data-combobox-open]")) event.preventDefault(); }} onCloseAutoFocus={(event) => { event.preventDefault(); returnFocus.current?.focus({ preventScroll: true }); }} className={cn("catalog-sheet fixed z-50 flex flex-col border bg-card text-foreground shadow-xl focus:outline-none", placement === "right" ? "catalog-nav-sheet inset-y-0 right-0 w-[min(22rem,92vw)] rounded-l-2xl" : "inset-x-0 bottom-0 max-h-[90dvh] rounded-t-2xl sm:inset-x-auto sm:right-4 sm:top-20 sm:bottom-auto sm:max-h-[calc(100dvh-6rem)] sm:w-96 sm:rounded-2xl")}>
         <div className="flex shrink-0 items-center justify-between border-b px-4 py-2">
           <Dialog.Title className="text-base font-semibold">{title}</Dialog.Title>
           <Dialog.Close className="flex size-11 items-center justify-center rounded-lg hover:bg-muted" aria-label={t.mobile.close}><X className="size-5" /></Dialog.Close>

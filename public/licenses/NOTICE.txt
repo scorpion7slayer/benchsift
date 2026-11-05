@@ -35,3 +35,10 @@ scaled and optically centred. SpaceXSI (formerly SpaceXAI, formerly xAI) uses th
 standard SpaceX logo since its October 2026 rename, so the SpaceXAI and xAI marks
 are no longer bundled.
 The SpaceX mark is a trademark of its owner.
+
+OpenRouter marks (/logos/openrouter/): stealth.svg is the icon OpenRouter shows
+for anonymous previews, https://openrouter.ai/images/icons/Stealth.svg, and
+moondream.png is the Moondream favicon OpenRouter shows on moondream/* models,
+https://moondream.ai via Google's favicon service, both retrieved 2026-11-05 and
+otherwise unchanged. Trademarks belong to their owners and are not covered by the
+application's MIT licence.
