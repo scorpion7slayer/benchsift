@@ -8,7 +8,7 @@ import { ModelProviderIcon } from "@/components/model-provider-icon";
 import { SegmentedControl } from "@/components/segmented-control";
 import { SortButton } from "@/components/sort-button";
 import { TradeoffChart, type ChartScale, type ChartSeries } from "@/components/tradeoff-chart";
-import { splitEffort, type CodingAgent } from "@/lib/coding-agents";
+import { modelEffort, type CodingAgent } from "@/lib/coding-agents";
 import { formatDuration, formatMoney, formatMoneyCompact, formatNumber, formatPercent, formatTokens } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { getModelLogoKey } from "@/lib/provider-map";
@@ -32,7 +32,7 @@ function sortValue(agent: CodingAgent, key: SortKey): number | null {
 
 /** Harness and model family of a configuration, without its effort level. */
 function configurationKey(agent: CodingAgent): string {
-  return `${agent.agent_name}|${agent.models.map((model) => splitEffort(model.name).base).join("+")}`;
+  return `${agent.agent_name}|${agent.models.map((model) => modelEffort(model).base).join("+")}`;
 }
 
 /**
@@ -84,7 +84,7 @@ export function CodingAgentsView({ agents }: { agents: CodingAgent[] }) {
     return [...groups.entries()].map(([key, group]) => {
       const best = group[0];
       const color = providerColor(best.model_creator_slug, shade(best.model_creator_slug));
-      const label = `${best.models.map((model) => splitEffort(model.name).base).join(" + ")} · ${best.agent_name}`;
+      const label = `${best.models.map((model) => modelEffort(model).base).join(" + ")} · ${best.agent_name}`;
       return {
         id: key,
         label,
@@ -92,7 +92,7 @@ export function CodingAgentsView({ agents }: { agents: CodingAgent[] }) {
         highlights: [{ id: best.id, color }],
         points: group.flatMap((agent) => {
           const x = xAxis === "cost" ? agent.cost_per_task_usd : agent.time_per_task_seconds;
-          const effort = agent.models.map((model) => splitEffort(model.name).effort).find(Boolean) ?? null;
+          const effort = agent.models.map((model) => modelEffort(model).effort).find(Boolean) ?? null;
           return x == null || agent.coding_agent_index == null
             ? []
             : [{ id: agent.id, name: `${agent.agent_name} · ${agent.models.map((model) => model.name).join(" + ")}`, tag: effort, x, y: agent.coding_agent_index }];
@@ -304,7 +304,7 @@ function AgentModels({ agent }: { agent: CodingAgent }) {
   return (
     <span className="mt-1 flex flex-col gap-1">
       {agent.models.map((model, index) => {
-        const { base, effort } = splitEffort(model.name);
+        const { base, effort } = modelEffort(model);
         return (
           <span key={`${index}-${model.name}`} className="flex min-w-0 items-center gap-2 text-sm">
             <ModelProviderIcon provider={getModelLogoKey(base.toLowerCase().replace(/\s+/g, "-"), model.creator ?? agent.model_creator_slug)} size={18} />

@@ -1,4 +1,5 @@
 import type { LLMModel } from "./model-types";
+import { aaEvalPerTask } from "./aa-eval-cost";
 import { findFlightElementProps, flightElementProps, parseFlightRecords } from "./aa-flight";
 import {
   CYBER_INDEX_KEY,
@@ -8,8 +9,10 @@ import {
 } from "./cyber-index";
 
 /*
- * Artificial Analysis Cyber Index, read from the RSC payload of the AA home
- * page. Its "cyber-index" section holds the index (successes, safety blocks,
+ * Artificial Analysis Cyber Index. AA now publishes it on its own evaluation
+ * page, whose `initialModels` carry the index, each benchmark score and refusal
+ * rate; that layout is read first. Before, it sat in the RSC payload of the AA
+ * home page. Its "cyber-index" section holds the index (successes, safety blocks,
  * trusted access) and the score of each benchmark. Cost-per-task panels sat in
  * a separate "cyber-index-cost" section until AA moved the index cost into a
  * "Cyber Index vs. Cost" tab of "cyber-index"; both layouts are read.
@@ -87,6 +90,75 @@ function costPanelValues(props: Props) {
  */
 export function parseAACyberIndex(payload: string): AACyberIndexEntry[] {
   const records = parseFlightRecords(payload);
+  const page = parseCyberLeaderboardPage(records);
+  return page.length ? page : parseHomeSection(records);
+}
+
+/**
+ * The index benchmarks as AA's methodology describes them. Task counts are the
+ * published ones; DeepsecBench-AA publishes none, so neither its cost per task
+ * nor the index cost (which needs every benchmark) is computed.
+ */
+const LEADERBOARD_BENCHMARKS = [
+  { id: "cwe-bench-aa", label: "CWE-Bench-AA", score: "cweBench", refusal: "cweBenchRefusalRate", tokens: "cweBench", tasks: 120 },
+  { id: "deepsecbench-aa", label: "DeepsecBench-AA", score: "deepsecBench", refusal: "deepsecBenchRefusalRate", tokens: "deepsecBench", tasks: null },
+  { id: "cybergym-e2e-aa", label: "CyberGym-E2E-AA", score: "cybergymE2e", refusal: "cybergymE2eRefusalRate", tokens: "cybergymE2e", tasks: 131 },
+] as const;
+
+/**
+ * Rows of the dedicated `/evaluations/artificial-analysis-cyber-index` page.
+ * The index is the equally weighted mean of its three evaluations, and the
+ * safety-block rate AA charted is the same mean of their refusal rates; it is
+ * only derived when all three rates are published.
+ */
+function parseCyberLeaderboardPage(records: ReadonlyMap<string, unknown>): AACyberIndexEntry[] {
+  const [props] = findFlightElementProps(
+    records,
+    (props) => props.slug === INDEX_EVAL_SLUG && Array.isArray(props.initialModels),
+  );
+  if (!props) return [];
+  const [subtitle] = findFlightElementProps(
+    records,
+    (candidate) => candidate.evalSlug === INDEX_EVAL_SLUG && typeof candidate.indexSubtitle === "string",
+  );
+  const version = text(subtitle?.indexSubtitle)?.match(/\bv\d+(?:\.\d+)*\b/i)?.[0].toLowerCase() ?? null;
+  const seen = new Set<string>();
+  return rows(props.initialModels).flatMap((row): AACyberIndexEntry[] => {
+    const id = text(row.id);
+    const slug = text(row.slug);
+    const name = text(row.name);
+    const score = inRange(row.cyberIndex, 100);
+    if (!id || !slug || !SLUG_PATTERN.test(slug) || !name || score === null || seen.has(id)) return [];
+    seen.add(id);
+    const rates = LEADERBOARD_BENCHMARKS.map((benchmark) => inRange(row[benchmark.refusal], 1));
+    const benchmarks = LEADERBOARD_BENCHMARKS.flatMap((benchmark, index): CyberBenchmarkResult[] => {
+      const rate = rates[index];
+      const result = {
+        id: benchmark.id,
+        label: benchmark.label,
+        score: inRange(row[benchmark.score], 1),
+        safety_blocks: rate === null ? null : rate > 0,
+        cost_per_task_usd: benchmark.tasks ? aaEvalPerTask(row, benchmark.tokens, benchmark.tasks).cost_usd : null,
+      };
+      return result.score === null && result.safety_blocks === null && result.cost_per_task_usd === null ? [] : [result];
+    });
+    return [{
+      aa_id: id,
+      slug,
+      name,
+      version,
+      score,
+      safety_block_rate: rates.every((rate) => rate !== null)
+        ? (rates as number[]).reduce((sum, rate) => sum + rate, 0) / rates.length
+        : null,
+      access: access(row.mitigationStatus),
+      cost_per_task_usd: null,
+      benchmarks,
+    }];
+  });
+}
+
+function parseHomeSection(records: ReadonlyMap<string, unknown>): AACyberIndexEntry[] {
   const panels = sectionPanels(records, INDEX_SECTION);
   const index = panels.find(({ props }) => props.evalSlug === INDEX_EVAL_SLUG && !isCostPanel(props))?.props;
   if (!index) return [];

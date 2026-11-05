@@ -9,7 +9,8 @@ export interface CodingAgent {
   agent_name: string; // harness name (Claude Code, Cursor CLI…)
   agent_slug: string; // harness slug for icon lookup
   agent_creator_slug: string | null;
-  models: Array<{ name: string; creator: string | null }>;
+  /** `effort` is set when the source states it; older caches leave it undefined. */
+  models: Array<{ name: string; creator: string | null; effort?: string | null }>;
   display_label: string; // "Claude Code - Opus 4.7 (Medium)"
   model_name: string; // underlying model name (full)
   model_short: string; // shorter display name
@@ -51,6 +52,9 @@ const HARNESS_PROVIDERS: Record<string, string> = {
   "kimi-code-cli": "moonshotai",
   kimi: "moonshotai",
   devin: "cognition",
+  "deepseek-harness": "deepseek",
+  "mistral-vibe": "mistral",
+  mirror: "reflection",
   "devin-fusion-cli": "cognition",
   "muse-code": "meta",
   opencode: "opencode",
@@ -71,12 +75,23 @@ export function harnessProvider(slug: string, creator?: string | null): string {
   return prefix ? HARNESS_PROVIDERS[prefix] : key;
 }
 
-const EFFORT_PATTERN = /\s*(?:\(\s*(minimal|low|medium|high|xhigh|max)\s*\)|\b(minimal|low|medium|high|xhigh|max)\b)/i;
+const EFFORT = "minimal|low|medium|high|xhigh|max";
+// "(Max)" or "(Max, Default Fallback)": the effort leads a parenthesised suffix.
+const PAREN_EFFORT = new RegExp(`\\s*\\(\\s*(${EFFORT})\\s*(?:,\\s*([^)]*?)\\s*)?\\)`, "i");
+// Compound names ("GPT-6 Astra XHigh + SWE-2 Medium") append a bare effort word.
+const BARE_EFFORT = new RegExp(`\\s*\\b(${EFFORT})\\b`, "i");
 
 /** "Sonnet 5.5 (max)" → { base: "Sonnet 5.5", effort: "max" }; names without an effort keep it null. */
 export function splitEffort(name: string): { base: string; effort: string | null } {
-  const match = name.match(EFFORT_PATTERN);
+  const paren = name.match(PAREN_EFFORT);
+  const match = paren ?? name.match(BARE_EFFORT);
   if (!match || match.index == null) return { base: name.trim(), effort: null };
-  const base = `${name.slice(0, match.index)}${name.slice(match.index + match[0].length)}`.replace(/\s+/g, " ").trim();
-  return { base, effort: (match[1] ?? match[2]).toLowerCase() };
+  const rest = paren?.[2] ? ` (${paren[2]})` : "";
+  const base = `${name.slice(0, match.index)}${rest}${name.slice(match.index + match[0].length)}`.replace(/\s+/g, " ").trim();
+  return { base, effort: match[1].toLowerCase() };
+}
+
+/** Name and effort of one model of a configuration, preferring the effort the source stated. */
+export function modelEffort(model: { name: string; effort?: string | null }): { base: string; effort: string | null } {
+  return model.effort === undefined ? splitEffort(model.name) : { base: model.name, effort: model.effort };
 }

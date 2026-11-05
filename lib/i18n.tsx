@@ -882,6 +882,13 @@ export interface Translations {
     automationbench_aa: string;
     gdp_pdf: string;
     aa_briefcase: string;
+    harvey_lab_aa: string;
+    mlcr_aa: string;
+    healthbench: string;
+    healthbench_professional: string;
+    analyst_agent_aa: string;
+    enterprise_ops_gym_aa: string;
+    code2video_aa: string;
     finance_and_accounting: string;
     strategy_and_ops: string;
     legal: string;
@@ -1929,7 +1936,14 @@ const T: Record<Lang, Translations> = {
       critpt_v2: "CritPt v2",
       automationbench_aa: "AutomationBench-AA",
       gdp_pdf: "GDP.pdf (tous critères)",
-      aa_briefcase: "AA-Briefcase Elo",
+      aa_briefcase: "AA-Briefcase",
+      harvey_lab_aa: "Harvey LAB-AA",
+      mlcr_aa: "MLCR-AA",
+      healthbench: "HealthBench",
+      healthbench_professional: "HealthBench Professional",
+      analyst_agent_aa: "AA-AnalystAgent",
+      enterprise_ops_gym_aa: "EnterpriseOps-Gym-AA",
+      code2video_aa: "Code2Video-AA",
       finance_and_accounting: "Finance et comptabilité",
       strategy_and_ops: "Stratégie et opérations",
       legal: "Juridique",
@@ -2975,7 +2989,14 @@ const T: Record<Lang, Translations> = {
       critpt_v2: "CritPt v2",
       automationbench_aa: "AutomationBench-AA",
       gdp_pdf: "GDP.pdf (all-pass)",
-      aa_briefcase: "AA-Briefcase Elo",
+      aa_briefcase: "AA-Briefcase",
+      harvey_lab_aa: "Harvey LAB-AA",
+      mlcr_aa: "MLCR-AA",
+      healthbench: "HealthBench",
+      healthbench_professional: "HealthBench Professional",
+      analyst_agent_aa: "AA-AnalystAgent",
+      enterprise_ops_gym_aa: "EnterpriseOps-Gym-AA",
+      code2video_aa: "Code2Video-AA",
       finance_and_accounting: "Finance & Accounting",
       strategy_and_ops: "Strategy & Ops",
       legal: "Legal",

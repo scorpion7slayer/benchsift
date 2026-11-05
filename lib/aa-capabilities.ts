@@ -394,6 +394,56 @@ function escapeRegExp(value: string): string {
  * "parameters":117,"inferenceParametersActiveBillions":5.1}. Values are in
  * billions; `null` means AA does not publish the count.
  */
+const MAX_PAGE_MODEL_RECORD = 200_000;
+
+/**
+ * The page model's own record. AA model pages embed records for many other
+ * models (comparison lists, charts) before or after it, so a flag read from the
+ * first matching key anywhere in the page can belong to another model. This
+ * walks the balanced JSON object that starts with the page slug, decoding the
+ * JS-string escaping of Next.js Flight scripts when present.
+ */
+export function extractPageModelRecord(
+  input: AAHtmlInput,
+  slug: string,
+): Record<string, unknown> | null {
+  const start = new RegExp(`${AA_MODEL_OBJECT_START}${JSON_QUOTE}${escapeRegExp(slug)}${JSON_QUOTE}`);
+  for (const html of structuredSources(input)) {
+    const match = start.exec(html);
+    if (!match) continue;
+    const escaped = html.startsWith('\\"', match.index + 1);
+    const limit = Math.min(html.length, match.index + MAX_PAGE_MODEL_RECORD);
+    let depth = 0;
+    let inString = false;
+    let end = -1;
+    for (let index = match.index; index < limit; index++) {
+      if (escaped) {
+        if (html.startsWith('\\\\\\"', index)) { index += 3; continue; }
+        if (html.startsWith("\\\\", index)) { index += 1; continue; }
+        if (html.startsWith('\\"', index)) { inString = !inString; index += 1; continue; }
+        if (html[index] === "\\") { index += 1; continue; }
+      } else {
+        if (inString && html[index] === "\\") { index += 1; continue; }
+        if (html[index] === '"') { inString = !inString; continue; }
+      }
+      if (inString) continue;
+      if (html[index] === "{") depth++;
+      else if (html[index] === "}" && --depth === 0) { end = index; break; }
+    }
+    if (end < 0) continue;
+    try {
+      const raw = html.slice(match.index, end + 1);
+      const record: unknown = JSON.parse(escaped ? JSON.parse(`"${raw}"`) : raw);
+      if (record && typeof record === "object" && !Array.isArray(record)) {
+        return record as Record<string, unknown>;
+      }
+    } catch {
+      /* Fall through to the next source. */
+    }
+  }
+  return null;
+}
+
 function extractPageModelParameters(
   input: AAHtmlInput,
   slug: string,
@@ -500,57 +550,37 @@ export function extractAACapabilities(input: AAHtmlInput, slug?: string) {
   const document =
     typeof input === "string" ? parseAAHtmlDocument(input) : input;
   const pageParameters = slug ? extractPageModelParameters(document, slug) : null;
+  const record = slug ? extractPageModelRecord(document, slug) : null;
+  // With the page model's record, a missing key stays unknown rather than
+  // borrowing the first value of another model embedded in the page.
+  const flag = (snake: string, camel: string): boolean | undefined => {
+    if (!record) return extractJsonBoolean(document, snake, camel);
+    const value = record[camel] ?? record[snake];
+    return typeof value === "boolean" ? value : undefined;
+  };
+  const recordContext = record?.contextWindowTokens;
   return {
-    context_window_tokens: extractContextWindow(document),
+    context_window_tokens:
+      typeof recordContext === "number" && Number.isFinite(recordContext) && recordContext > 0
+        ? recordContext
+        : extractContextWindow(document),
     total_parameters_b: pageParameters
       ? pageParameters.total
       : extractParameterBillions(document, "Total parameters", "totalParameters"),
     active_parameters_b: pageParameters
       ? pageParameters.active
       : extractParameterBillions(document, "Active parameters", "activeParameters"),
-    reasoning_model: extractJsonBoolean(document, "reasoning_model", "isReasoning"),
+    reasoning_model: flag("reasoning_model", "isReasoning"),
     reasoning_properties: null,
-    is_open_weights: extractJsonBoolean(document, "is_open_weights", "isOpenWeights"),
-    input_modality_text: extractJsonBoolean(
-      document,
-      "input_modality_text",
-      "inputModalityText",
-    ),
-    input_modality_image: extractJsonBoolean(
-      document,
-      "input_modality_image",
-      "inputModalityImage",
-    ),
-    input_modality_speech: extractJsonBoolean(
-      document,
-      "input_modality_speech",
-      "inputModalitySpeech",
-    ),
-    input_modality_video: extractJsonBoolean(
-      document,
-      "input_modality_video",
-      "inputModalityVideo",
-    ),
-    output_modality_text: extractJsonBoolean(
-      document,
-      "output_modality_text",
-      "outputModalityText",
-    ),
-    output_modality_image: extractJsonBoolean(
-      document,
-      "output_modality_image",
-      "outputModalityImage",
-    ),
-    output_modality_speech: extractJsonBoolean(
-      document,
-      "output_modality_speech",
-      "outputModalitySpeech",
-    ),
-    output_modality_video: extractJsonBoolean(
-      document,
-      "output_modality_video",
-      "outputModalityVideo",
-    ),
+    is_open_weights: flag("is_open_weights", "isOpenWeights"),
+    input_modality_text: flag("input_modality_text", "inputModalityText"),
+    input_modality_image: flag("input_modality_image", "inputModalityImage"),
+    input_modality_speech: flag("input_modality_speech", "inputModalitySpeech"),
+    input_modality_video: flag("input_modality_video", "inputModalityVideo"),
+    output_modality_text: flag("output_modality_text", "outputModalityText"),
+    output_modality_image: flag("output_modality_image", "outputModalityImage"),
+    output_modality_speech: flag("output_modality_speech", "outputModalitySpeech"),
+    output_modality_video: flag("output_modality_video", "outputModalityVideo"),
     knowledge_cutoff: extractKnowledgeCutoff(document),
     openness_index: extractOpenness(document),
     intelligence_index_tokens: extractIntelligenceIndexTokens(document),

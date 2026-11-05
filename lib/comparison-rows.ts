@@ -4,7 +4,9 @@ import { cyberIndexResult } from "./cyber-index";
 import { modelAccessRestriction } from "./model-availability";
 import {
   AA_CAPABILITY_INDEX_KEYS,
+  AA_INDEX_PAGE_FRACTION_KEYS,
   AA_INDEX_V5_FRACTION_KEYS,
+  ELO_BENCHMARK_KEYS,
   AA_MEDIA_BENCHMARK_DEFS,
   TEXT_BENCHMARK_KEYS,
   applicableExtraBenchmarkEntries,
@@ -198,6 +200,7 @@ export function buildComparisonRows(
     "mmmu_pro",
     "critpt",
     "apex_agents",
+    ...AA_INDEX_PAGE_FRACTION_KEYS,
   ];
   for (const key of indices)
     add(key, benchmarkLabels(key, t), "benchmarks", (m) => textMetricValue(m, key), {
@@ -243,7 +246,9 @@ export function buildComparisonRows(
       benchmarkLabels(key, t),
       "benchmarks",
       (m) => textMetricValue(m, key),
-      { format: "number" },
+      (ELO_BENCHMARK_KEYS as readonly string[]).includes(key)
+        ? { direction: "higher", format: "elo" }
+        : { format: "number" },
     );
   }
   for (const def of AA_MEDIA_BENCHMARK_DEFS)

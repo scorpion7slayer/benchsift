@@ -30,7 +30,7 @@ import { PageCat } from "@/components/pixel-art/page-cats";
 import { CyberBenchmarkScore, CyberLegend, CyberOutcomeBar, formatCyberScore } from "./cyber-outcome";
 
 const URL_QUERY_DELAY_MS = 300;
-const AA_CYBER_URL = "https://artificialanalysis.ai/#cyber-index";
+const AA_CYBER_URL = "https://artificialanalysis.ai/evaluations/artificial-analysis-cyber-index";
 
 /**
  * Artificial Analysis Cyber Index: headline figures, score against cost per
@@ -74,7 +74,15 @@ export function CyberIndexView({
   const benchmarkIds = new Set(data.benchmarks.map((benchmark) => benchmark.id));
   const sort = search.sort && (search.sort === "blocks" || search.sort === "cost" || benchmarkIds.has(search.sort)) ? search.sort : "index";
   const direction = search.dir ?? cyberDefaultDirection(sort);
-  const chart = search.chart && benchmarkIds.has(search.chart) ? search.chart : "index";
+  // The trade-off chart plots cost, so it offers only the scores AA's cost is known for.
+  const chartIds = [
+    ...(data.rows.some((row) => row.result.cost_per_task_usd != null) ? ["index"] : []),
+    ...data.benchmarks
+      .filter((benchmark) => data.rows.some((row) => row.result.benchmarks.some((item) => item.id === benchmark.id && item.cost_per_task_usd != null)))
+      .map((benchmark) => benchmark.id),
+  ];
+  const defaultChart = chartIds[0] ?? "index";
+  const chart = search.chart && chartIds.includes(search.chart) ? search.chart : defaultChart;
   const publicOnly = search.access === "public";
   const update = (patch: Partial<CyberSearch>) => onSearchChange(parseCyberSearch({ ...search, ...patch }));
 
@@ -174,19 +182,22 @@ export function CyberIndexView({
               detail: top.result.access === "trusted" ? `${top.name} · ${t.card.trustedAccessBadge}` : top.name,
               hint: t.glossary.cyber,
             },
-            top.result.access === "trusted" && topPublic
-              ? {
+            // AA publishes no index-level cost; the tile appears only when a cost exists.
+            ...(top.result.access === "trusted" && topPublic
+              ? [{
                   key: "best-public",
                   label: copy.stats.bestPublic,
                   value: formatCyberScore(topPublic.result.score, lang),
                   detail: topPublic.name,
-                }
-              : {
-                  key: "cheapest",
-                  label: ui.cheapestTop,
-                  value: formatMoney(cheapest?.result.cost_per_task_usd, lang),
-                  detail: cheapest ? `${cheapest.name} · ${formatCyberScore(cheapest.result.score, lang)}` : undefined,
-                },
+                }]
+              : cheapest
+                ? [{
+                    key: "cheapest",
+                    label: ui.cheapestTop,
+                    value: formatMoney(cheapest.result.cost_per_task_usd, lang),
+                    detail: `${cheapest.name} · ${formatCyberScore(cheapest.result.score, lang)}`,
+                  }]
+                : []),
             {
               key: "blocked",
               label: copy.stats.safetyBlocked,
@@ -207,12 +218,14 @@ export function CyberIndexView({
           <div className="flex flex-wrap gap-2">
             <CatalogSelect
               value={chart}
-              onChange={(value) => update({ chart: value === "index" ? undefined : value })}
+              onChange={(value) => update({ chart: value === defaultChart ? undefined : value })}
               label={copy.chartMetric}
               className="sm:w-52"
               options={[
-                { value: "index", label: copy.headers.index },
-                ...data.benchmarks.map((benchmark) => ({ value: benchmark.id, label: benchmark.label })),
+                ...(chartIds.includes("index") ? [{ value: "index", label: copy.headers.index }] : []),
+                ...data.benchmarks
+                  .filter((benchmark) => chartIds.includes(benchmark.id))
+                  .map((benchmark) => ({ value: benchmark.id, label: benchmark.label })),
               ]}
             />
             <SegmentedControl

@@ -43,6 +43,9 @@ const aliases: Record<string, string> = {
   // Cloudflare publishes the Clef decision models; its Workers AI mark is hosted locally.
   cloudflare: "cloudflare-workers-ai",
   muse: "meta",
+  alibaba_cloud: "alibaba",
+  "alibaba-cloud": "alibaba",
+  nace: "nace-ai",
 };
 const localFiles = new Set(Object.values(aaLogoAssets).map((asset) => asset.file));
 const aaByProvider = new Map<string, (typeof aaLogoAssets)[string]>();

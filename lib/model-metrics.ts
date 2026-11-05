@@ -38,9 +38,19 @@ export const AA_INDEX_V5_FRACTION_KEYS = [
   "frontiercode_2_0", "terminalbench_science", "hle_diamond", "critpt_v2", "automationbench_aa", "gdp_pdf",
 ] as const;
 
+/** 0–1 benchmarks read from the AA Intelligence Index page outside the index itself. */
+export const AA_INDEX_PAGE_FRACTION_KEYS = [
+  "harvey_lab_aa", "mlcr_aa", "healthbench", "healthbench_professional", "analyst_agent_aa", "enterprise_ops_gym_aa",
+] as const;
+
+/** Elo-rated text benchmarks; every other text benchmark is a 0–1 fraction. */
+export const ELO_BENCHMARK_KEYS = ["gdpval", "aa_briefcase", "code2video_aa"] as const;
+
 export const TEXT_BENCHMARK_KEYS = new Set([
   ...AA_INDEX_V5_FRACTION_KEYS,
+  ...AA_INDEX_PAGE_FRACTION_KEYS,
   "aa_briefcase",
+  "code2video_aa",
   "mmlu_pro",
   "gpqa",
   "hle",
@@ -114,6 +124,7 @@ export const FRACTION_BENCHMARK_KEYS = [
   "ifbench", "lcr", "terminalbench_hard", "terminalbench_v2_1", "terminalbench_v4_0", "tau2", "tau_banking",
   "humaneval", "omniscience", "multilingual_aa", "mmmu_pro", "critpt", "gdpval_normalized",
   "apex_agents", "itbench_aa", "omniscience_non_hallucination",
+  ...AA_INDEX_PAGE_FRACTION_KEYS,
 ] as const;
 
 export function createEmptyEvaluations(): Evaluations {

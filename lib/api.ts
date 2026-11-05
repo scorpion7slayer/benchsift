@@ -396,17 +396,19 @@ const scrapeModelCapabilities = cached(
   { revalidate: CACHE_SCRAPE_SECONDS }
 );
 
-const AA_HOME_PAGE = "https://artificialanalysis.ai/";
 const AA_INDEX_V5_PAGE = "https://artificialanalysis.ai/evaluations/artificial-analysis-intelligence-index";
 
+const AA_CYBER_INDEX_PAGE = "https://artificialanalysis.ai/evaluations/artificial-analysis-cyber-index";
+
 /**
- * Cyber Index leaderboard from the RSC payload of the AA home page, where AA
- * publishes it. A failure returns [] so the refresh keeps previous results.
+ * Cyber Index leaderboard from the RSC payload of its AA evaluation page (it
+ * used to sit on the AA home page). A failure returns [] so the refresh keeps
+ * previous results.
  */
 async function fetchAACyberIndex(): Promise<AACyberIndexEntry[]> {
   try {
     const res = await fetchWithTimeout(
-      AA_HOME_PAGE,
+      AA_CYBER_INDEX_PAGE,
       {
         headers: {
           "User-Agent": SCRAPE_USER_AGENT,
