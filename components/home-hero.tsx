@@ -16,9 +16,9 @@ export function HomeHero({ count, latestModels }: { count: number; latestModels:
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t.hero.title}</h1>
           <span className="text-sm tabular-nums text-muted-foreground">{count}</span>
         </div>
-        <CompareMenu />
+        <div className="hidden lg:block"><CompareMenu /></div>
       </div>
-      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{t.hero.description}</p>
+      <p className="mt-2 hidden max-w-2xl text-sm leading-relaxed text-muted-foreground sm:block">{t.hero.description}</p>
     </div>
     {latestModels.length > 0 && <section aria-label={t.hero.latestModels}>
       <div className="relative mb-3">

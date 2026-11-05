@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 /** Shared by the rows and their header so every column lines up. */
 const ROW_GRID =
-  "grid grid-cols-[2.25rem_2.5rem_minmax(0,1fr)_4.5rem_2.75rem] items-center gap-2 px-2 sm:grid-cols-[3rem_2.25rem_minmax(0,1fr)_5rem_2.75rem] sm:gap-3 sm:px-3 md:grid-cols-[3rem_2.25rem_minmax(0,1fr)_5.5rem_5.5rem_5.5rem_2.75rem] lg:grid-cols-[3rem_2.25rem_minmax(0,1fr)_6rem_6rem_6rem_6rem_2.75rem]";
+  "grid grid-cols-[1.75rem_2.25rem_minmax(0,1fr)_4.25rem_2.75rem] items-center gap-2 px-3 sm:grid-cols-[3rem_2.25rem_minmax(0,1fr)_5rem_2.75rem] sm:gap-3 sm:px-3 md:grid-cols-[3rem_2.25rem_minmax(0,1fr)_5.5rem_5.5rem_5.5rem_2.75rem] lg:grid-cols-[3rem_2.25rem_minmax(0,1fr)_6rem_6rem_6rem_6rem_2.75rem]";
 
 /** Context columns that sit beside the ranked metric on wider screens. */
 const SECONDARY_POOL: NormalRankingKey[] = ["intelligence", "price_asc", "speed"];
@@ -124,7 +124,7 @@ export function RankedModelRow({
         {rank == null ? "—" : rank}
       </span>
 
-      <span className="flex size-10 items-center justify-center sm:size-9">
+      <span className="flex size-9 items-center justify-center">
         <ModelProviderIcon provider={getModelLogoKey(model.slug, model.model_creator.slug)} size={32} iconUrl={model.provider_icon_url} />
       </span>
 
@@ -132,7 +132,7 @@ export function RankedModelRow({
         href={`/models/${model.slug}`}
         className="min-w-0 rounded-md py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <span className="block break-words text-sm font-medium sm:truncate sm:text-[15px]">{model.name}</span>
+        <span title={model.name} className="line-clamp-2 break-words text-sm font-medium leading-5 sm:block sm:truncate sm:text-[15px]">{model.name}</span>
         <span className="block text-xs text-muted-foreground sm:truncate">
           <CreatorMark slug={model.model_creator.slug} />
           {creator}

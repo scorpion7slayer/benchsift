@@ -32,7 +32,7 @@ export function ScrollToTop() {
       tabIndex={show ? 0 : -1}
       aria-hidden={!show}
       className={cn(
-        "touch-target fixed bottom-24 right-4 z-40 size-11 rounded-full shadow-md sm:bottom-6 sm:right-6",
+        "touch-target fixed right-6 bottom-6 z-40 size-11 rounded-full shadow-md max-lg:hidden",
         "transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none",
         show
           ? "opacity-100 translate-y-0 scale-100 pointer-events-auto"

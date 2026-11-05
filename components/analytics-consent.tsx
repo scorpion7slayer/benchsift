@@ -112,7 +112,7 @@ export function AnalyticsConsentProvider({ children, initialConsent = null }: {
           ref={banner}
           data-cookie-banner
           aria-labelledby="analytics-banner-title"
-          className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 mx-auto max-h-[70dvh] max-w-4xl overflow-y-auto rounded-xl border bg-card/95 text-card-foreground shadow-lg backdrop-blur-sm sm:inset-x-6 sm:bottom-[max(1.25rem,env(safe-area-inset-bottom))]"
+          className="fixed inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-50 mx-auto max-h-[70dvh] max-w-4xl overflow-y-auto rounded-xl border bg-card/95 text-card-foreground shadow-lg backdrop-blur-sm sm:inset-x-6 lg:bottom-[max(1.25rem,env(safe-area-inset-bottom))]"
         >
           {controls(false)}
         </section>

@@ -48,7 +48,7 @@ export function ComparisonStack({
                       <div key={models[index].slug} className="grid grid-cols-[minmax(0,1fr)_minmax(0,auto)] items-start gap-x-3">
                         <dt className="flex min-w-0 items-center gap-2 pt-0.5 text-xs text-muted-foreground">
                           <ModelMarker index={index} className="size-4 text-[10px]" />
-                          <span className="truncate">{models[index].name}</span>
+                          <span className="min-w-0 wrap-break-word">{models[index].name}</span>
                         </dt>
                         <dd className="min-w-0 max-w-44 text-sm">
                           <ComparisonCell row={row} value={value} best={best} align="end" />

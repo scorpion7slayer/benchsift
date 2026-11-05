@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "@/components/link";
 import type { BenchmarkSummary } from "@/lib/benchmark-summaries";
 import type { SummaryPick } from "@/lib/data-summary";
@@ -15,6 +15,8 @@ export function DataSummary({ data, className }: { data: BenchmarkSummary; class
   const { t, lang } = useI18n();
   const copy = t.summary;
   const { summary } = data;
+  // Phones show two lines first; the rest stays in the DOM for screen readers.
+  const [expanded, setExpanded] = useState(false);
   if (!summary.leader) return null;
 
   const name = (pick: SummaryPick): ReactNode =>
@@ -37,10 +39,18 @@ export function DataSummary({ data, className }: { data: BenchmarkSummary; class
   return (
     <section aria-label={copy.title} className={cn("max-w-3xl text-sm leading-6 text-muted-foreground", className)}>
       <h2 className="sr-only">{copy.title}</h2>
-      <p>
+      <p className={cn(!expanded && "max-sm:line-clamp-2")}>
         {sentences.map((sentence, index) => <span key={index}>{index > 0 && " "}{sentence}</span>)}
       </p>
-      <p className="mt-1 text-xs">
+      <button
+        type="button"
+        aria-expanded={expanded}
+        onClick={() => setExpanded(!expanded)}
+        className="-my-2 inline-flex min-h-11 items-center rounded-md text-sm font-medium text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:hidden"
+      >
+        {expanded ? copy.collapse : copy.expand}
+      </button>
+      <p className={cn("mt-1 text-xs", !expanded && "max-sm:hidden")}>
         {summary.pool < summary.count && (summary.value || summary.fastest) ? `${copy.pool(formatNumber(summary.pool, lang, 0))} ` : ""}
         {data.updatedAt ? copy.updated(formatDate(data.updatedAt, lang)) : null}
       </p>

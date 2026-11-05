@@ -170,7 +170,6 @@ export function Aa3dView({ data, summary }: { data: Aa3dData & { catalog: Record
           efficientLabel={t.tradeoff.efficient}
           legend={false}
           picker
-          yFromData
           empty={t.tradeoff.empty}
         />
       </section>
@@ -332,11 +331,11 @@ function ModelName({ row, info }: { row: Aa3dRow; info: FrontierCodeModelInfo | 
   return (
     <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
       {info ? (
-        <Link href={`/models/${info.slug}`} className="truncate rounded-sm font-medium underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <Link href={`/models/${info.slug}`} className="min-w-0 wrap-break-word rounded-sm font-medium underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           {row.family_name}
         </Link>
       ) : (
-        <span className="truncate font-medium" title={row.name}>{row.family_name}</span>
+        <span className="min-w-0 wrap-break-word font-medium">{row.family_name}</span>
       )}
       {row.configuration && <Badge variant="secondary" className="font-mono text-[10px] uppercase">{row.configuration}</Badge>}
     </span>

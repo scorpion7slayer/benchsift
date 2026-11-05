@@ -17,6 +17,7 @@ import { useI18n } from "@/lib/i18n";
 import { SITE_NAME, seo, websiteJsonLd } from "@/lib/seo";
 import { localeFromPath } from "@/lib/locale";
 import { LanguageSuggestion } from "@/components/language-suggestion";
+import { MobileTabBar } from "@/components/mobile-tab-bar";
 import appCss from "../styles/globals.css?url";
 
 export const Route = createRootRoute({
@@ -77,6 +78,7 @@ function RootComponent() {
         <PageTransitionProvider>
           <Outlet />
         </PageTransitionProvider>
+        <MobileTabBar />
         <WebMcpProvider />
       </Providers>
     </RootDocument>

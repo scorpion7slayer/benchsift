@@ -86,7 +86,7 @@ function CatalogModelRow({ model }: { model: CatalogModelSummary }) {
         className="min-w-0 rounded-md py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className="flex min-w-0 flex-wrap items-center gap-1.5">
-          <span className="truncate text-sm font-medium sm:text-[15px]">{model.name}</span>
+          <span className="min-w-0 wrap-break-word text-sm font-medium sm:text-[15px]">{model.name}</span>
           {model.reasoning_model ? (
             <Badge variant="outline" className="hidden h-4.5 px-1.5 text-[10px] sm:inline-flex">
               {t.detail.reasoning}

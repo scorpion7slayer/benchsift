@@ -13,7 +13,7 @@ export function CreatorMark({
   size?: number;
   className?: string;
 }) {
-  if (!slug || slug === "stealth") return null;
+  if (!slug) return null;
   const provider = getProviderKey(slug);
   if (!getBrandLogo(provider).src) return null;
   return (

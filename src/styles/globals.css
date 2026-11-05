@@ -5,7 +5,11 @@
 
 @media (max-width: 639px) {
   .touch-target { min-height: 44px; min-width: 44px; }
-  html { scroll-padding-bottom: 100px; }
+}
+/* Phones and tablets navigate with the bottom tab bar; content and focus stay clear of it. */
+@media (max-width: 1023px) {
+  html { scroll-padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)); }
+  body { padding-bottom: calc(4.25rem + env(safe-area-inset-bottom)); }
 }
 
 @theme inline {
@@ -224,24 +228,14 @@
   }
 }
 
-/* Preference changes. A theme grows as a circle from the toggle
-   (lib/view-transition.ts); a language swap loads the other language's page,
-   which crossfades in as a cross-document view transition. */
+/* A language swap loads the other language's page, which crossfades in as a
+   cross-document view transition. The theme switches at once. */
 @media (prefers-reduced-motion: no-preference) {
   @view-transition { navigation: auto; }
 }
-@keyframes theme-reveal {
-  from { clip-path: circle(0 at var(--vt-x, 100%) var(--vt-y, 0)); }
-  to { clip-path: circle(var(--vt-r, 150vmax) at var(--vt-x, 100%) var(--vt-y, 0)); }
-}
-
 ::view-transition-old(root),
 ::view-transition-new(root) {
   mix-blend-mode: normal;
-}
-html[data-transition="theme"]::view-transition-old(root) { animation: none; }
-html[data-transition="theme"]::view-transition-new(root) {
-  animation: theme-reveal 560ms var(--ease-in-out) both;
 }
 @keyframes language-label-in { from { opacity: 0; transform: translateY(60%); } }
 .language-label { display: inline-block; animation: language-label-in var(--duration-base) var(--ease-out); }
@@ -449,7 +443,9 @@ body:has([data-cookie-banner]) [data-scroll-to-top] { visibility: hidden; }
 .catalog-card:focus-within { border-color: var(--ring); }
 .site-footer a, .site-footer button { min-height: 36px; display: inline-flex; align-items: center; transition: color 150ms; }
 .site-footer a:hover, .site-footer button:hover { color: var(--foreground); text-decoration: underline; text-underline-offset: 4px; }
-body:has([data-compare-dock]) .site-footer { padding-bottom: 84px; }
+@media (min-width: 1024px) { body:has([data-compare-dock]) .site-footer { padding-bottom: 84px; } }
+/* Keyboard focus never lands behind the selection dock. */
+@media (min-width: 1024px) { html:has([data-compare-dock]):not(:has([data-cookie-banner])) { scroll-padding-bottom: 6rem; } }
 @media (hover: hover) and (pointer: fine) {
   .catalog-card:hover { border-color: color-mix(in oklch, var(--foreground) 30%, var(--border)); background-color: color-mix(in oklch, var(--card) 96%, var(--foreground)); box-shadow: 0 8px 26px -20px color-mix(in oklch, var(--foreground) 35%, transparent); }
 }
@@ -548,6 +544,14 @@ body:has([data-compare-dock]) .site-footer { padding-bottom: 84px; }
 }
 
 /* The compare dock and the back-to-top button share the bottom-right corner. */
-@media (min-width: 640px) {
+@media (min-width: 1024px) {
   body:has([data-compare-dock]) [data-scroll-to-top] { bottom: 6.25rem; }
 }
+
+/* Bottom tabs: press feedback for touch, a short pop when the selection count changes. */
+.mobile-tab { -webkit-tap-highlight-color: transparent; touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.mobile-tab:active > span:first-child { background-color: var(--muted); transform: scale(.94); }
+.mobile-tab > span:first-child { transition: background-color var(--duration-fast) var(--ease-out), transform 100ms var(--ease-out); }
+@keyframes tab-count-pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.tab-count { animation: tab-count-pop var(--duration-base) var(--ease-out); }
+@media (prefers-reduced-motion: reduce) { .tab-count { animation: none; } .mobile-tab:active > span:first-child { transform: none; } }

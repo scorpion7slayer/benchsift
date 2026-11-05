@@ -73,12 +73,13 @@ export function CatalogFilters({
           </div>
         )}
         <div className="grid gap-2 text-sm font-medium">
-          <span>{t.grid.allProviders}</span>
+          <span>{t.grid.providerLabel}</span>
           <Combobox
             items={providerItems}
             value={state.provider}
             onChange={(value) => update("provider", value)}
             placeholder={t.grid.allProviders}
+            label={t.grid.providerLabel}
             withSearch
             width="w-full"
           />

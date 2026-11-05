@@ -308,7 +308,7 @@ function AgentModels({ agent }: { agent: CodingAgent }) {
         return (
           <span key={`${index}-${model.name}`} className="flex min-w-0 items-center gap-2 text-sm">
             <ModelProviderIcon provider={getModelLogoKey(base.toLowerCase().replace(/\s+/g, "-"), model.creator ?? agent.model_creator_slug)} size={18} />
-            <span className="truncate">{base}</span>
+            <span className="min-w-0 wrap-break-word">{base}</span>
             {effort && <span className="rounded border bg-muted px-1 font-mono text-[10px] uppercase text-muted-foreground">{effort}</span>}
           </span>
         );
